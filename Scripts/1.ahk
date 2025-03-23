@@ -187,9 +187,8 @@ pToken := Gdip_Startup()
 packs := 0
 
 if(DeadCheck==1) {
-	;LogToDiscord("Sup dudes. Not sure what happened, but a script died and I'm doing a menu delete and starting over.")
-	friended:= true
-	menuDeleteStart()
+	;LogToDiscord("Error. Restarting Instance.")
+	friended:= false
 	IniWrite, 0, %A_ScriptDir%\%scriptName%.ini, UserSettings, DeadCheck
 	Reload
 }else{
@@ -633,18 +632,6 @@ AddFriends(renew := false, getFC := false) {
 		count++
 	}
 	return n ;return added friends so we can dynamically update the .txt in the middle of a run without leaving friends at the end
-}
-
-ChooseTag() {
-	FindImageAndClick(120, 500, 155, 530, , "Social", 143, 518, 500)
-	FindImageAndClick(20, 500, 55, 530, , "Home", 40, 516, 500) 212 276 230 294
-	FindImageAndClick(203, 272, 237, 300, , "Profile", 143, 95, 500)
-	FindImageAndClick(205, 310, 220, 319, , "ChosenTag", 143, 306, 1000)
-	FindImageAndClick(203, 272, 237, 300, , "Profile", 143, 505, 1000)
-	if(FindOrLoseImage(145, 140, 157, 155, , "Eevee", 1)) {
-		FindImageAndClick(163, 200, 173, 207, , "ChooseEevee", 147, 207, 1000)
-		FindImageAndClick(53, 218, 63, 228, , "Badge", 143, 466, 500)
-	}
 }
 
 EraseInput(num := 0, total := 0) {
@@ -1282,9 +1269,11 @@ FoundStars(star) {
 	IniWrite, 0, %A_ScriptDir%\%scriptName%.ini, UserSettings, DeadCheck
 
 	; Pull back screenshot of the friend code/name (good for inject method)
-	Sleep, 8000
-	fcScreenshot := Screenshot("FRIENDCODE")
-
+	if (validity = "Valid" && injectMethod){
+		Sleep, 3000
+		fcScreenshot := Screenshot("FRIENDCODE")
+	}
+	
 	if(star = "Crown" || star = "Immersive")
 		RemoveFriends()
 	else {
@@ -1311,8 +1300,6 @@ FoundStars(star) {
 	CreateStatusMessage(logMessage)
 	LogToFile(logMessage, "GPlog.txt")
 	LogToDiscord(logMessage, screenShot, discordUserId, "", fcScreenshot)
-	if(star != "Crown" && star != "Immersive")
-		ChooseTag()
 }
 
 FindBorders(prefix) {
@@ -1437,9 +1424,11 @@ GodPackFound(validity) {
 	IniWrite, 0, %A_ScriptDir%\%scriptName%.ini, UserSettings, DeadCheck
 
 	; Pull screenshot of the Friend code page; wait so we don't get the clipboard pop up; good for the inject method
-	Sleep, 8000
-	fcScreenshot := Screenshot("FRIENDCODE")
-
+	if (validity = "Valid" && injectMethod){
+		Sleep, 3000
+		fcScreenshot := Screenshot("FRIENDCODE")
+	}
+	
 	; If we're doing the inject method, try to OCR our Username
 	try {
 		if(injectMethod && IsFunc("ocr_from_file"))
@@ -1465,7 +1454,6 @@ GodPackFound(validity) {
 	; Adjust the below to only send a 'ping' to Discord friends on Valid packs
 	if(validity = "Valid") {
 		LogToDiscord(logMessage, screenShot, discordUserId, "", fcScreenshot)
-		ChooseTag()
 	} else {
 		LogToDiscord(logMessage, screenShot)
 	}
@@ -1534,7 +1522,7 @@ loadAccount() {
 	waitadb()
 	adbShell.StdIn.WriteLine("am start -n jp.pokemon.pokemontcgp/com.unity3d.player.UnityPlayerActivity")
 	waitadb()
-	Sleep, 1000
+	Sleep, 3000
 
 	FileSetTime,, %loadDir%
 
