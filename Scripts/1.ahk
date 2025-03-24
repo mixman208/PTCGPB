@@ -17,13 +17,14 @@ DllCall("AllocConsole")
 WinHide % "ahk_id " DllCall("GetConsoleWindow", "ptr")
 
 global winTitle, changeDate, failSafe, openPack, Delay, failSafeTime, StartSkipTime, Columns, failSafe, adbPort, scriptName, adbShell, adbPath, GPTest, StatusText, defaultLanguage, setSpeed, jsonFileName, pauseToggle, SelectedMonitorIndex, swipeSpeed, godPack, scaleParam, discordUserId, discordWebhookURL, deleteMethod, packs, FriendID, friendIDs, Instances, username, friendCode, stopToggle, friended, runMain, Mains, showStatus, injectMethod, packMethod, loadDir, loadedAccount, nukeAccount, TrainerCheck, FullArtCheck, RainbowCheck, dateChange, foundGP, foundTS, friendsAdded, minStars, PseudoGodPack, Palkia, Dialga, Mew, Pikachu, Charizard, Mewtwo, packArray, CrownCheck, ImmersiveCheck, slowMotion, screenShot, accountFile, invalid, starCount, gpFound, foundTS
-global DeadCheck
+global DeadCheck, yieldToggle
 
 scriptName := StrReplace(A_ScriptName, ".ahk")
 winTitle := scriptName
 foundGP := false
 injectMethod := false
 pauseToggle := false
+yieldToggle := false
 showStatus := true
 friended := false
 dateChange := false
@@ -124,11 +125,11 @@ Loop {
 		Gui, Default
 		Gui, Margin, 4, 4  ; Set margin for the GUI
 		Gui, Font, s5 cGray Norm Bold, Segoe UI  ; Normal font for input labels
-		Gui, Add, Button, x0 y0 w40 h25 gReloadScript, Reload  (Shift+F5)
-		Gui, Add, Button, x40 y0 w40 h25 gPauseScript, Pause (Shift+F6)
-		Gui, Add, Button, x80 y0 w40 h25 gResumeScript, Resume (Shift+F6)
-		Gui, Add, Button, x120 y0 w40 h25 gStopScript, Stop (Shift+F7)
-		Gui, Add, Button, x160 y0 w40 h25 gShowStatusMessages, Status (Shift+F8)
+		Gui, Add, Button, x35 y0 w40 h25 gPauseScript, Pause (Shift+F6)
+		Gui, Add, Button, x70 y0 w40 h25 gResumeScript, Resume (Shift+F6)
+		Gui, Add, Button, x105 y0 w40 h25 gStopScript, Stop (Shift+F7)
+		Gui, Add, Button, x140 y0 w40 h25 gShowStatusMessages, Status (Shift+F8)
+		Gui, Add, Button, x175 y0 w40 h25 gYieldScript, Yield (Shift+F10)
 		DllCall("SetWindowPos", "Ptr", WinExist(), "Ptr", 1  ; HWND_BOTTOM
 				, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)  ; SWP_NOSIZE, SWP_NOMOVE, SWP_NOACTIVATE
 		Gui, Show, NoActivate x%x4% y%y4% AutoSize
@@ -328,7 +329,7 @@ if(DeadCheck==1) {
 return
 
 RemoveFriends() {
-	global friendIDs, stopToggle, friended
+	global friendIDs, stopToggle, yieldToggle, friended
 	failSafe := A_TickCount
 	failSafeTime := 0
 	Loop {
@@ -451,6 +452,17 @@ RemoveFriends() {
 		IniWrite, 0, %A_ScriptDir%\%scriptName%.ini, UserSettings, DeadCheck
 		ExitApp
 	}
+	else if (yieldToggle) {
+	CreateStatusMessage("Paused.")
+	yieldToggle := false
+	pauseToggle := true
+	friended := false
+	Pause, On
+		if(stopToggle)
+		ToggleStop()
+		ExitApp
+		
+}
 	friended := false
 }
 
@@ -1790,6 +1802,11 @@ PauseScript:
 	Pause, On
 return
 
+; Yield Script (Unfriend and Pause)
+YieldScript:
+	ToggleYield()
+return
+
 ; Resume Script
 ResumeScript:
 	CreateStatusMessage("Resuming...")
@@ -1814,6 +1831,12 @@ return
 TestScript:
 	ToggleTestScript()
 return
+
+ToggleYield() {
+	global yieldToggle
+	CreateStatusMessage("Pausing at the end of the script.")
+	yieldToggle := true
+}
 
 ToggleStop()
 {
@@ -1958,6 +1981,7 @@ from_window(ByRef image) {
 ~+F7::ToggleStop()
 ~+F8::ToggleStatusMessages()
 ;~F9::restartGameInstance("F9")
+~+F10::ToggleYield()
 
 ToggleStatusMessages() {
 	if(showStatus) {
