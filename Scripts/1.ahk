@@ -17,7 +17,7 @@ DllCall("AllocConsole")
 WinHide % "ahk_id " DllCall("GetConsoleWindow", "ptr")
 
 global winTitle, changeDate, failSafe, openPack, Delay, failSafeTime, StartSkipTime, Columns, failSafe, adbPort, scriptName, adbShell, adbPath, GPTest, StatusText, defaultLanguage, setSpeed, jsonFileName, pauseToggle, SelectedMonitorIndex, swipeSpeed, godPack, scaleParam, discordUserId, discordWebhookURL, deleteMethod, packs, FriendID, friendIDs, Instances, username, friendCode, stopToggle, friended, runMain, Mains, showStatus, injectMethod, packMethod, loadDir, loadedAccount, nukeAccount, TrainerCheck, FullArtCheck, RainbowCheck, dateChange, foundGP, foundTS, friendsAdded, minStars, PseudoGodPack, Palkia, Dialga, Mew, Pikachu, Charizard, Mewtwo, packArray, CrownCheck, ImmersiveCheck, slowMotion, screenShot, accountFile, invalid, starCount, gpFound, foundTS
-global DeadCheck
+global DeadCheck, skipMenuDelete
 
 scriptName := StrReplace(A_ScriptName, ".ahk")
 winTitle := scriptName
@@ -715,6 +715,11 @@ FindOrLoseImage(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT", E
 	vRet := Gdip_ImageSearch(pBitmap, pNeedle, vPosXY, 225, 300, 242, 314, searchVariation)
 	if (vRet = 1) {
 		CreateStatusMessage("At home page. Opening app..." )
+		; Aggressively avoid menu deleting if injecting.
+		if (injectMethod){
+			skipMenuDelete :=  true
+		}
+		}
 		restartGameInstance("At the home page during: `n" imageName)
 	}
 	if(imageName = "Social" || imageName = "Add") {
@@ -1079,7 +1084,12 @@ menuDelete() {
 }
 
 menuDeleteStart() {
-	global friended
+	global friended, injectMethod, skipMenuDelete
+	; Avoid menu deleting to preserve injected accounts.
+	if(skipMenuDelete){
+		skipMenuDelete := false
+		return false
+		}
 	if(gpFound) {
 		return gpFound
 	}
