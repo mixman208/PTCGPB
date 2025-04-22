@@ -1,4 +1,4 @@
-#Include %A_ScriptDir%\Scripts\Include\Logging.ahk
+﻿#Include %A_ScriptDir%\Scripts\Include\Logging.ahk
 #Include %A_ScriptDir%\Scripts\Include\ADB.ahk
 
 version = Arturos PTCGP Bot
@@ -6,20 +6,13 @@ version = Arturos PTCGP Bot
 CoordMode, Mouse, Screen
 SetTitleMatchMode, 3
 
-; Add custom message handlers for button coloring
-OnMessage(0x0133, "WM_CTLCOLORSTATIC")  ; Add handler for static controls
-OnMessage(0x0135, "WM_CTLCOLORBTN")      ; Add handler for button controls
-OnMessage(0x0138, "WM_CTLCOLORSTATIC")   ; Add handler for listbox controls
+; Remove message handlers for button coloring
 
-; Declare brush handles to clean up properly
 global STATIC_BRUSH := 0
-global BTN_BRUSH := 0
-global EDIT_BRUSH := 0
-global g_ButtonColors := {}  ; Store button colors by hwnd
 
 githubUser := "Arturo-1212"
 repoName := "PTCGPB"
-localVersion := "6.3.29.New-GUI"
+localVersion := "v6.3.29"
 scriptFolder := A_ScriptDir
 zipPath := A_Temp . "\update.zip"
 extractPath := A_Temp . "\update"
@@ -35,7 +28,7 @@ global UI_ELEMENT_SCALE := 0.85  ; Scale UI elements to fit smaller dimensions
 ; Added new global variable for background image toggle
 global useBackgroundImage := true
 
-global scriptName, winTitle, FriendID, Instances, instanceStartDelay, jsonFileName, PacksText, runMain, Mains, scaleParam
+global scriptName, winTitle, FriendID, Instances, instanceStartDelay, jsonFileName, PacksText, runMain, Mains, AccountName, scaleParam
 global CurrentVisibleSection
 global FriendID_Divider, Instance_Divider3
 global System_Divider1, System_Divider2, System_Divider3, System_Divider4
@@ -43,6 +36,7 @@ global Pack_Divider1, Pack_Divider2, Pack_Divider3
 global SaveForTradeDivider_1, SaveForTradeDivider_2
 global Discord_Divider3
 global tesseractPath, applyRoleFilters, debugMode
+global tesseractOption
 
 if not A_IsAdmin
 {
@@ -56,19 +50,18 @@ IniRead, debugMode, Settings.ini, UserSettings, debugMode, 0
 if (!debugMode)
 {
     MsgBox, 64, The project is now licensed under CC BY-NC 4.0, The original intention of this project was not for it to be used for paid services even those disguised as 'donations.' I hope people respect my wishes and those of the community. `nThe project is now licensed under CC BY-NC 4.0, which allows you to use, modify, and share the software only for non-commercial purposes. Commercial use, including using the software to provide paid services or selling it (even if donations are involved), is not allowed under this license. The new license applies to this and all future releases.
-    CheckForUpdate()
 }
 
 ; Define refined global color variables for consistent theming
 global DARK_BG := "232736"          ; Deeper blue-gray background
 global DARK_CONTROL_BG := "2E3440"  ; Slightly lighter panel background
-global DARK_ACCENT := "5E81AC"      ; Softer blue accent
+global DARK_ACCENT := "81A1C1"      ; Lighter blue accent (changed to match section colors)
 global DARK_TEXT := "ECEFF4"        ; Crisp white text with slight blue tint
 global DARK_TEXT_SECONDARY := "D8DEE9" ; Slightly dimmed secondary text
 
 global LIGHT_BG := "F0F5F9"         ; Soft light background with blue hint
 global LIGHT_CONTROL_BG := "FFFFFF" ; Pure white for controls
-global LIGHT_ACCENT := "5E81AC"     ; Same accent for consistency
+global LIGHT_ACCENT := "2E5984"     ; Darker accent (changed to match section colors)
 global LIGHT_TEXT := "2E3440"       ; Dark text that matches dark mode background
 global LIGHT_TEXT_SECONDARY := "4C566A" ; Medium gray with blue tint
 
@@ -80,108 +73,32 @@ global LIGHT_INPUT_TEXT := "2E3440" ; Dark text
 
 ; Section colors - Dark theme
 global DARK_SECTION_COLORS := {}
-DARK_SECTION_COLORS["RerollSettings"] := "5E81AC"   ; Blue (NEW)
-DARK_SECTION_COLORS["FriendID"] := "5E81AC"       ; Blue
-DARK_SECTION_COLORS["InstanceSettings"] := "81A1C1" ; Lighter blue
-DARK_SECTION_COLORS["TimeSettings"] := "88C0D0"     ; Cyan
-DARK_SECTION_COLORS["SystemSettings"] := "8FBCBB"   ; Teal
-DARK_SECTION_COLORS["PackSettings"] := "B48EAD"  ; Purple (renamed from GodPackSettings)
-DARK_SECTION_COLORS["SaveForTrade"] := "D08770"     ; Orange
-DARK_SECTION_COLORS["DiscordSettings"] := "7289DA"  ; Discord Blue
-DARK_SECTION_COLORS["DownloadSettings"] := "A3BE8C"   ; Green
+DARK_SECTION_COLORS["RerollSettings"] := "81A1C1"   ; Lighter Blue for better visibility on dark background
+DARK_SECTION_COLORS["FriendID"] := "81A1C1"       ; Lighter Blue
+DARK_SECTION_COLORS["InstanceSettings"] := "81A1C1" ; Lighter Blue
+DARK_SECTION_COLORS["TimeSettings"] := "81A1C1"     ; Lighter Blue
+DARK_SECTION_COLORS["SystemSettings"] := "8FBCBB"   ; Lighter Teal for dark background
+DARK_SECTION_COLORS["PackSettings"] := "B48EAD"  ; Lighter Purple for visibility
+DARK_SECTION_COLORS["SaveForTrade"] := "D08770"     ; Lighter Orange
+DARK_SECTION_COLORS["DiscordSettings"] := "90A8E0"  ; Lighter Discord Blue 
+DARK_SECTION_COLORS["DownloadSettings"] := "A3BE8C"   ; Light Green
 
 ; Section colors - Light theme
 global LIGHT_SECTION_COLORS := {}
-LIGHT_SECTION_COLORS["RerollSettings"] := "5E81AC"   ; Blue (NEW)
-LIGHT_SECTION_COLORS["FriendID"] := "5E81AC"       ; Blue
-LIGHT_SECTION_COLORS["InstanceSettings"] := "81A1C1" ; Lighter blue
-LIGHT_SECTION_COLORS["TimeSettings"] := "88C0D0"     ; Cyan
-LIGHT_SECTION_COLORS["SystemSettings"] := "8FBCBB"   ; Teal
-LIGHT_SECTION_COLORS["PackSettings"] := "B48EAD"  ; Purple (renamed from GodPackSettings)
-LIGHT_SECTION_COLORS["SaveForTrade"] := "EBCB8B"     ; Yellow
-LIGHT_SECTION_COLORS["DiscordSettings"] := "7289DA"  ; Discord Blue
-LIGHT_SECTION_COLORS["DownloadSettings"] := "A3BE8C"   ; Green
+LIGHT_SECTION_COLORS["RerollSettings"] := "2E5984"   ; Dark Blue for contrast on light background
+LIGHT_SECTION_COLORS["FriendID"] := "2E5984"       ; Dark Blue
+LIGHT_SECTION_COLORS["InstanceSettings"] := "2E5984" ; Dark Blue
+LIGHT_SECTION_COLORS["TimeSettings"] := "2E5984"     ; Dark Blue
+LIGHT_SECTION_COLORS["SystemSettings"] := "2D7270"   ; Dark Teal
+LIGHT_SECTION_COLORS["PackSettings"] := "6A5173"  ; Dark Purple
+LIGHT_SECTION_COLORS["SaveForTrade"] := "9A5A43"     ; Dark Orange
+LIGHT_SECTION_COLORS["DiscordSettings"] := "5865B2"  ; Darker Discord Blue
+LIGHT_SECTION_COLORS["DownloadSettings"] := "547B48"   ; Darker Green
 
-; Button colors - Initially undefined, will be set in ApplyTheme()
-global BTN_START := ""
-global BTN_LAUNCH := ""
-global BTN_ARRANGE := ""
-global BTN_COFFEE := ""
-global BTN_DISCORD := ""
-global BTN_UPDATE := ""
-global BTN_RELOAD := ""
-
-; Button coloring functions
-; Function to create a solid color brush
-CreateSolidBrush(RGB_value) {
-    return DllCall("CreateSolidBrush", "UInt", RGB_value, "UPtr")
-}
-
-; Function to convert RGB to BGR for Windows API
-RGB(r, g, b) {
-    return (b << 16) | (g << 8) | r
-}
-
-; Function to convert hex color to RGB value
-HexToRGB(color) {
-    ; Check if the color has a # prefix and remove it
-    if (SubStr(color, 1, 1) = "#")
-        color := SubStr(color, 2)
-    
-    ; Convert hex to RGB integer
-    return "0x" . SubStr(color, 5, 2) . SubStr(color, 3, 2) . SubStr(color, 1, 2)
-}
-
-; Message handler for button controls
-WM_CTLCOLORBTN(wParam, lParam) {
-    global g_ButtonColors, BTN_BRUSH
-    hwnd := lParam
-    
-    ; If we have a color saved for this button, use it
-    if (g_ButtonColors.HasKey(hwnd)) {
-        color := g_ButtonColors[hwnd]
-        
-        ; Delete old brush if exists to prevent memory leaks
-        if (BTN_BRUSH)
-            DllCall("DeleteObject", "Ptr", BTN_BRUSH)
-        
-        ; Create new brush with the saved color
-        BTN_BRUSH := CreateSolidBrush(HexToRGB(color))
-        return BTN_BRUSH
-    }
-    return 0  ; Default handling
-}
-
-; Message handler for static controls
-WM_CTLCOLORSTATIC(wParam, lParam) {
-    global isDarkTheme, STATIC_BRUSH, DARK_TEXT, LIGHT_TEXT, DARK_BG, LIGHT_BG
-    
-    ; Get the background color based on theme
-    bgColor := isDarkTheme ? DARK_BG : LIGHT_BG
-    textColor := isDarkTheme ? DARK_TEXT : LIGHT_TEXT
-    
-    ; Set text color for the static control
-    DllCall("SetTextColor", "Ptr", wParam, "UInt", HexToRGB(textColor))
-    
-    ; Set background color for the static control
-    DllCall("SetBkColor", "Ptr", wParam, "UInt", HexToRGB(bgColor))
-    
-    ; Delete old brush to prevent memory leaks
-    if (STATIC_BRUSH)
-        DllCall("DeleteObject", "Ptr", STATIC_BRUSH)
-    
-    ; Create and return a brush with the background color
-    STATIC_BRUSH := CreateSolidBrush(HexToRGB(bgColor))
-    return STATIC_BRUSH
-}
-
-; Function to set button color
-SetButtonColor(hwnd, color) {
-    global g_ButtonColors
-    g_ButtonColors[hwnd] := color
-    
-    ; Force redraw to apply color immediately
-    WinSet, Redraw,, ahk_id %hwnd%
+IsNumeric(var) {
+    if var is number
+        return true
+    return false
 }
 
 ; Improved font functions with better hierarchy and reduced sizes
@@ -199,12 +116,6 @@ SetTitleFont() {
         Gui, Font, s10 bold c%DARK_TEXT%, Segoe UI
     else
         Gui, Font, s10 bold c%LIGHT_TEXT%, Segoe UI
-}
-
-IsNumeric(var) {
-    if var is number
-        return true
-    return false
 }
 
 SetSectionFont() {
@@ -254,6 +165,7 @@ SetAllTextColors(textColor) {
     GuiControl, +c%textColor%, Txt_InstanceStartDelay
     GuiControl, +c%textColor%, Txt_Columns
     GuiControl, +c%textColor%, runMain
+    GuiControl, +c%textColor%, Txt_AccountName
 
     GuiControl, +c%textColor%, Txt_Delay
     GuiControl, +c%textColor%, Txt_WaitTime
@@ -337,97 +249,24 @@ SetAllTextColors(textColor) {
     
     ; Extra Settings
     GuiControl, +c%textColor%, ExtraSettingsHeading
+    GuiControl, +c%textColor%, tesseractOption
     GuiControl, +c%textColor%, Txt_TesseractPath
     GuiControl, +c%textColor%, applyRoleFilters
     GuiControl, +c%textColor%, debugMode
 }
 
-; Function to update all button colors
-UpdateAllButtonColors() {
-    global isDarkTheme
-    global BTN_START, BTN_LAUNCH, BTN_ARRANGE, BTN_COFFEE, BTN_DISCORD, BTN_UPDATE, BTN_RELOAD
-
-    ; Update colors for action buttons
-    GuiControlGet, hwnd, Hwnd, StartBot
-    SetButtonColor(hwnd, BTN_START)
-
-    GuiControlGet, hwnd, Hwnd, LaunchAllMumu
-    SetButtonColor(hwnd, BTN_LAUNCH)
-
-    GuiControlGet, hwnd, Hwnd, ArrangeWindows
-    SetButtonColor(hwnd, BTN_ARRANGE)
-
-    GuiControlGet, hwnd, Hwnd, BuyMeACoffee
-    SetButtonColor(hwnd, BTN_COFFEE)
-
-    GuiControlGet, hwnd, Hwnd, JoinDiscord
-    SetButtonColor(hwnd, BTN_DISCORD)
-
-    GuiControlGet, hwnd, Hwnd, CheckUpdates
-    SetButtonColor(hwnd, BTN_UPDATE)
-
-    GuiControlGet, hwnd, Hwnd, ReloadBtn
-    SetButtonColor(hwnd, BTN_RELOAD)
-
-    ; Update background toggle button
-    GuiControlGet, hwnd, Hwnd, BackgroundToggle
-    SetButtonColor(hwnd, isDarkTheme ? "81A1C1" : "5E81AC")
-
-    ; Update tab buttons
-    UpdateTabButtonColors()
-}
-
-; Function to update tab button colors
-UpdateTabButtonColors() {
-    global CurrentVisibleSection, isDarkTheme
-    global DARK_SECTION_COLORS, LIGHT_SECTION_COLORS
-    global DARK_CONTROL_BG, LIGHT_CONTROL_BG
-
-    ; Define tab list (updated to new structure)
-    tabs := []
-    tabs.Push("RerollSettings")
-    tabs.Push("SystemSettings")
-    tabs.Push("PackSettings")
-    tabs.Push("SaveForTrade")
-    tabs.Push("DiscordSettings")
-    tabs.Push("DownloadSettings")
-
-    ; Update each tab button color
-    for i, tabName in tabs {
-        GuiControlGet, hwnd, Hwnd, Btn_%tabName%
-
-        if (tabName = CurrentVisibleSection) {
-            ; Active tab uses section color
-            sectionColor := isDarkTheme ? DARK_SECTION_COLORS[tabName] : LIGHT_SECTION_COLORS[tabName]
-            SetButtonColor(hwnd, sectionColor)
-        } else {
-            ; Inactive tab uses default background
-            inactiveColor := isDarkTheme ? DARK_CONTROL_BG : LIGHT_CONTROL_BG
-            SetButtonColor(hwnd, inactiveColor)
-        }
-    }
-}
+; Remove button color update functions
 
 ; Function to apply theme colors to the GUI
 ApplyTheme() {
     global isDarkTheme, DARK_BG, DARK_CONTROL_BG, DARK_TEXT, DARK_INPUT_BG, DARK_INPUT_TEXT
     global LIGHT_BG, LIGHT_CONTROL_BG, LIGHT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
-    global BTN_START, BTN_LAUNCH, BTN_ARRANGE, BTN_COFFEE, BTN_DISCORD, BTN_UPDATE, BTN_RELOAD
     global CurrentVisibleSection, DARK_SECTION_COLORS, LIGHT_SECTION_COLORS
 
     if (isDarkTheme) {
         ; Dark theme with better contrast
         Gui, Color, %DARK_BG%, %DARK_CONTROL_BG%
         GuiControl, +Background%DARK_CONTROL_BG% +c%DARK_TEXT%, ThemeToggle
-
-        ; Update button colors for dark theme
-        BTN_START := "8FBCBB"      ; Teal
-        BTN_LAUNCH := "81A1C1"     ; Blue
-        BTN_ARRANGE := "B48EAD"    ; Purple
-        BTN_COFFEE := "EBCB8B"     ; Yellow
-        BTN_DISCORD := "7289DA"    ; Discord blue
-        BTN_UPDATE := "BF616A"     ; Red
-        BTN_RELOAD := "A3BE8C"     ; Green
 
         ; Update input fields for dark theme
         SetInputBackgrounds(DARK_INPUT_BG, DARK_INPUT_TEXT)
@@ -438,15 +277,6 @@ ApplyTheme() {
         ; Light theme with better contrast
         Gui, Color, %LIGHT_BG%, %LIGHT_CONTROL_BG%
         GuiControl, +Background%LIGHT_CONTROL_BG% +c%LIGHT_TEXT%, ThemeToggle
-
-        ; Update button colors for light theme
-        BTN_START := "8FBCBB"      ; Teal
-        BTN_LAUNCH := "81A1C1"     ; Blue
-        BTN_ARRANGE := "B48EAD"    ; Purple
-        BTN_COFFEE := "EBCB8B"     ; Yellow
-        BTN_DISCORD := "7289DA"    ; Discord blue
-        BTN_UPDATE := "BF616A"     ; Red
-        BTN_RELOAD := "A3BE8C"     ; Green
 
         ; Update input fields for light theme
         SetInputBackgrounds(LIGHT_INPUT_BG, LIGHT_INPUT_TEXT)
@@ -461,14 +291,25 @@ ApplyTheme() {
         GuiControl, +c%sectionColor%, ActiveSection
     }
 
-    ; Update all button colors using the Windows API approach
-    UpdateAllButtonColors()
-
     ; Update section headers with appropriate colors
     UpdateSectionHeaders()
 
     ; Force a redraw of the GUI to apply colors immediately
     WinSet, Redraw,, A
+}
+
+; Helper function to reset button colors to default
+ResetButtonColors() {
+    global isDarkTheme, DARK_TEXT, LIGHT_TEXT
+    
+    defaultColor := isDarkTheme ? DARK_TEXT : LIGHT_TEXT
+    
+    GuiControl, +c%defaultColor%, Btn_RerollSettings
+    GuiControl, +c%defaultColor%, Btn_SystemSettings
+    GuiControl, +c%defaultColor%, Btn_PackSettings
+    GuiControl, +c%defaultColor%, Btn_SaveForTrade
+    GuiControl, +c%defaultColor%, Btn_DiscordSettings
+    GuiControl, +c%defaultColor%, Btn_DownloadSettings
 }
 
 ; Helper function to update all input field backgrounds
@@ -523,29 +364,18 @@ UpdateSectionHeaders() {
     sectionColor := isDarkTheme ? DARK_SECTION_COLORS[CurrentVisibleSection] : LIGHT_SECTION_COLORS[CurrentVisibleSection]
 
     ; Apply color to section headers based on current section
-    if (CurrentVisibleSection = "RerollSettings") {
-        GuiControl, +c%sectionColor%, FriendIDLabel
-    }
-    else if (CurrentVisibleSection = "FriendID") {
-        GuiControl, +c%sectionColor%, FriendIDLabel
-    }
-    else if (CurrentVisibleSection = "InstanceSettings") {
+    if (CurrentVisibleSection = "InstanceSettings") {
         GuiControl, +c%sectionColor%, Txt_Instances
     }
     else if (CurrentVisibleSection = "TimeSettings") {
         GuiControl, +c%sectionColor%, Txt_Delay
     }
-    else if (CurrentVisibleSection = "SystemSettings") {
-        GuiControl, +c%sectionColor%, Txt_Monitor
-    }
+   
     else if (CurrentVisibleSection = "PackSettings") {
         GuiControl, +c%sectionColor%, PackSettingsLabel
     }
     else if (CurrentVisibleSection = "SaveForTrade") {
         GuiControl, +c%sectionColor%, s4tEnabled
-    }
-    else if (CurrentVisibleSection = "DiscordSettings") {
-        GuiControl, +c%sectionColor%, Txt_DiscordID
     }
     else if (CurrentVisibleSection = "DownloadSettings") {
         GuiControl, +c%sectionColor%, DownloadSettingsHeading
@@ -605,7 +435,10 @@ HideAllSections() {
     GuiControl, Hide, runMain
     GuiControl, Hide, Mains
     
-
+    ; hide Account Name
+    GuiControl, Hide, Txt_AccountName
+    GuiControl, Hide, AccountName
+    
     ; hide Time Settings section
     GuiControl, Hide, TimeSettingsHeading
     GuiControl, Hide, Txt_Delay
@@ -672,7 +505,6 @@ HideAllSections() {
     GuiControl, Hide, RainbowCheck
     GuiControl, Hide, PseudoGodPack
     GuiControl, Hide, Txt_vector
-    GuiControl, Hide, Txt_Save
     GuiControl, Hide, InvalidCheck
     GuiControl, Hide, CheckShiningPackOnly
     GuiControl, Hide, CrownCheck
@@ -735,6 +567,7 @@ HideAllSections() {
     
     ; hide Extra Settings section
     GuiControl, Hide, ExtraSettingsHeading
+    GuiControl, Hide, tesseractOption
     GuiControl, Hide, Txt_TesseractPath
     GuiControl, Hide, tesseractPath
     GuiControl, Hide, applyRoleFilters
@@ -804,6 +637,10 @@ ShowRerollSettingsSection() {
         GuiControl, Show, Mains
     }
     
+    ; Show Account Name controls - always shown when Reroll Settings is selected
+    GuiControl, Show, Txt_AccountName
+    GuiControl, Show, AccountName
+
     GuiControl, Show, Instance_Divider3
 
     ; === Time Settings Section with Heading ===
@@ -826,7 +663,7 @@ ShowRerollSettingsSection() {
     ; Apply proper text coloring and styling based on the theme
     if (isDarkTheme) {
         ; Friend ID styling
-        GuiControl, +c%sectionColor%, FriendIDLabel
+        GuiControl, +c%DARK_TEXT%, FriendIDLabel
         GuiControl, +Background%DARK_INPUT_BG% +c%DARK_INPUT_TEXT%, FriendID
 
         ; Instance Settings styling
@@ -834,9 +671,11 @@ ShowRerollSettingsSection() {
         GuiControl, +c%DARK_TEXT%, Txt_InstanceStartDelay
         GuiControl, +c%DARK_TEXT%, Txt_Columns
         GuiControl, +c%DARK_TEXT%, runMain
+        GuiControl, +c%DARK_TEXT%, Txt_AccountName
         GuiControl, +Background%DARK_INPUT_BG% +c%DARK_INPUT_TEXT%, Instances
         GuiControl, +Background%DARK_INPUT_BG% +c%DARK_INPUT_TEXT%, instanceStartDelay
         GuiControl, +Background%DARK_INPUT_BG% +c%DARK_INPUT_TEXT%, Columns
+        GuiControl, +Background%DARK_INPUT_BG% +c%DARK_INPUT_TEXT%, AccountName
         if (runMain)
             GuiControl, +Background%DARK_INPUT_BG% +c%DARK_INPUT_TEXT%, Mains
 
@@ -850,7 +689,7 @@ ShowRerollSettingsSection() {
         GuiControl, +Background%DARK_INPUT_BG% +c%DARK_INPUT_TEXT%, swipeSpeed
     } else {
         ; Friend ID styling
-        GuiControl, +c%sectionColor%, FriendIDLabel
+        GuiControl, +c%LIGHT_TEXT%, FriendIDLabel
         GuiControl, +Background%LIGHT_INPUT_BG% +c%LIGHT_INPUT_TEXT%, FriendID
 
         ; Instance Settings styling
@@ -858,9 +697,11 @@ ShowRerollSettingsSection() {
         GuiControl, +c%LIGHT_TEXT%, Txt_InstanceStartDelay
         GuiControl, +c%LIGHT_TEXT%, Txt_Columns
         GuiControl, +c%LIGHT_TEXT%, runMain
+        GuiControl, +c%LIGHT_TEXT%, Txt_AccountName
         GuiControl, +Background%LIGHT_INPUT_BG% +c%LIGHT_INPUT_TEXT%, Instances
         GuiControl, +Background%LIGHT_INPUT_BG% +c%LIGHT_INPUT_TEXT%, instanceStartDelay
         GuiControl, +Background%LIGHT_INPUT_BG% +c%LIGHT_INPUT_TEXT%, Columns
+        GuiControl, +Background%LIGHT_INPUT_BG% +c%LIGHT_INPUT_TEXT%, AccountName
         if (runMain)
             GuiControl, +Background%LIGHT_INPUT_BG% +c%LIGHT_INPUT_TEXT%, Mains
 
@@ -915,7 +756,7 @@ ShowSystemSettingsSection() {
 
     ; Apply proper text coloring to labels and checkboxes
     if (isDarkTheme) {
-        GuiControl, +c%sectionColor%, Txt_Monitor
+        GuiControl, +c%DARK_TEXT%, Txt_Monitor
         GuiControl, +c%DARK_TEXT%, Txt_Scale
         GuiControl, +c%DARK_TEXT%, Txt_FolderPath
         GuiControl, +c%DARK_TEXT%, Txt_OcrLanguage
@@ -925,7 +766,7 @@ ShowSystemSettingsSection() {
         GuiControl, +Background%DARK_INPUT_BG% +c%DARK_INPUT_TEXT%, folderPath
         GuiControl, +Background%DARK_INPUT_BG% +c%DARK_INPUT_TEXT%, instanceLaunchDelay
     } else {
-        GuiControl, +c%sectionColor%, Txt_Monitor
+        GuiControl, +c%LIGHT_TEXT%, Txt_Monitor
         GuiControl, +c%LIGHT_TEXT%, Txt_Scale
         GuiControl, +c%LIGHT_TEXT%, Txt_FolderPath
         GuiControl, +c%LIGHT_TEXT%, Txt_OcrLanguage
@@ -945,21 +786,38 @@ ShowSystemSettingsSection() {
     }
 
     SetNormalFont()
-    GuiControl, Show, Txt_TesseractPath
-    GuiControl, Show, tesseractPath
+    ; Show the tesseract option checkbox
+    GuiControl, Show, tesseractOption
+    
+    ; Show tesseract path controls conditionally based on checkbox state
+    GuiControlGet, tesseractOption
+    if (tesseractOption) {
+        GuiControl, Show, Txt_TesseractPath
+        GuiControl, Show, tesseractPath
+    } else {
+        GuiControl, Hide, Txt_TesseractPath
+        GuiControl, Hide, tesseractPath
+    }
+    
     GuiControl, Show, applyRoleFilters
     GuiControl, Show, debugMode
 
     if (isDarkTheme) {
-        GuiControl, +c%DARK_TEXT%, Txt_TesseractPath
+        GuiControl, +c%DARK_TEXT%, tesseractOption
+        if (tesseractOption) {
+            GuiControl, +c%DARK_TEXT%, Txt_TesseractPath
+            GuiControl, +Background%DARK_INPUT_BG% +c%DARK_INPUT_TEXT%, tesseractPath
+        }
         GuiControl, +c%DARK_TEXT%, applyRoleFilters
         GuiControl, +c%DARK_TEXT%, debugMode
-        GuiControl, +Background%DARK_INPUT_BG% +c%DARK_INPUT_TEXT%, tesseractPath
     } else {
-        GuiControl, +c%LIGHT_TEXT%, Txt_TesseractPath
+        GuiControl, +c%LIGHT_TEXT%, tesseractOption
+        if (tesseractOption) {
+            GuiControl, +c%LIGHT_TEXT%, Txt_TesseractPath
+            GuiControl, +Background%LIGHT_INPUT_BG% +c%LIGHT_INPUT_TEXT%, tesseractPath
+        }
         GuiControl, +c%LIGHT_TEXT%, applyRoleFilters
         GuiControl, +c%LIGHT_TEXT%, debugMode
-        GuiControl, +Background%LIGHT_INPUT_BG% +c%LIGHT_INPUT_TEXT%, tesseractPath
     }
 
     ; Update section headers with appropriate colors
@@ -1043,7 +901,6 @@ ShowPackSettingsSection() {
     GuiControl, Show, Txt_vector
 
     ; Right Column with section header
-    GuiControl, Show, Txt_Save
     GuiControl, Show, CrownCheck
     GuiControl, Show, ShinyCheck
     GuiControl, Show, ImmersiveCheck
@@ -1055,7 +912,7 @@ ShowPackSettingsSection() {
     ; Apply proper styling based on the theme
     if (isDarkTheme) {
         ; God Pack Settings styling
-        GuiControl, +c%sectionColor%, Txt_MinStars
+        GuiControl, +c%DARK_TEXT%, Txt_MinStars
         GuiControl, +c%DARK_TEXT%, Txt_A2bMinStar
         GuiControl, +c%DARK_TEXT%, Txt_DeleteMethod
         GuiControl, +c%DARK_TEXT%, packMethod
@@ -1066,7 +923,7 @@ ShowPackSettingsSection() {
         GuiControl, +Background%DARK_INPUT_BG% +c%DARK_INPUT_TEXT%, minStarsA2b
 
         ; Pack Selection styling
-        GuiControl, +c%sectionColor%, Shining
+        GuiControl, +c%DARK_TEXT%, Shining
         GuiControl, +c%DARK_TEXT%, Arceus
         GuiControl, +c%DARK_TEXT%, Palkia
         GuiControl, +c%DARK_TEXT%, Dialga
@@ -1080,7 +937,6 @@ ShowPackSettingsSection() {
         GuiControl, +c%DARK_TEXT%, TrainerCheck
         GuiControl, +c%DARK_TEXT%, RainbowCheck
         GuiControl, +c%DARK_TEXT%, PseudoGodPack
-        GuiControl, +c%sectionColor%, Txt_Save
         GuiControl, +c%DARK_TEXT%, CrownCheck
         GuiControl, +c%DARK_TEXT%, ShinyCheck
         GuiControl, +c%DARK_TEXT%, ImmersiveCheck
@@ -1088,7 +944,7 @@ ShowPackSettingsSection() {
         GuiControl, +c%DARK_TEXT%, CheckShiningPackOnly
     } else {
         ; God Pack Settings styling
-        GuiControl, +c%sectionColor%, Txt_MinStars
+        GuiControl, +c%LIGHT_TEXT%, Txt_MinStars
         GuiControl, +c%LIGHT_TEXT%, Txt_A2bMinStar
         GuiControl, +c%LIGHT_TEXT%, Txt_DeleteMethod
         GuiControl, +c%LIGHT_TEXT%, packMethod
@@ -1099,7 +955,7 @@ ShowPackSettingsSection() {
         GuiControl, +Background%LIGHT_INPUT_BG% +c%LIGHT_INPUT_TEXT%, minStarsA2b
 
         ; Pack Selection styling
-        GuiControl, +c%sectionColor%, Shining
+        GuiControl, +c%LIGHT_TEXT%, Shining
         GuiControl, +c%LIGHT_TEXT%, Arceus
         GuiControl, +c%LIGHT_TEXT%, Palkia
         GuiControl, +c%LIGHT_TEXT%, Dialga
@@ -1113,7 +969,6 @@ ShowPackSettingsSection() {
         GuiControl, +c%LIGHT_TEXT%, TrainerCheck
         GuiControl, +c%LIGHT_TEXT%, RainbowCheck
         GuiControl, +c%LIGHT_TEXT%, PseudoGodPack
-        GuiControl, +c%sectionColor%, Txt_Save
         GuiControl, +c%LIGHT_TEXT%, CrownCheck
         GuiControl, +c%LIGHT_TEXT%, ShinyCheck
         GuiControl, +c%LIGHT_TEXT%, ImmersiveCheck
@@ -1280,13 +1135,13 @@ ShowDiscordSettingsSection() {
 
     ; Apply proper text coloring to Discord labels
     if (isDarkTheme) {
-        GuiControl, +c%sectionColor%, Txt_DiscordID
+        GuiControl, +c%DARK_TEXT%, Txt_DiscordID
         GuiControl, +c%DARK_TEXT%, Txt_DiscordWebhook
         GuiControl, +c%DARK_TEXT%, sendAccountXml
         GuiControl, +Background%DARK_INPUT_BG% +c%DARK_INPUT_TEXT%, discordUserId
         GuiControl, +Background%DARK_INPUT_BG% +c%DARK_INPUT_TEXT%, discordWebhookURL
     } else {
-        GuiControl, +c%sectionColor%, Txt_DiscordID
+        GuiControl, +c%LIGHT_TEXT%, Txt_DiscordID
         GuiControl, +c%LIGHT_TEXT%, Txt_DiscordWebhook
         GuiControl, +c%LIGHT_TEXT%, sendAccountXml
         GuiControl, +Background%LIGHT_INPUT_BG% +c%LIGHT_INPUT_TEXT%, discordUserId
@@ -1366,14 +1221,14 @@ ShowDownloadSettingsSection() {
     if (isDarkTheme) {
         sectionColor := DARK_SECTION_COLORS["DownloadSettings"]
         GuiControl, +c%sectionColor%, DownloadSettingsHeading
-        GuiControl, +c%sectionColor%, Txt_MainIdsURL
+        GuiControl, +c%DARK_TEXT%, Txt_MainIdsURL
         GuiControl, +c%DARK_TEXT%, Txt_VipIdsURL
         GuiControl, +Background%DARK_INPUT_BG% +c%DARK_INPUT_TEXT%, mainIdsURL
         GuiControl, +Background%DARK_INPUT_BG% +c%DARK_INPUT_TEXT%, vipIdsURL
     } else {
         sectionColor := LIGHT_SECTION_COLORS["DownloadSettings"]
         GuiControl, +c%sectionColor%, DownloadSettingsHeading
-        GuiControl, +c%sectionColor%, Txt_MainIdsURL
+        GuiControl, +c%LIGHT_TEXT%, Txt_MainIdsURL
         GuiControl, +c%LIGHT_TEXT%, Txt_VipIdsURL
         GuiControl, +Background%LIGHT_INPUT_BG% +c%LIGHT_INPUT_TEXT%, mainIdsURL
         GuiControl, +Background%LIGHT_INPUT_BG% +c%LIGHT_INPUT_TEXT%, vipIdsURL
@@ -1417,8 +1272,7 @@ HandleKeyboardShortcut(sectionIndex) {
 
         ; Update current section and tab highlighting
         CurrentVisibleSection := sectionName
-        UpdateTabButtonColors()
-
+        
         ; Set section title
         friendlyName := GetFriendlyName(sectionName)
         GuiControl,, ActiveSection, Current Section: %friendlyName%
@@ -1503,6 +1357,7 @@ LoadSettingsFromIni() {
         IniRead, deleteMethod, Settings.ini, UserSettings, deleteMethod, 3 Pack
         IniRead, runMain, Settings.ini, UserSettings, runMain, 1
         IniRead, Mains, Settings.ini, UserSettings, Mains, 1
+        IniRead, AccountName, Settings.ini, UserSettings, AccountName, ""
         IniRead, heartBeat, Settings.ini, UserSettings, heartBeat, 0
 
         ; Continue reading all other settings
@@ -1571,7 +1426,8 @@ LoadSettingsFromIni() {
         IniRead, tesseractPath, Settings.ini, UserSettings, tesseractPath, C:\Program Files\Tesseract-OCR\tesseract.exe
         IniRead, applyRoleFilters, Settings.ini, UserSettings, applyRoleFilters, 0
         IniRead, debugMode, Settings.ini, UserSettings, debugMode, 0
-
+        IniRead, tesseractOption, Settings.ini, UserSettings, tesseractOption, 0
+        
         ; Validate numeric values
         if (!IsNumeric(Instances) || Instances < 1)
             Instances := 1
@@ -1595,6 +1451,7 @@ CreateDefaultSettingsFile() {
     if (!FileExist("Settings.ini")) {
         ; Create default settings file
         IniWrite, "", Settings.ini, UserSettings, FriendID
+        IniWrite, "", Settings.ini, UserSettings, AccountName
         IniWrite, 5, Settings.ini, UserSettings, waitTime
         IniWrite, 250, Settings.ini, UserSettings, Delay
         IniWrite, C:\Program Files\Netease, Settings.ini, UserSettings, folderPath
@@ -1613,6 +1470,7 @@ CreateDefaultSettingsFile() {
         IniWrite, C:\Program Files\Tesseract-OCR\tesseract.exe, Settings.ini, UserSettings, tesseractPath
         IniWrite, 0, Settings.ini, UserSettings, applyRoleFilters
         IniWrite, 0, Settings.ini, UserSettings, debugMode
+        IniWrite, 0, Settings.ini, UserSettings, tesseractOption
 
         ; Add the rest of default settings here
         IniWrite, 1, Settings.ini, UserSettings, isDarkTheme
@@ -1699,7 +1557,6 @@ if FileExist(packsFile) ; Check if the file exists
 }
 InitializeJsonFile() ; Create or open the JSON file
 
-
 ; Initialize with dark theme
 if (isDarkTheme)
     Gui, Color, %DARK_BG%, %DARK_CONTROL_BG%  ; Dark theme
@@ -1719,12 +1576,10 @@ if (isDarkTheme) {
 Gui, Font, s8, Segoe UI  ; Smaller font size
 
 ; Add theme toggle button and background toggle button
-Gui, Add, Button, x250 y15 w100 h25 gToggleTheme vThemeToggle hwndhThemeToggle, % isDarkTheme ? "Light Mode" : "Dark Mode"
-SetButtonColor(hThemeToggle, isDarkTheme ? "81A1C1" : "5E81AC")
+Gui, Add, Button, x250 y15 w100 h25 gToggleTheme vThemeToggle, % isDarkTheme ? "Light Mode" : "Dark Mode"
 
 ; Add background toggle button next to theme toggle
-Gui, Add, Button, x+15 w100 h25 gToggleBackground vBackgroundToggle hwndhBackgroundToggle, % useBackgroundImage ? "Background Off" : "Background On"
-SetButtonColor(hBackgroundToggle, isDarkTheme ? "81A1C1" : "5E81AC")
+Gui, Add, Button, x+15 w100 h25 gToggleBackground vBackgroundToggle, % useBackgroundImage ? "Background Off" : "Background On"
 
 ; Status indicator for active section - moved above Reroll Settings
 SetTitleFont()
@@ -1734,32 +1589,23 @@ Gui, Add, Edit, x15 y+15 w450 h28 vActiveSection +Center +ReadOnly -Border -VScr
 SetHeaderFont()
 
 ; Navigation buttons with updated structure
-Gui, Add, Button, x15 y100 w140 h25 gToggleSection vBtn_RerollSettings hwndhBtnReroll, Reroll Settings
-SetButtonColor(hBtnReroll, isDarkTheme ? DARK_CONTROL_BG : LIGHT_CONTROL_BG)
+Gui, Add, Button, x15 y100 w140 h25 gToggleSection vBtn_RerollSettings, Reroll Settings
 
-Gui, Add, Button, y+5 w140 h25 gToggleSection vBtn_SystemSettings hwndhBtn2, System Settings
-SetButtonColor(hBtn2, isDarkTheme ? DARK_CONTROL_BG : LIGHT_CONTROL_BG)
+Gui, Add, Button, y+5 w140 h25 gToggleSection vBtn_SystemSettings, System Settings
 
-Gui, Add, Button, y+5 w140 h25 gToggleSection vBtn_PackSettings hwndhBtn3, Pack Settings
-SetButtonColor(hBtn3, isDarkTheme ? DARK_CONTROL_BG : LIGHT_CONTROL_BG)
+Gui, Add, Button, y+5 w140 h25 gToggleSection vBtn_PackSettings, Pack Settings
 
-Gui, Add, Button, y+20 w140 h25 gToggleSection vBtn_SaveForTrade hwndhBtn4, Save For Trade
-SetButtonColor(hBtn4, isDarkTheme ? DARK_CONTROL_BG : LIGHT_CONTROL_BG)
+Gui, Add, Button, y+20 w140 h25 gToggleSection vBtn_SaveForTrade, Save For Trade
 
-Gui, Add, Button, y+20 w140 h25 gToggleSection vBtn_DiscordSettings hwndhBtn5, Discord Settings
-SetButtonColor(hBtn5, isDarkTheme ? DARK_CONTROL_BG : LIGHT_CONTROL_BG)
+Gui, Add, Button, y+20 w140 h25 gToggleSection vBtn_DiscordSettings, Discord Settings
 
-Gui, Add, Button, y+5 w140 h25 gToggleSection vBtn_DownloadSettings hwndhBtn6, Download Settings
-SetButtonColor(hBtn6, isDarkTheme ? DARK_CONTROL_BG : LIGHT_CONTROL_BG)
+Gui, Add, Button, y+5 w140 h25 gToggleSection vBtn_DownloadSettings, Download Settings
 
-Gui, Add, Button, gOpenDiscord y+20 w140 h25 vJoinDiscord hwndhDiscordBtn, Join Discord
-SetButtonColor(hDiscordBtn, BTN_DISCORD)
+Gui, Add, Button, gOpenDiscord y+20 w140 h25 vJoinDiscord, 💬 Join Discord
 
-Gui, Add, Button, gOpenLink y+5 w140 h25 vBuyMeACoffee hwndhCoffeeBtn, Buy Me a Coffee
-SetButtonColor(hCoffeeBtn, BTN_COFFEE)
+Gui, Add, Button, gOpenLink y+5 w140 h25 vBuyMeACoffee, ☕ Buy Me a Coffee
 
-Gui, Add, Button, gCheckForUpdate y+5 w140 h25 vCheckUpdates hwndhUpdateBtn, Check for Updates
-SetButtonColor(hUpdateBtn, BTN_UPDATE)
+Gui, Add, Button, gCheckForUpdate y+5 w140 h25 vCheckUpdates, 🔄 Check for Updates
 
 ; ========== Friend ID Section with better layout ==========
 SetHeaderFont()
@@ -1793,12 +1639,15 @@ Gui, Add, Edit, vColumns w45 x260 y+-17 h25 Center Hidden, %Columns%
 Gui, Add, Checkbox, % "vrunMain gmainSettings x170 y+17 Hidden" . (runMain ? " Checked" : ""), % "Run Main(s)"
 Gui, Add, Edit, % "vMains w45 x260 y+-17 h25 Center Hidden " . (runMain ? "" : "Hidden"), %Mains%
 
+Gui, Add, Text, x170 y+17 Hidden vTxt_AccountName, Account Name:
+Gui, Add, Edit, vAccountName w200 x260 y+-17 h25 Hidden, %AccountName%
+
 ; Add dividers for Instance Settings section
 AddSectionDivider(170, "+25", 290, "Instance_Divider3")
 
 ; ========== Time Settings Section ==========
 SetHeaderFont()
-Gui, Add, Text, y+20 vTimeSettingsHeading Hidden, Time Settings
+Gui, Add, Text, y+25 vTimeSettingsHeading Hidden, Time Settings
 
 SetNormalFont()
 Gui, Add, Text, y+20 Hidden vTxt_Delay, Delay:
@@ -1890,20 +1739,29 @@ Gui, Add, Checkbox, % (autoLaunchMonitor ? "Checked" : "") " vautoLaunchMonitor 
 SetHeaderFont()
 Gui, Add, Text, x170 y+30 Hidden vExtraSettingsHeading, Extra Settings
 SetNormalFont()
+
+; First add Role-Based Filters
+Gui, Add, Checkbox, % (applyRoleFilters ? "Checked" : "") " vapplyRoleFilters x170 y+10 Hidden", Use Role-Based Filters
+
+; Then add Debug Mode
+Gui, Add, Checkbox, % (debugMode ? "Checked" : "") " vdebugMode x170 y+10 Hidden", Debug Mode
+
+; Then add the Use Tesseract checkbox
+Gui, Add, Checkbox, % (tesseractOption ? "Checked" : "") " vtesseractOption gTesseractOptionSettings x170 y+10 Hidden", Use Tesseract
+
+; Keep Tesseract Path at the end
 Gui, Add, Text, x170 y+20 Hidden vTxt_TesseractPath, Tesseract Path:
 Gui, Add, Edit, vtesseractPath w290 x170 y+5 h25 Hidden, %tesseractPath%
-Gui, Add, Checkbox, % (applyRoleFilters ? "Checked" : "") " vapplyRoleFilters x170 y+10 Hidden", Use Role-Based Filters
-Gui, Add, Checkbox, % (debugMode ? "Checked" : "") " vdebugMode x170 y+10 Hidden", Debug Mode
 
 ; ========== Pack Settings Section (Merged God Pack, Pack Selection and Card Detection) ==========
 SetHeaderFont()
 Gui, Add, Text, x170 y100 Hidden vPackSettingsSubHeading1, God Pack Settings
 
 SetNormalFont()
-Gui, Add, Text, y+20 Hidden vTxt_MinStars, Min. 2 Stars:
+Gui, Add, Text, y+20 Hidden vTxt_MinStars, Min. 2 ★:
 Gui, Add, Edit, vminStars w55 x260 y+-17 h25 Center Hidden, %minStars%
 
-Gui, Add, Text, x170 y+17 Hidden vTxt_A2bMinStar, 2* for SR:
+Gui, Add, Text, x170 y+17 Hidden vTxt_A2bMinStar, 2 ★ for SR:
 Gui, Add, Edit, vminStarsA2b w55 x260 y+-17 h25 Center Hidden, %minStarsA2b%
 
 Gui, Add, Text, x170 y+17 Hidden vTxt_DeleteMethod, Method:
@@ -1956,12 +1814,12 @@ SetNormalFont()
 Gui, Add, Checkbox, % (FullArtCheck ? "Checked" : "") " vFullArtCheck y+15 Hidden", Single Full Art
 Gui, Add, Checkbox, % (TrainerCheck ? "Checked" : "") " vTrainerCheck y+10 Hidden", Single Trainer
 Gui, Add, Checkbox, % (RainbowCheck ? "Checked" : "") " vRainbowCheck y+10 Hidden", Single Rainbow
-Gui, Add, Checkbox, % (PseudoGodPack ? "Checked" : "") " vPseudoGodPack y+10 Hidden", Double 2 Star
+Gui, Add, Checkbox, % (PseudoGodPack ? "Checked" : "") " vPseudoGodPack y+10 Hidden", Double 2 ★
 
 ; Show the divider between columns
 Gui, Add, Text, x260 y450 w2 h140 Hidden vTxt_vector +0x10  ; Creates a vertical line
 
-; Right Column
+; Right Column with section header
 Gui, Add, Checkbox, % (CrownCheck ? "Checked" : "") " vCrownCheck x320 y+-86 Hidden", Save Crowns
 Gui, Add, Checkbox, % (ShinyCheck ? "Checked" : "") " vShinyCheck y+10 Hidden", Save Shiny
 Gui, Add, Checkbox, % (ImmersiveCheck ? "Checked" : "") " vImmersiveCheck y+10 Hidden", Save Immersives
@@ -1983,11 +1841,11 @@ Gui, Add, Checkbox, % "vs4tEnabled gs4tSettings y+20 Hidden " . (s4tEnabled ? "C
 
 Gui, Add, Checkbox, % "vs4tSilent y+20 " . (!CurrentVisibleSection = "SaveForTrade" || !s4tEnabled ? "Hidden " : "") . (s4tSilent ? "Checked " : ""), Silent (No Ping)
 
-Gui, Add, Checkbox, % "vs4t3Dmnd y+20 " . (!CurrentVisibleSection = "SaveForTrade" || !s4tEnabled ? "Hidden " : "") . (s4t3Dmnd ? "Checked " : ""), 3 Diamond
-Gui, Add, Checkbox, % "vs4t4Dmnd y+20 " . (!CurrentVisibleSection = "SaveForTrade" || !s4tEnabled ? "Hidden " : "") . (s4t4Dmnd ? "Checked " : ""), 4 Diamond
-Gui, Add, Checkbox, % "vs4t1Star y+20 " . (!CurrentVisibleSection = "SaveForTrade" || !s4tEnabled ? "Hidden " : "") . (s4t1Star ? "Checked " : ""), 1 Star
+Gui, Add, Checkbox, % "vs4t3Dmnd y+20 " . (!CurrentVisibleSection = "SaveForTrade" || !s4tEnabled ? "Hidden " : "") . (s4t3Dmnd ? "Checked " : ""), 3 ◆◆◆
+Gui, Add, Checkbox, % "vs4t4Dmnd y+20 " . (!CurrentVisibleSection = "SaveForTrade" || !s4tEnabled ? "Hidden " : "") . (s4t4Dmnd ? "Checked " : ""), 4 ◆◆◆◆
+Gui, Add, Checkbox, % "vs4t1Star y+20 " . (!CurrentVisibleSection = "SaveForTrade" || !s4tEnabled ? "Hidden " : "") . (s4t1Star ? "Checked " : ""), 1 ★
 
-Gui, Add, Checkbox, % ((!CurrentVisibleSection = "SaveForTrade" || !s4tEnabled || !Shining) ? "Hidden " : "") . "vs4tGholdengo x395 y+-14" . (s4tGholdengo ? "Checked " : ""), % "--->"
+Gui, Add, Checkbox, % ((!CurrentVisibleSection = "SaveForTrade" || !s4tEnabled || !Shining) ? "Hidden " : "") . "vs4tGholdengo x395 y+-14" . (s4tGholdengo ? "Checked " : ""), % "➡"
 Gui, Add, Picture, % ((!CurrentVisibleSection = "SaveForTrade" || !s4tEnabled || !Shining) ? "Hidden " : "") . "vs4tGholdengoEmblem w25 h25 x+0 y+-18", % A_ScriptDir . "\Scripts\Scale125\GholdengoEmblem.png"
 
 AddSectionDivider(170, "+15", 290, "SaveForTradeDivider_1")
@@ -2058,7 +1916,7 @@ Gui, Add, Edit, vheartBeatDelay x300 y+-17 w55 h25 Center Hidden, %heartBeatDela
 
 ; ========== Download Settings Section ==========
 SetHeaderFont()
-Gui, Add, Text, x170 y100 Hidden vDownloadSettingsHeading, Heartbeat Settings
+Gui, Add, Text, x170 y100 Hidden vDownloadSettingsHeading, Download Settings
 
 SetNormalFont()
 if(StrLen(mainIdsURL) < 3)
@@ -2076,18 +1934,14 @@ Gui, Add, Edit, vvipIdsURL w290 y+10 h25 Center Hidden, %vipIdsURL%
 SetHeaderFont()
 
 ; Row 1 - Three buttons side by side - adjusted positions and sizes
-Gui, Add, Button, gLaunchAllMumu x15 y655 w140 h25 vLaunchAllMumu hwndhLaunchBtn, Launch All Mumu
-SetButtonColor(hLaunchBtn, BTN_LAUNCH)
+Gui, Add, Button, gLaunchAllMumu x15 y655 w140 h25 vLaunchAllMumu, 🚀 Launch All Mumu
 
-Gui, Add, Button, gArrangeWindows x+15 y655 w140 h25 vArrangeWindows hwndhArrangeBtn, Arrange Windows
-SetButtonColor(hArrangeBtn, BTN_ARRANGE)
+Gui, Add, Button, gArrangeWindows x+15 y655 w140 h25 vArrangeWindows, 🪟 Arrange Windows
 
-Gui, Add, Button, gSaveReload x+15 y655 w140 h25 vReloadBtn hwndhReloadBtn, Reload
-SetButtonColor(hReloadBtn, BTN_RELOAD)
+Gui, Add, Button, gSaveReload x+15 y655 w140 h25 vReloadBtn, 🔄Reload
 
 ; Row 2 - Full width button for Start Bot - adjusted position and size
-Gui, Add, Button, gStartBot x15 y+10 w450 h30 vStartBot hwndhStartBtn, Start Bot
-SetButtonColor(hStartBtn, BTN_START)
+Gui, Add, Button, gStartBot x15 y+10 w450 h30 vStartBot, ▶️ Start Bot ▶️
 
 ; Version info moved to the bottom - adjusted position
 SetSmallFont()
@@ -2134,7 +1988,7 @@ Gui, Show, w%GUI_WIDTH% h%GUI_HEIGHT%, PTCGPB Bot Setup [Non-Commercial 4.0 Inte
 ; Hide all sections on startup
 CurrentVisibleSection := ""
 HideAllSections()
-UpdateTabButtonColors()
+
 ApplyTheme()  ; Ensure everything is colored properly on startup
 
 ; Update the section title to indicate welcome screen
@@ -2163,13 +2017,9 @@ ToggleTheme:
     ; Update theme toggle button text
     GuiControl,, ThemeToggle, % isDarkTheme ? "Light Mode" : "Dark Mode"
 
-    ; Update background toggle button color
-    GuiControlGet, hwnd, Hwnd, BackgroundToggle
-    SetButtonColor(hwnd, isDarkTheme ? "81A1C1" : "5E81AC")
-
     ; Apply the new theme - ensure all colors update
     ApplyTheme()
-
+    
     ; Update header text and colors
     GuiControl,, HeaderTitle, % "Arturo's PTCGP Bot"
     if (isDarkTheme) {
@@ -2245,8 +2095,7 @@ ToggleSection:
 
     ; Update current section and tab highlighting
     CurrentVisibleSection := SectionName
-    UpdateTabButtonColors()
-
+    
     ; Set section title with section-specific color
     friendlyName := GetFriendlyName(SectionName)
     GuiControl,, ActiveSection, Current Section: %friendlyName%
@@ -2258,6 +2107,10 @@ ToggleSection:
     ; Update section headers with appropriate colors
     UpdateSectionHeaders()
 Return
+
+CheckForUpdates:
+    CheckForUpdate()
+return
 
 mainSettings:
     Gui, Submit, NoHide
@@ -2454,6 +2307,28 @@ s4tWPSettings:
     }
 return
 
+TesseractOptionSettings:
+    Gui, Submit, NoHide
+    global isDarkTheme, DARK_TEXT, LIGHT_TEXT, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
+    
+    if (tesseractOption) {
+        GuiControl, Show, Txt_TesseractPath
+        GuiControl, Show, tesseractPath
+        
+        ; Apply theme-specific styling
+        if (isDarkTheme) {
+            GuiControl, +c%DARK_TEXT%, Txt_TesseractPath
+            GuiControl, +Background%DARK_INPUT_BG% +c%DARK_INPUT_TEXT%, tesseractPath
+        } else {
+            GuiControl, +c%LIGHT_TEXT%, Txt_TesseractPath
+            GuiControl, +Background%LIGHT_INPUT_BG% +c%LIGHT_INPUT_TEXT%, tesseractPath
+        }
+    } else {
+        GuiControl, Hide, Txt_TesseractPath
+        GuiControl, Hide, tesseractPath
+    }
+return
+
 deleteSettings:
     Gui, Submit, NoHide
     global isDarkTheme, DARK_TEXT, LIGHT_TEXT
@@ -2551,6 +2426,7 @@ SaveReload:
     Gui, Submit
 
     IniWrite, %FriendID%, Settings.ini, UserSettings, FriendID
+    IniWrite, %AccountName%, Settings.ini, UserSettings, AccountName
     IniWrite, %waitTime%, Settings.ini, UserSettings, waitTime
     IniWrite, %Delay%, Settings.ini, UserSettings, Delay
     IniWrite, %folderPath%, Settings.ini, UserSettings, folderPath
@@ -2634,6 +2510,7 @@ SaveReload:
     IniWrite, %tesseractPath%, Settings.ini, UserSettings, tesseractPath
     IniWrite, %applyRoleFilters%, Settings.ini, UserSettings, applyRoleFilters
     IniWrite, %debugMode%, Settings.ini, UserSettings, debugMode
+    IniWrite, %tesseractOption%, Settings.ini, UserSettings, tesseractOption
 
     ; Save theme setting
     IniWrite, %isDarkTheme%, Settings.ini, UserSettings, isDarkTheme
@@ -2652,6 +2529,7 @@ StartBot:
     Gui, Destroy ; Close the first page
 
     IniWrite, %FriendID%, Settings.ini, UserSettings, FriendID
+    IniWrite, %AccountName%, Settings.ini, UserSettings, AccountName
     IniWrite, %waitTime%, Settings.ini, UserSettings, waitTime
     IniWrite, %Delay%, Settings.ini, UserSettings, Delay
     IniWrite, %folderPath%, Settings.ini, UserSettings, folderPath
@@ -2735,11 +2613,12 @@ StartBot:
     IniWrite, %tesseractPath%, Settings.ini, UserSettings, tesseractPath
     IniWrite, %applyRoleFilters%, Settings.ini, UserSettings, applyRoleFilters
     IniWrite, %debugMode%, Settings.ini, UserSettings, debugMode
-    
+    IniWrite, %tesseractOption%, Settings.ini, UserSettings, tesseractOption
+
     IniWrite, %isDarkTheme%, Settings.ini, UserSettings, isDarkTheme
     IniWrite, %useBackgroundImage%, Settings.ini, UserSettings, useBackgroundImage
 
-; Using FriendID field to provide a URL to download ids.txt is deprecated.
+    ; Using FriendID field to provide a URL to download ids.txt is deprecated.
     if (inStr(FriendID, "http")) {
         MsgBox, To provide a URL for friend IDs, please use the ids.txt API field and leave the Friend ID field empty.
 
@@ -2822,7 +2701,7 @@ StartBot:
         }
     }
 
-SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
+    SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
     SysGet, Monitor, Monitor, %SelectedMonitorIndex%
     rerollTime := A_TickCount
 
@@ -2856,7 +2735,7 @@ SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
 
     for index, value in Selected {
         if(index = Selected.MaxIndex())
-            commaSeparate := ""
+            commaSeparate := ","
         else
             commaSeparate := ", "
         if(value)
@@ -3215,43 +3094,7 @@ SumVariablesInJsonFile() {
     return sum
 }
 
-MonthToDays(year, month) {
-    static DaysInMonths := [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-    days := 0
-    Loop, % month - 1 {
-        days += DaysInMonths[A_Index]
-    }
-    if (month > 2 && IsLeapYear(year))
-        days += 1
-    return days
-}
-
-IsLeapYear(year) {
-    return (Mod(year, 4) = 0 && Mod(year, 100) != 0) || Mod(year, 400) = 0
-}
-
-DownloadFile(url, filename) {
-    url := url  ; Change to your hosted .txt URL "https://pastebin.com/raw/vYxsiqSs"
-    localPath = %A_ScriptDir%\%filename% ; Change to the folder you want to save the file
-
-    URLDownloadToFile, %url%, %localPath%
-
-    ; if ErrorLevel
-    ; MsgBox, Download failed!
-    ; else
-    ; MsgBox, File downloaded successfully!
-}
-
 CheckForUpdate() {
-
-global updateCheckPerformed, githubUser, repoName, localVersion, zipPath, extractPath, scriptFolder
-    
-    ; Skip if already performed
-    if (updateCheckPerformed)
-        return
-    
-    updateCheckPerformed := true
-
     global githubUser, repoName, localVersion, zipPath, extractPath, scriptFolder
     url := "https://api.github.com/repos/" githubUser "/" repoName "/releases/latest"
 
@@ -3456,6 +3299,13 @@ VersionCompare(v1, v2) {
     return 0 ; Versions are equal
 }
 
+DownloadFile(url, filename) {
+    url := url
+    localPath = %A_ScriptDir%\%filename%
+
+    URLDownloadToFile, %url%, %localPath%
+}
+
 ReadFile(filename, numbers := false) {
     FileRead, content, %A_ScriptDir%\%filename%.txt
 
@@ -3471,3 +3321,8 @@ ReadFile(filename, numbers := false) {
 
     return values.MaxIndex() ? values : false
 }
+
+
+
+
+
