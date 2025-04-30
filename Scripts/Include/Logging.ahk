@@ -8,9 +8,9 @@ settingsPath := ScriptDir . "\..\..\Settings.ini"
 IniRead, discordWebhookURL, %settingsPath%, UserSettings, discordWebhookURL
 IniRead, discordUserId, %settingsPath%, UserSettings, discordUserId
 IniRead, sendAccountXml, %settingsPath%, UserSettings, sendAccountXml, 0
+IniRead, Debug, %settingsPath%, UserSettings, statusMessage
 
 ; Enable debugging to get more status messages and logging.
-Debug := false
 
 ResetStatusMessage() {
     CreateStatusMessage(DEFAULT_STATUS_MESSAGE,,,, false, true)
