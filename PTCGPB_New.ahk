@@ -35,7 +35,7 @@ global System_Divider1, System_Divider2, System_Divider3, System_Divider4
 global Pack_Divider1, Pack_Divider2, Pack_Divider3
 global SaveForTradeDivider_1, SaveForTradeDivider_2
 global Discord_Divider3
-global tesseractPath, applyRoleFilters, debugMode
+global tesseractPath, applyRoleFilters, debugMode, statusMessage
 global tesseractOption
 
 if not A_IsAdmin
@@ -249,6 +249,7 @@ SetAllTextColors(textColor) {
     GuiControl, +c%textColor%, Txt_TesseractPath
     GuiControl, +c%textColor%, applyRoleFilters
     GuiControl, +c%textColor%, debugMode
+    GuiControl, +c%textColor%, statusMessage
 }
 ; Function to apply theme colors to the GUI
 ApplyTheme() {
@@ -563,6 +564,7 @@ HideAllSections() {
     GuiControl, Hide, tesseractPath
     GuiControl, Hide, applyRoleFilters
     GuiControl, Hide, debugMode
+    GuiControl, Hide, statusMessage
     
     ; Hide ALL divider elements - this is the key part that was missing!
     GuiControl, Hide, FriendID_Divider
@@ -788,6 +790,7 @@ ShowSystemSettingsSection() {
     
     GuiControl, Show, applyRoleFilters
     GuiControl, Show, debugMode
+    GuiControl, Show, statusMessage
 
     if (isDarkTheme) {
         GuiControl, +c%DARK_TEXT%, tesseractOption
@@ -797,6 +800,7 @@ ShowSystemSettingsSection() {
         }
         GuiControl, +c%DARK_TEXT%, applyRoleFilters
         GuiControl, +c%DARK_TEXT%, debugMode
+        GuiControl, +c%DARK_TEXT%, statusMessage
     } else {
         GuiControl, +c%LIGHT_TEXT%, tesseractOption
         if (tesseractOption) {
@@ -805,6 +809,7 @@ ShowSystemSettingsSection() {
         }
         GuiControl, +c%LIGHT_TEXT%, applyRoleFilters
         GuiControl, +c%LIGHT_TEXT%, debugMode
+        GuiControl, +c%LIGHT_TEXT%, statusMessage
     }
 
     ; Update section headers with appropriate colors
@@ -1433,7 +1438,8 @@ LoadSettingsFromIni() {
         IniRead, applyRoleFilters, Settings.ini, UserSettings, applyRoleFilters, 0
         IniRead, debugMode, Settings.ini, UserSettings, debugMode, 0
         IniRead, tesseractOption, Settings.ini, UserSettings, tesseractOption, 0
-        
+        IniRead, statusMessage, Settings.ini, UserSettings, statusMessage, 0
+
         ; Validate numeric values
         if (!IsNumeric(Instances) || Instances < 1)
             Instances := 1
@@ -1476,6 +1482,7 @@ CreateDefaultSettingsFile() {
         IniWrite, 0, Settings.ini, UserSettings, applyRoleFilters
         IniWrite, 0, Settings.ini, UserSettings, debugMode
         IniWrite, 0, Settings.ini, UserSettings, tesseractOption
+        IniWrite, 0, Settings.ini, UserSettings, statusMessage
 
         ; Add showcase settings default values
         IniWrite, 0, Settings.ini, UserSettings, showcaseEnabled
@@ -1755,6 +1762,9 @@ Gui, Add, Checkbox, % (debugMode ? "Checked" : "") " vdebugMode x170 y+10 Hidden
 
 ; Then add the Use Tesseract checkbox
 Gui, Add, Checkbox, % (tesseractOption ? "Checked" : "") " vtesseractOption gTesseractOptionSettings x170 y+10 Hidden", Use Tesseract
+
+; Then add status messages
+Gui, Add, Checkbox, % (statusMessage ? "Checked" : "") " vstatusMessage x170 y+10 Hidden", Status Messages
 
 ; Keep Tesseract Path at the end
 Gui, Add, Text, x170 y+20 Hidden vTxt_TesseractPath, Tesseract Path:
@@ -2608,6 +2618,7 @@ SaveReload:
     IniWrite, %applyRoleFilters%, Settings.ini, UserSettings, applyRoleFilters
     IniWrite, %debugMode%, Settings.ini, UserSettings, debugMode
     IniWrite, %tesseractOption%, Settings.ini, UserSettings, tesseractOption
+    IniWrite, %statusMessage%, Settings.ini, UserSettings, statusMessage
 
     ; Save theme setting
     IniWrite, %isDarkTheme%, Settings.ini, UserSettings, isDarkTheme
@@ -2714,6 +2725,7 @@ StartBot:
     IniWrite, %applyRoleFilters%, Settings.ini, UserSettings, applyRoleFilters
     IniWrite, %debugMode%, Settings.ini, UserSettings, debugMode
     IniWrite, %tesseractOption%, Settings.ini, UserSettings, tesseractOption
+    IniWrite, %statusMessage%, Settings.ini, UserSettings, statusMessage
 
     IniWrite, %isDarkTheme%, Settings.ini, UserSettings, isDarkTheme
     IniWrite, %useBackgroundImage%, Settings.ini, UserSettings, useBackgroundImage
