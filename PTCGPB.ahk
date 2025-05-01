@@ -706,7 +706,7 @@ ShowSystemSettingsSection() {
 ; ========== Show Pack Settings Section (IMPROVED LAYOUT with dividers) ==========
 ShowPackSettingsSection() {
     global isDarkTheme, DARK_TEXT, LIGHT_TEXT, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
-    global DARK_SECTION_COLORS, LIGHT_SECTION_COLORS
+    global DARK_SECTION_COLORS, LIGHT_SECTION_COLORS, deleteMethod, nukeAccount
 
     SetNormalFont()
 
@@ -740,7 +740,10 @@ ShowPackSettingsSection() {
 
     ; Check if deleteMethod is "inject" and show nukeAccount if not
     GuiControlGet, deleteMethod
-    if (!InStr(deleteMethod, "Inject")) {
+    if (InStr(deleteMethod, "Inject")) {
+        GuiControl, Hide, nukeAccount
+        nukeAccount = 0  ; Set nukeAccount to false since it should be disabled with Inject
+    } else {
         GuiControl, Show, nukeAccount
     }
 
@@ -1423,7 +1426,7 @@ if (defaultLanguage = "Scale125") {
     scaleParam := 287
 }
 
-Gui, Add, DropDownList, x285 y+-17 w95 vdefaultLanguage choose%defaultLang% Hidden, Scale125|Scale100
+Gui, Add, DropDownList, x285 y+-17 w95 vdefaultLanguage gdefaultLangSetting choose%defaultLang% Hidden, Scale125|Scale100
 
 Gui, Add, Text, x170 y+17 Hidden vTxt_FolderPath, Folder Path:
 Gui, Add, Edit, vfolderPath x285 y+-17 w180 h25 Hidden, %folderPath%
@@ -2074,16 +2077,34 @@ return
 
 deleteSettings:
     Gui, Submit, NoHide
-    global isDarkTheme, DARK_TEXT, LIGHT_TEXT
-
-    if(InStr(deleteMethod, "Inject")) {
+    global scaleParam, defaultLanguage
+    
+    ; Store the current scaleParam value
+    currentScaleParam := scaleParam
+    
+    ; Get the current value of deleteMethod control
+    GuiControlGet, currentMethod,, deleteMethod
+    
+    if(InStr(currentMethod, "Inject")) {
         GuiControl, Hide, nukeAccount
-        nukeAccount = false
+        GuiControl,, nukeAccount, 0  ; Uncheck the checkbox when hidden
     }
     else {
         GuiControl, Show, nukeAccount
         ; Apply text color using helper function
         ApplyTextColor("nukeAccount")
+    }
+
+    ; Ensure scaleParam value is preserved based on the currentLanguage
+    if (defaultLanguage = "Scale125") {
+        scaleParam := 277
+    } else if (defaultLanguage = "Scale100") {
+        scaleParam := 287
+    }
+
+    ; Only show a message if debugging is needed
+    if (debugMode && scaleParam != currentScaleParam) {
+        MsgBox, Scale parameter updated: %scaleParam% (Was: %currentScaleParam%)
     }
 return
 
@@ -2108,10 +2129,13 @@ return
 defaultLangSetting:
     global scaleParam
     GuiControlGet, defaultLanguage,, defaultLanguage
-    if (defaultLanguage = "Scale125")
+    if (defaultLanguage = "Scale125") {
         scaleParam := 277
-    else if (defaultLanguage = "Scale100")
+        MsgBox, Scale set to 125`% with scaleParam = %scaleParam%
+    } else if (defaultLanguage = "Scale100") {
         scaleParam := 287
+        MsgBox, Scale set to 100`% with scaleParam = %scaleParam%
+    }
 return
 
 ArrangeWindows:
@@ -2120,6 +2144,14 @@ ArrangeWindows:
     GuiControlGet, Instances,, Instances
     GuiControlGet, Columns,, Columns
     GuiControlGet, SelectedMonitorIndex,, SelectedMonitorIndex
+    GuiControlGet, defaultLanguage,, defaultLanguage
+    
+    ; Re-validate scaleParam based on current language
+    if (defaultLanguage = "Scale125") {
+        scaleParam := 277
+    } else if (defaultLanguage = "Scale100") {
+        scaleParam := 287
+    }
     
     windowsPositioned := 0
     
@@ -2193,6 +2225,13 @@ StartBot:
     
     ; Use the centralized function to save all settings
     SaveAllSettings()
+
+    ; Re-validate scaleParam based on current language
+    if (defaultLanguage = "Scale125") {
+        scaleParam := 277
+    } else if (defaultLanguage = "Scale100") {
+         scaleParam := 287
+    }
     
     ; Create the second page dynamically based on the number of instances
     Gui, Destroy ; Close the first page
