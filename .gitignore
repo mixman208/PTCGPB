@@ -1,5 +1,6 @@
 Accounts/*
 !Accounts/*.ahk
+!Accounts/*.py
 json/*
 Logs/*
 Screenshots/*
