@@ -1865,7 +1865,7 @@ return
 
 BalanceXMLs:
     if(Instances>0) {
-        
+
         ;get current # of instances in box
         GuiControlGet, Instances,, Instances
 
@@ -1874,61 +1874,112 @@ BalanceXMLs:
         XTooltipPos = % ButtonPosX + 10
         YTooltipPos = % ButtonPosY + 140
 
+        ;check folders
         saveDir := A_ScriptDir "\Accounts\Saved\"
-        if !FileExist(saveDir) ; Check if the directory exists
-            FileCreateDir, %saveDir% ; Create the directory if it doesn't exist
-        
-        Tooltip, Moving stray XMLs back into Saved..., XTooltipPos, YTooltipPos
-        tmpDir := A_ScriptDir "\Accounts\Tmp\"
-        if FileExist(tmpDir) {
-            Loop, Files, %tmpDir%\*.xml
-            {
-                FileMove, %A_LoopFilePath%, %saveDir%
-            }
-        }
+		if !FileExist(saveDir) ; Check if the directory exists
+			FileCreateDir, %saveDir% ; Create the directory if it doesn't exist
 
+        tmpDir := A_ScriptDir "\Accounts\Saved\tmp"
+		if !FileExist(tmpDir) ; Check if the directory exists
+			FileCreateDir, %tmpDir% ; Create the directory if it doesn't exist
+        
+        ;lags gui for some reason
+        Tooltip, Moving Files and Folders to tmp, XTooltipPos, YTooltipPos
+        Loop, Files, %saveDir%*, D
+            {
+                if (A_LoopFilePath == tmpDir)
+                    continue
+                dest := tmpDir . "\" . A_LoopFileName
+                
+                FileMoveDir, %A_LoopFilePath%, %dest%, 1
+            }
+        Loop, Files, %saveDir%\*, F
+            {
+                dest := tmpDir . "\" . A_LoopFileName
+                FileMove, %A_LoopFilePath%, %dest%, 1
+            }
+
+        ; create instance dirs
         Loop , %Instances%
-        { 
-            instanceDir := saveDir . "\" . A_Index
-            if !FileExist(instanceDir) ; Check if the directory exists
-                FileCreateDir, %instanceDir% ; Create the directory if it doesn't exist
-            instanceDirList := saveDir . "\" . A_Index . "\list.txt"
-            if FileExist(instanceDirList)
-                FileDelete, %instanceDirList%
+		{ 
+			instanceDir := saveDir . "\" . A_Index
+			if !FileExist(instanceDir) ; Check if the directory exists
+				FileCreateDir, %instanceDir% ; Create the directory if it doesn't exist
         }
-        
-        tmpDir := A_ScriptDir "\Accounts\Tmp\"
-        if !FileExist(tmpDir) ; Check if the directory exists
-            FileCreateDir, %tmpDir% ; Create the directory if it doesn't exist
-        
-        outputTxt := tmpDir . "\list.txt"
-        if(FileExist(outputTxt))
-            FileDelete, %outputTxt%
 
-        Tooltip, Moving all xmls into Tmp folder..., XTooltipPos, YTooltipPos
-        Loop, Files, %saveDir%\*.xml , R 
+        ToolTip, Checking for Duplicate names, XTooltipPos, YTooltipPos
+        fileList := ""
+        seenFiles := {}
+        Loop, Files, %tmpDir%\*.xml, R
         {
-            FileMove %A_LoopFilePath%, %tmpDir%
-            FileAppend, % A_LoopFileName "`n", %outputTxt%  ; Append file path to list.txt\
-        }
-        FileRead, fileContent, %outputTxt%  ; Read entire file
-        fileLines := StrSplit(fileContent, "`n", "`r")  ; Split into lines
-
-        Tooltip, Balancing XMLs between instances..., XTooltipPos, YTooltipPos
-        if (fileLines.MaxIndex() >= 1) {    
-           instance := 1
-           accountsPerInstance := fileLines.MaxIndex()/Instances
-            Loop, % fileLines.MaxIndex() -1 
+            fileName := A_LoopFileName
+            fileTime := A_LoopFileTimeModified
+            filePath := A_LoopFileFullPath
+        
+            if seenFiles.HasKey(fileName)
             {
-                tmpFile := tmpDir . "\" . fileLines[A_Index]
-                toDir := saveDir . "\" . instance
-                FileMove, %tmpFile%, %toDir%
-                if(A_Index>accountsPerInstance*instance)
-                    instance += 1
+                ; Compare the timestamps to determine which file is older
+                prevTime := seenFiles[fileName].Time
+                prevPath := seenFiles[fileName].Path
+        
+                if (fileTime > prevTime)
+                {
+                    ; Current file is newer, delete the previous one
+                    FileDelete, %prevPath%
+                    seenFiles[fileName] := {Time: fileTime, Path: filePath}
+                }
+                else
+                {
+                    ; Current file is older, delete it
+                    FileDelete, %filePath%
+                }
+                continue
             }
+        
+            ; Store the file info
+            seenFiles[fileName] := {Time: fileTime, Path: filePath}
+            fileList .= fileTime "`t" filePath "`n"
         }
+        
+        ToolTip, Sorting by modified date, XTooltipPos, YTooltipPos
+        Sort, fileList, R
+
+        ToolTip, Distributing XMLs between folders...please wait, XTooltipPos, YTooltipPos
+        instance := 1
+        Loop, Parse, fileList, `n
+        {
+            if (A_LoopField = "")
+                continue
+
+            ; Split each line into timestamp and file path (split by tab)
+            StringSplit, parts, A_LoopField, %A_Tab%
+            tmpFile := parts2  ; Get the file path from the second part
+            toDir := saveDir . "\" . instance
+
+            ; Move the file
+            FileMove, %tmpFile%, %toDir%, 1
+
+            instance++
+            if (instance > Instances)
+                instance := 1
+        }
+
+        ;count number of xmls with date modified time over 24 hours in instance 1
+
+        instanceOneDir := saveDir . "1"
+        counter := 0
+        counter2 := 0
+        Loop, Files, %instanceOneDir%\*.xml
+        {
+            fileModifiedTimeDiff := A_Now
+            FileGetTime, fileModifiedTime, %A_LoopFileFullPath%, M
+            EnvSub, fileModifiedTimeDiff, %fileModifiedTime%, Hours
+            if (fileModifiedTimeDiff >= 24)  ; 24 hours
+                counter++
+        }
+
         Tooltip ;clear tooltip
-        MsgBox, Done balancing XMLs between %Instances% instances
+        MsgBox, Done balancing XMLs between %Instances% instances`n%counter% XMLs past 24 hours per instance
     }
 return
 
