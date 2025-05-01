@@ -3240,6 +3240,117 @@ DoWonderPick() {
     return true
 }
 
+FindPackStats() {
+    global adbShell, scriptName, ocrLanguage, loadDir
+
+	; Click for hamburger menu
+    Loop {
+        adbClick(240, 499)
+        if(FindOrLoseImage(230, 120, 260, 150, , "UserProfile", 0)) {
+            break
+        }
+        
+		; Check for dialogue boxes
+        clickButton := FindOrLoseImage(75, 340, 195, 530, 80, "Button", 0)
+        if(clickButton) {
+            StringSplit, pos, clickButton, `,
+            if (scaleParam = 287) {
+                pos2 += 5
+            }
+            adbClick(pos1, pos2)
+        }
+        
+        LevelUp()
+        Delay(1)
+    }
+
+	; Open up profile/stats page
+    Loop {
+        adbClick(210, 140)
+        if(FindOrLoseImage(203, 272, 237, 300, , "Profile", 0)) {
+            break
+        }
+        Delay(1)
+    }
+
+    ; Swipe up 3 times
+    Loop, 3 {
+        adbSwipeUp(300)
+        Delay(1)
+    }
+
+	;OCR Card Count, Try 3 Times
+  	Sleep, 1000
+    fcScreenshot := Screenshot("PACKSTATS")
+    
+    debugInfo := ""
+    packValue := 0
+    maxRetries := 3
+    currentTry := 1
+    
+    while (currentTry <= maxRetries) {
+        try {
+            if(IsFunc("ocr")) {
+                ocrText := Func("ocr").Call(fcScreenshot, ocrLanguage)
+                
+                ; Look for numbers
+                foundNumbers := []
+                pos := 1
+                while pos := RegExMatch(ocrText, "O)(\d+)", match, pos) {
+                    foundNumbers.Push(match.1)
+                    pos += match.len
+                }
+                
+                ; If we found any numbers, calculate pack count
+                if (foundNumbers.Length() > 0) {
+                    ; Get the largest number found
+                    maxNumber := 0
+                    for i, num in foundNumbers {
+                        if (num > maxNumber)
+                            maxNumber := num
+                    }
+                    
+                    ; Calculate pack count by dividing by 5 and rounding down
+                    packValue := Floor(maxNumber / 5)
+                    break ; Exit retry loop if we found a number
+                }
+            } else {
+                break
+            }
+        } catch e {
+            LogToFile("Failed OCR attempt " . currentTry . ": " . e.message, "BC.txt")
+        }
+        
+        currentTry++
+        if (currentTry <= maxRetries)
+            Sleep, 1000 ; Wait a second before retrying
+    }
+
+    ; Update XML filename if we have a valid loadDir and either got a pack value or OCR failed/Overwrite old pack counts
+	if (loadDir && FileExist(loadDir) && packValue) {
+		; Get the base path and current filename
+		SplitPath, loadDir, currentFileName, fileDir
+		
+		; Extract the timestamp part (assuming format: YYYYMMDDHHMMSS_instance)
+		timestamp := RegExMatch(currentFileName, "^(\d+)_", timestampMatch) ? timestampMatch1 : ""
+		instance := RegExMatch(currentFileName, "_(\d+)", instanceMatch) ? instanceMatch1 : ""
+		
+		if (timestamp && instance) {
+			; Create new filename with pack count
+			newFileName := timestamp . "_" . instance . "_" . packValue . "P.xml"
+			newFilePath := fileDir . "\" . newFileName
+			
+			; Rename the file
+			FileMove, %loadDir%, %newFilePath%
+			
+			; Update loadDir to point to new file location
+			loadDir := newFilePath
+		}
+	}
+
+    return packValue
+}
+
 getChangeDateTime() {
 	offset := A_Now
 	currenttimeutc := A_NowUTC
