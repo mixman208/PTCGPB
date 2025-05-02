@@ -3293,7 +3293,7 @@ FindPackStats() {
 
     ; Swipe up 3 times
     Loop, 3 {
-        adbSwipeUp(300)
+        adbSwipe("266 770 266 355 300")
         Delay(1)
     }
 
