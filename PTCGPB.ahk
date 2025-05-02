@@ -219,6 +219,7 @@ SaveAllSettings() {
     global CheckShinyPackOnly, TrainerCheck, FullArtCheck, RainbowCheck, ShinyCheck, CrownCheck
     global InvalidCheck, ImmersiveCheck, PseudoGodPack, minStars, Palkia, Dialga, Arceus, Shining
     global Mew, Pikachu, Charizard, Mewtwo, Solgaleo, Lunala, slowMotion, ocrLanguage, clientLanguage, autoLaunchMonitor
+    global CurrentVisibleSection
     
     ; IMPORTANT: For ListView-based pack selection - explicitly reset all pack variables to 0 first
     Shining := 0
@@ -234,14 +235,16 @@ SaveAllSettings() {
     
     ; Then set them based on ListView state if we're on the Pack Settings page
     if (CurrentVisibleSection = "PackSettings") {
-        ; Loop through the ListView and check which items are checked
+        ; Loop through the ListView rows one by one
         Loop, % LV_GetCount()
         {
-            isChecked := 0
-            rowNum := LV_GetNext(A_Index-1, "Checked")
-            if (rowNum) {
-                LV_GetText(packName, rowNum+1)
+            ; Check if current row is checked
+            isChecked := LV_GetNext(A_Index-1, "Checked") = A_Index
+            if (isChecked) {
+                ; Get pack name directly from this row
+                LV_GetText(packName, A_Index)
                 
+                ; Set the correct variable based on the actual pack name
                 if (packName = "Shining")
                     Shining := 1
                 else if (packName = "Arceus")
@@ -781,20 +784,41 @@ ShowPackSettingsSection() {
     }
 
     ; Initialize ListView for pack selection
-    LV_Delete() ; Clear the ListView first
+    LV_Delete()
 
-    ; Add items and check them based on variables
-    LV_Add(Solgaleo ? "Check" : "", "Solgaleo")
-    LV_Add(Lunala ? "Check" : "", "Lunala")
-    LV_Add(Shining ? "Check" : "", "Shining")
-    LV_Add(Arceus ? "Check" : "", "Arceus")
-    LV_Add(Palkia ? "Check" : "", "Palkia")
-    LV_Add(Dialga ? "Check" : "", "Dialga")
-    LV_Add(Pikachu ? "Check" : "", "Pikachu")
-    LV_Add(Charizard ? "Check" : "", "Charizard")
-    LV_Add(Mewtwo ? "Check" : "", "Mewtwo")
-    LV_Add(Mew ? "Check" : "", "Mew")
+    ; Add all items in the specified order WITHOUT checking any of them
+    LV_Add("", "Solgaleo")
+    LV_Add("", "Lunala")
+    LV_Add("", "Shining")
+    LV_Add("", "Arceus")
+    LV_Add("", "Palkia")
+    LV_Add("", "Dialga")
+    LV_Add("", "Pikachu")
+    LV_Add("", "Charizard")
+    LV_Add("", "Mewtwo")
+    LV_Add("", "Mew")
 
+    ; Then, go through each variable and check the corresponding row if it's set to 1
+    Loop, % LV_GetCount()
+    {
+        LV_GetText(packName, A_Index)
+    
+        ; Check if the corresponding variable is 1
+        if ( (packName = "Solgaleo" && Solgaleo)
+           || (packName = "Lunala" && Lunala))
+           || (packName = "Shining" && Shining)
+           || (packName = "Arceus" && Arceus)
+           || (packName = "Palkia" && Palkia)
+           || (packName = "Dialga" && Dialga)
+           || (packName = "Pikachu" && Pikachu)
+           || (packName = "Charizard" && Charizard)
+           || (packName = "Mewtwo" && Mewtwo)
+           || (packName = "Mew" && Mew)
+        {
+           ; Check the row
+           LV_Modify(A_Index, "Check")
+        }
+     }
 
     ; Apply theme-based styling
     textColor := isDarkTheme ? DARK_TEXT : LIGHT_TEXT
@@ -1817,7 +1841,7 @@ Return
 UpdatePackSelection:
     Gui, Submit, NoHide
     
-    ; Reset all pack variables to 0 first
+    ; Reset all pack variables
     Shining := 0
     Arceus := 0
     Palkia := 0
@@ -1829,18 +1853,21 @@ UpdatePackSelection:
     Solgaleo := 0
     Lunala := 0
     
-    ; Loop through the ListView and check which items are checked
+    ; Loop through all rows and check their state directly
     Loop, % LV_GetCount()
     {
-        ; Get the checked state of the row
-        isChecked := LV_GetNext(A_Index-1, "Checked")
-        if (isChecked)
-        {
-            ; Get the text of the pack name
+        ; Check if current row is checked
+        isChecked := LV_GetNext(A_Index-1, "Checked") = A_Index
+        if (isChecked) {
+            ; Get the pack name
             LV_GetText(packName, A_Index)
             
             ; Set the corresponding variable to 1
-            if (packName = "Shining")
+            if (packName = "Solgaleo")
+                Solgaleo := 1
+            else if (packName = "Lunala")
+                Lunala := 1
+            else if (packName = "Shining")
                 Shining := 1
             else if (packName = "Arceus")
                 Arceus := 1
@@ -1856,13 +1883,34 @@ UpdatePackSelection:
                 Mewtwo := 1
             else if (packName = "Mew")
                 Mew := 1
-            else if (packName = "Solgaleo")
-                Solgaleo := 1
-            else if (packName = "Lunala")
-                Lunala := 1
         }
     }
     
+    ; Check if Shining is selected, update s4tGholdengo visibility in SaveForTrade section
+    if (CurrentVisibleSection = "SaveForTrade" && s4tEnabled) {
+        if (Shining) {
+            GuiControl, Show, s4tGholdengo
+            GuiControl, Show, s4tGholdengoEmblem
+            GuiControl, Show, s4tGholdengoArrow
+            
+            ; Apply text styling
+            if (isDarkTheme) {
+                GuiControl, +c%DARK_TEXT%, s4tGholdengo
+                GuiControl, +c%DARK_TEXT%, s4tGholdengoArrow
+            } else {
+                GuiControl, +c%LIGHT_TEXT%, s4tGholdengo
+                GuiControl, +c%LIGHT_TEXT%, s4tGholdengoArrow
+            }
+        } else {
+            GuiControl, Hide, s4tGholdengo
+            GuiControl, Hide, s4tGholdengoEmblem
+            GuiControl, Hide, s4tGholdengoArrow
+        }
+    }
+    
+    SaveAllSettings()
+return
+
     ; Function to handle Shining/Gholdengo visibility
     if (CurrentVisibleSection = "SaveForTrade" && s4tEnabled) {
         if (Shining) {
