@@ -6,8 +6,6 @@ version = Arturos PTCGP Bot
 CoordMode, Mouse, Screen
 SetTitleMatchMode, 3
 
-; Remove message handlers for button coloring
-
 global STATIC_BRUSH := 0
 
 githubUser := "Arturo-1212"
@@ -18,8 +16,8 @@ zipPath := A_Temp . "\update.zip"
 extractPath := A_Temp . "\update"
 
 ; GUI dimensions constants
-global GUI_WIDTH := 480  ; Adjusted from 510 to 480
-global GUI_HEIGHT := 750 ; Adjusted from 850 to 750
+global GUI_WIDTH := 480
+global GUI_HEIGHT := 750
 
 ; Image scaling and ratio constants for 720p compatibility
 global IMG_SCALE_RATIO := 0.5625 ; 720/1280 for aspect ratio preservation
@@ -44,6 +42,7 @@ if not A_IsAdmin
     Run *RunAs "%A_ScriptFullPath%"
     ExitApp
 }
+
 ; Check for debugMode and display license notification if not in debug mode
 IniRead, debugMode, Settings.ini, UserSettings, debugMode, 0
 if (!debugMode)
@@ -52,47 +51,47 @@ if (!debugMode)
 }
 
 ; Define refined global color variables for consistent theming
-global DARK_BG := "232736"          ; Deeper blue-gray background
-global DARK_CONTROL_BG := "2E3440"  ; Slightly lighter panel background
-global DARK_ACCENT := "81A1C1"      ; Lighter blue accent (changed to match section colors)
-global DARK_TEXT := "ECEFF4"        ; Crisp white text with slight blue tint
-global DARK_TEXT_SECONDARY := "D8DEE9" ; Slightly dimmed secondary text
+global DARK_BG := "121621"          ; Deeper, darker blue-black
+global DARK_CONTROL_BG := "1A1E2E"  ; Darker panel background for more contrast
+global DARK_ACCENT := "3390FF"      ; More muted blue accent
+global DARK_TEXT := "FFFFFF"        ; Pure white for maximum visibility
+global DARK_TEXT_SECONDARY := "D0E4FF" ; Slightly muted blue-white for secondary text
 
-global LIGHT_BG := "F0F5F9"         ; Soft light background with blue hint
+global LIGHT_BG := "F8FAFF"         ; Very light blue-white background
 global LIGHT_CONTROL_BG := "FFFFFF" ; Pure white for controls
-global LIGHT_ACCENT := "2E5984"     ; Darker accent (changed to match section colors)
-global LIGHT_TEXT := "2E3440"       ; Dark text that matches dark mode background
-global LIGHT_TEXT_SECONDARY := "4C566A" ; Medium gray with blue tint
+global LIGHT_ACCENT := "0055AA"     ; Darker accent for contrast
+global LIGHT_TEXT := "000000"       ; Black text for maximum contrast
+global LIGHT_TEXT_SECONDARY := "333333" ; Dark gray with slight blue tint
 
 ; Define input field colors for light and dark themes
-global DARK_INPUT_BG := "3B4252"    ; Slightly lighter than control background
-global DARK_INPUT_TEXT := "ECEFF4"  ; Same as main text
-global LIGHT_INPUT_BG := "ECEFF4"   ; Light gray with blue tint
-global LIGHT_INPUT_TEXT := "2E3440" ; Dark text
+global DARK_INPUT_BG := "151B2C"    ; Darker but with some contrast against background
+global DARK_INPUT_TEXT := "FFFFFF"  ; White text in inputs
+global LIGHT_INPUT_BG := "F0F5FF"   ; Very light blue for contrast
+global LIGHT_INPUT_TEXT := "000000" ; Black text in inputs
 
-; Section colors - Dark theme
+; Section colors - Dark theme with increased brightness/contrast
 global DARK_SECTION_COLORS := {}
-DARK_SECTION_COLORS["RerollSettings"] := "81A1C1"   ; Lighter Blue for better visibility on dark background
-DARK_SECTION_COLORS["FriendID"] := "81A1C1"       ; Lighter Blue
-DARK_SECTION_COLORS["InstanceSettings"] := "81A1C1" ; Lighter Blue
-DARK_SECTION_COLORS["TimeSettings"] := "81A1C1"     ; Lighter Blue
-DARK_SECTION_COLORS["SystemSettings"] := "8FBCBB"   ; Lighter Teal for dark background
-DARK_SECTION_COLORS["PackSettings"] := "B48EAD"  ; Lighter Purple for visibility
-DARK_SECTION_COLORS["SaveForTrade"] := "D08770"     ; Lighter Orange
-DARK_SECTION_COLORS["DiscordSettings"] := "90A8E0"  ; Lighter Discord Blue 
-DARK_SECTION_COLORS["DownloadSettings"] := "A3BE8C"   ; Light Green
+DARK_SECTION_COLORS["RerollSettings"] := "50B0FF"   ; Brighter but not neon blue
+DARK_SECTION_COLORS["FriendID"] := "50B0FF"         ; Brighter but not neon blue
+DARK_SECTION_COLORS["InstanceSettings"] := "50B0FF" ; Brighter but not neon blue
+DARK_SECTION_COLORS["TimeSettings"] := "50B0FF"     ; Brighter but not neon blue
+DARK_SECTION_COLORS["SystemSettings"] := "40E0E0"   ; Brighter teal
+DARK_SECTION_COLORS["PackSettings"] := "E070D0"     ; Brighter but softer purple
+DARK_SECTION_COLORS["SaveForTrade"] := "FF9955"     ; Kept bright orange for visibility
+DARK_SECTION_COLORS["DiscordSettings"] := "7289DA"  ; Discord's official blue - brighter
+DARK_SECTION_COLORS["DownloadSettings"] := "60D090" ; Brighter green
 
 ; Section colors - Light theme
 global LIGHT_SECTION_COLORS := {}
-LIGHT_SECTION_COLORS["RerollSettings"] := "2E5984"   ; Dark Blue for contrast on light background
-LIGHT_SECTION_COLORS["FriendID"] := "2E5984"       ; Dark Blue
-LIGHT_SECTION_COLORS["InstanceSettings"] := "2E5984" ; Dark Blue
-LIGHT_SECTION_COLORS["TimeSettings"] := "2E5984"     ; Dark Blue
-LIGHT_SECTION_COLORS["SystemSettings"] := "2D7270"   ; Dark Teal
-LIGHT_SECTION_COLORS["PackSettings"] := "6A5173"  ; Dark Purple
-LIGHT_SECTION_COLORS["SaveForTrade"] := "9A5A43"     ; Dark Orange
-LIGHT_SECTION_COLORS["DiscordSettings"] := "5865B2"  ; Darker Discord Blue
-LIGHT_SECTION_COLORS["DownloadSettings"] := "547B48"   ; Darker Green
+LIGHT_SECTION_COLORS["RerollSettings"] := "0066CC"   ; Bolder blue
+LIGHT_SECTION_COLORS["FriendID"] := "0066CC"         ; Bolder blue
+LIGHT_SECTION_COLORS["InstanceSettings"] := "0066CC" ; Bolder blue
+LIGHT_SECTION_COLORS["TimeSettings"] := "0066CC"     ; Bolder blue
+LIGHT_SECTION_COLORS["SystemSettings"] := "008080"   ; Bold teal
+LIGHT_SECTION_COLORS["PackSettings"] := "8B008B"     ; Bold purple
+LIGHT_SECTION_COLORS["SaveForTrade"] := "CC5500"     ; Bold orange
+LIGHT_SECTION_COLORS["DiscordSettings"] := "4A55CC"  ; Bold Discord blue
+LIGHT_SECTION_COLORS["DownloadSettings"] := "006400" ; Bold forest green
 
 IsNumeric(var) {
     if var is number
@@ -120,7 +119,7 @@ SetTitleFont() {
 SetSectionFont() {
     global isDarkTheme, DARK_TEXT, LIGHT_TEXT
     if (isDarkTheme)
-        Gui, Font, s10 bold c%DARK_TEXT%, Segoe UI  ; Reduced from s12
+        Gui, Font, s10 bold c%DARK_TEXT%, Segoe UI
     else
         Gui, Font, s10 bold c%LIGHT_TEXT%, Segoe UI
 }
@@ -128,7 +127,7 @@ SetSectionFont() {
 SetHeaderFont() {
     global isDarkTheme, DARK_TEXT, LIGHT_TEXT
     if (isDarkTheme)
-        Gui, Font, s9 bold c%DARK_TEXT%, Segoe UI  ; Reduced from s10
+        Gui, Font, s9 bold c%DARK_TEXT%, Segoe UI
     else
         Gui, Font, s9 bold c%LIGHT_TEXT%, Segoe UI
 }
@@ -136,7 +135,7 @@ SetHeaderFont() {
 SetNormalFont() {
     global isDarkTheme, DARK_TEXT, LIGHT_TEXT
     if (isDarkTheme)
-        Gui, Font, s8 c%DARK_TEXT%, Segoe UI       ; Reduced from s9
+        Gui, Font, s8 c%DARK_TEXT%, Segoe UI
     else
         Gui, Font, s8 c%LIGHT_TEXT%, Segoe UI
 }
@@ -144,7 +143,7 @@ SetNormalFont() {
 SetSmallFont() {
     global isDarkTheme, DARK_TEXT_SECONDARY, LIGHT_TEXT_SECONDARY
     if (isDarkTheme)
-        Gui, Font, s7 c%DARK_TEXT_SECONDARY%, Segoe UI  ; Reduced from s8
+        Gui, Font, s7 c%DARK_TEXT_SECONDARY%, Segoe UI
     else
         Gui, Font, s7 c%LIGHT_TEXT_SECONDARY%, Segoe UI
 }
@@ -152,7 +151,7 @@ SetSmallFont() {
 SetInputFont() {
     global isDarkTheme, DARK_INPUT_TEXT, LIGHT_INPUT_TEXT
     if (isDarkTheme)
-        Gui, Font, s8 c%DARK_INPUT_TEXT%, Segoe UI  ; Reduced from s9
+        Gui, Font, s8 c%DARK_INPUT_TEXT%, Segoe UI
     else
         Gui, Font, s8 c%LIGHT_INPUT_TEXT%, Segoe UI
 }
@@ -162,7 +161,7 @@ SetInputFont() {
 ; Function to apply text color based on current theme
 ApplyTextColor(controlName) {
     global isDarkTheme, DARK_TEXT, LIGHT_TEXT
-    
+
     textColor := isDarkTheme ? DARK_TEXT : LIGHT_TEXT
     GuiControl, +c%textColor%, %controlName%
 }
@@ -170,7 +169,7 @@ ApplyTextColor(controlName) {
 ; Function to apply input field styling based on current theme
 ApplyInputStyle(controlName) {
     global isDarkTheme, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
-    
+
     inputBgColor := isDarkTheme ? DARK_INPUT_BG : LIGHT_INPUT_BG
     inputTextColor := isDarkTheme ? DARK_INPUT_TEXT : LIGHT_INPUT_TEXT
     GuiControl, +Background%inputBgColor% +c%inputTextColor%, %controlName%
@@ -217,13 +216,55 @@ SaveAllSettings() {
     global FriendID, AccountName, waitTime, Delay, folderPath, discordWebhookURL, discordUserId, Columns, godPack
     global Instances, instanceStartDelay, defaultLanguage, SelectedMonitorIndex, swipeSpeed, deleteMethod
     global runMain, Mains, heartBeat, heartBeatWebhookURL, heartBeatName, nukeAccount, packMethod
-    global CheckShiningPackOnly, TrainerCheck, FullArtCheck, RainbowCheck, ShinyCheck, CrownCheck
+    global CheckShinyPackOnly, TrainerCheck, FullArtCheck, RainbowCheck, ShinyCheck, CrownCheck
     global InvalidCheck, ImmersiveCheck, PseudoGodPack, minStars, Palkia, Dialga, Arceus, Shining
     global Mew, Pikachu, Charizard, Mewtwo, Solgaleo, Lunala, slowMotion, ocrLanguage, clientLanguage, autoLaunchMonitor
-    global mainIdsURL, vipIdsURL, instanceLaunchDelay, s4tEnabled, s4tSilent, s4t3Dmnd, s4t4Dmnd, s4t1Star
-    global s4tGholdengo, s4tWP, s4tWPMinCards, s4tDiscordUserId, s4tDiscordWebhookURL, s4tSendAccountXml
-    global minStarsA2b, heartBeatDelay, sendAccountXml, showcaseEnabled, showcaseURL, isDarkTheme
-    global useBackgroundImage, tesseractPath, applyRoleFilters, debugMode, tesseractOption, statusMessage
+    
+    ; IMPORTANT: For ListView-based pack selection - explicitly reset all pack variables to 0 first
+    Shining := 0
+    Arceus := 0
+    Palkia := 0
+    Dialga := 0
+    Pikachu := 0
+    Charizard := 0
+    Mewtwo := 0
+    Mew := 0
+    Solgaleo := 0
+    Lunala := 0
+    
+    ; Then set them based on ListView state if we're on the Pack Settings page
+    if (CurrentVisibleSection = "PackSettings") {
+        ; Loop through the ListView and check which items are checked
+        Loop, % LV_GetCount()
+        {
+            isChecked := 0
+            rowNum := LV_GetNext(A_Index-1, "Checked")
+            if (rowNum) {
+                LV_GetText(packName, rowNum+1)
+                
+                if (packName = "Shining")
+                    Shining := 1
+                else if (packName = "Arceus")
+                    Arceus := 1
+                else if (packName = "Palkia")
+                    Palkia := 1
+                else if (packName = "Dialga")
+                    Dialga := 1
+                else if (packName = "Pikachu")
+                    Pikachu := 1
+                else if (packName = "Charizard")
+                    Charizard := 1
+                else if (packName = "Mewtwo")
+                    Mewtwo := 1
+                else if (packName = "Mew")
+                    Mew := 1
+                else if (packName = "Solgaleo")
+                    Solgaleo := 1
+                else if (packName = "Lunala")
+                    Lunala := 1
+            }
+        }
+    }
     
     ; Save basic settings
     IniWrite, %FriendID%, Settings.ini, UserSettings, FriendID
@@ -248,7 +289,7 @@ SaveAllSettings() {
     IniWrite, %heartBeatName%, Settings.ini, UserSettings, heartBeatName
     IniWrite, %nukeAccount%, Settings.ini, UserSettings, nukeAccount
     IniWrite, %packMethod%, Settings.ini, UserSettings, packMethod
-    IniWrite, %CheckShiningPackOnly%, Settings.ini, UserSettings, CheckShiningPackOnly
+    IniWrite, %CheckShinyPackOnly%, Settings.ini, UserSettings, CheckShinyPackOnly
     IniWrite, %TrainerCheck%, Settings.ini, UserSettings, TrainerCheck
     IniWrite, %FullArtCheck%, Settings.ini, UserSettings, FullArtCheck
     IniWrite, %RainbowCheck%, Settings.ini, UserSettings, RainbowCheck
@@ -275,33 +316,27 @@ SaveAllSettings() {
     IniWrite, %vipIdsURL%, Settings.ini, UserSettings, vipIdsURL
     IniWrite, %autoLaunchMonitor%, Settings.ini, UserSettings, autoLaunchMonitor
     IniWrite, %instanceLaunchDelay%, Settings.ini, UserSettings, instanceLaunchDelay
-    
-    ; Set minStars variants
-    minStarsA1Charizard := minStars
-    minStarsA1Mewtwo := minStars
-    minStarsA1Pikachu := minStars
-    minStarsA1a := minStars
-    minStarsA2Dialga := minStars
-    minStarsA2Palkia := minStars
-    minStarsA2a := minStars
-    
+
     ; Save showcase settings
     IniWrite, %showcaseEnabled%, Settings.ini, UserSettings, showcaseEnabled
     IniWrite, %showcaseURL%, Settings.ini, UserSettings, showcaseURL
     IniWrite, 5, Settings.ini, UserSettings, showcaseLikes
-    
+
     ; Save advanced settings
-    IniWrite, %minStarsA1Charizard%, Settings.ini, UserSettings, minStarsA1Charizard
-    IniWrite, %minStarsA1Mewtwo%, Settings.ini, UserSettings, minStarsA1Mewtwo
-    IniWrite, %minStarsA1Pikachu%, Settings.ini, UserSettings, minStarsA1Pikachu
-    IniWrite, %minStarsA1a%, Settings.ini, UserSettings, minStarsA1a
-    IniWrite, %minStarsA2Dialga%, Settings.ini, UserSettings, minStarsA2Dialga
-    IniWrite, %minStarsA2Palkia%, Settings.ini, UserSettings, minStarsA2Palkia
-    IniWrite, %minStarsA2a%, Settings.ini, UserSettings, minStarsA2a
-    IniWrite, %minStarsA2b%, Settings.ini, UserSettings, minStarsA2b
+    IniWrite, %minStars%, Settings.ini, UserSettings, minStarsA1Mewtwo
+    IniWrite, %minStars%, Settings.ini, UserSettings, minStarsA1Charizard
+    IniWrite, %minStars%, Settings.ini, UserSettings, minStarsA1Pikachu
+    IniWrite, %minStars%, Settings.ini, UserSettings, minStarsA1a
+    IniWrite, %minStars%, Settings.ini, UserSettings, minStarsA2Dialga
+    IniWrite, %minStars%, Settings.ini, UserSettings, minStarsA2Palkia
+    IniWrite, %minStars%, Settings.ini, UserSettings, minStarsA2a
+    IniWrite, %minStarsShiny%, Settings.ini, UserSettings, minStarsA2b
+    IniWrite, %minStarsShiny%, Settings.ini, UserSettings, minStarsA3Solgaleo
+    IniWrite, %minStarsShiny%, Settings.ini, UserSettings, minStarsA3Lunala
+
     IniWrite, %heartBeatDelay%, Settings.ini, UserSettings, heartBeatDelay
     IniWrite, %sendAccountXml%, Settings.ini, UserSettings, sendAccountXml
-    
+
     ; Save S4T settings
     IniWrite, %s4tEnabled%, Settings.ini, UserSettings, s4tEnabled
     IniWrite, %s4tSilent%, Settings.ini, UserSettings, s4tSilent
@@ -314,14 +349,14 @@ SaveAllSettings() {
     IniWrite, %s4tDiscordUserId%, Settings.ini, UserSettings, s4tDiscordUserId
     IniWrite, %s4tDiscordWebhookURL%, Settings.ini, UserSettings, s4tDiscordWebhookURL
     IniWrite, %s4tSendAccountXml%, Settings.ini, UserSettings, s4tSendAccountXml
-    
+
     ; Save extra settings
     IniWrite, %tesseractPath%, Settings.ini, UserSettings, tesseractPath
     IniWrite, %applyRoleFilters%, Settings.ini, UserSettings, applyRoleFilters
     IniWrite, %debugMode%, Settings.ini, UserSettings, debugMode
     IniWrite, %tesseractOption%, Settings.ini, UserSettings, tesseractOption
     IniWrite, %statusMessage%, Settings.ini, UserSettings, statusMessage
-    
+
     ; Save theme settings
     IniWrite, %isDarkTheme%, Settings.ini, UserSettings, isDarkTheme
     IniWrite, %useBackgroundImage%, Settings.ini, UserSettings, useBackgroundImage
@@ -334,9 +369,8 @@ SetAllTextColors(textColor) {
     controlList .= "Txt_Delay,Txt_WaitTime,Txt_SwipeSpeed,slowMotion,"
     controlList .= "Txt_Monitor,Txt_Scale,Txt_FolderPath,Txt_OcrLanguage,Txt_ClientLanguage,"
     controlList .= "Txt_InstanceLaunchDelay,autoLaunchMonitor,"
-    controlList .= "Txt_MinStars,Txt_A2bMinStar,Txt_DeleteMethod,packMethod,nukeAccount,"
-    controlList .= "Shining,Arceus,Palkia,Dialga,Pikachu,Charizard,Mewtwo,Mew,Solgaleo,Lunala,"
-    controlList .= "FullArtCheck,TrainerCheck,RainbowCheck,PseudoGodPack,CheckShiningPackOnly,"
+    controlList .= "Txt_MinStars,Txt_ShinyMinStars,Txt_DeleteMethod,packMethod,nukeAccount,"
+    controlList .= "FullArtCheck,TrainerCheck,RainbowCheck,PseudoGodPack,CheckShinyPackOnly,"
     controlList .= "InvalidCheck,CrownCheck,ShinyCheck,ImmersiveCheck,"
     controlList .= "s4tEnabled,s4tSilent,s4t3Dmnd,s4t4Dmnd,s4t1Star,s4tGholdengo,s4tWP,"
     controlList .= "s4tWPMinCardsLabel,s4tGholdengoArrow,"
@@ -349,7 +383,7 @@ SetAllTextColors(textColor) {
     controlList .= "PackSettingsLabel,SaveForTradeLabel,DiscordSettingsLabel,DownloadSettingsLabel,"
     controlList .= "ExtraSettingsHeading,tesseractOption,Txt_TesseractPath,applyRoleFilters,"
     controlList .= "debugMode,statusMessage"
-    
+
     ; Apply color to all controls in the list
     Loop, Parse, controlList, `,
     {
@@ -402,9 +436,9 @@ ApplyTheme() {
 ; Helper function to reset button colors to default
 ResetButtonColors() {
     global isDarkTheme, DARK_TEXT, LIGHT_TEXT
-    
+
     defaultColor := isDarkTheme ? DARK_TEXT : LIGHT_TEXT
-    
+
     GuiControl, +c%defaultColor%, Btn_RerollSettings
     GuiControl, +c%defaultColor%, Btn_SystemSettings
     GuiControl, +c%defaultColor%, Btn_PackSettings
@@ -418,12 +452,12 @@ SetInputBackgrounds(bgColor, textColor) {
     ; Create a list of all input controls
     inputList := "FriendID,Instances,instanceStartDelay,Columns,Mains,"
     inputList .= "Delay,waitTime,swipeSpeed,folderPath,instanceLaunchDelay,"
-    inputList .= "minStars,minStarsA2b,discordUserId,discordWebhookURL,"
+    inputList .= "minStars,minStarsShiny,discordUserId,discordWebhookURL,"
     inputList .= "heartBeatName,heartBeatWebhookURL,heartBeatDelay,"
     inputList .= "mainIdsURL,vipIdsURL,s4tWPMinCards,"
     inputList .= "s4tDiscordUserId,s4tDiscordWebhookURL,SelectedMonitorIndex,"
     inputList .= "defaultLanguage,ocrLanguage,clientLanguage,deleteMethod,tesseractPath"
-    
+
     ; Apply style to all inputs
     Loop, Parse, inputList, `,
     {
@@ -432,13 +466,11 @@ SetInputBackgrounds(bgColor, textColor) {
     }
 }
 
-; Add this function near other GUI helper functions
 AddSectionDivider(x, y, w, vName) {
     ; Create a subtle divider line with a variable name for showing/hiding
     Gui, Add, Text, x%x% y%y% w%w% h1 +0x10 v%vName% Hidden, ; Horizontal line divider
 }
 
-; Add this function to apply section-specific colors to section headers
 UpdateSectionHeaders() {
     global isDarkTheme, CurrentVisibleSection
     global DARK_SECTION_COLORS, LIGHT_SECTION_COLORS
@@ -514,11 +546,12 @@ HideAllSections() {
     extraControls := "ExtraSettingsHeading,tesseractOption,Txt_TesseractPath,tesseractPath,"
     extraControls .= "applyRoleFilters,debugMode,statusMessage"
     packControls := "PackSettingsHeading,PackSettingsSubHeading1,Txt_MinStars,minStars,"
-    packControls .= "Txt_A2bMinStar,minStarsA2b,Txt_DeleteMethod,deleteMethod,packMethod,nukeAccount,"
-    packControls .= "Pack_Divider1,PackSettingsSubHeading2,Shining,Arceus,Palkia,Dialga,Pikachu,"
-    packControls .= "Charizard,Mewtwo,Mew,Solgaleo,Lunala,Pack_Divider2,PackSettingsSubHeading3,ShinyCheck,"
+    packControls := "PackSettingsHeading,PackSettingsSubHeading1,Txt_MinStars,minStars,"
+    packControls .= "Txt_ShinyMinStars,minStarsShiny,Txt_DeleteMethod,deleteMethod,packMethod,nukeAccount,"
+    packControls .= "Pack_Divider1,PackSettingsSubHeading2,PackSelectionList,"
+    packControls .= "Pack_Divider2,PackSettingsSubHeading3,ShinyCheck,"
     packControls .= "FullArtCheck,TrainerCheck,RainbowCheck,PseudoGodPack,Txt_vector,InvalidCheck,"
-    packControls .= "CheckShiningPackOnly,CrownCheck,ImmersiveCheck,Pack_Divider3,PackSettingsLabel"
+    packControls .= "CheckShinyPackOnly,CrownCheck,ImmersiveCheck,Pack_Divider3,PackSettingsLabel"
     s4tControls := "SaveForTradeHeading,s4tEnabled,s4tSilent,s4t3Dmnd,s4t4Dmnd,s4t1Star,"
     s4tControls .= "s4tGholdengo,s4tGholdengoEmblem,s4tGholdengoArrow,Txt_S4TSeparator,s4tWP,"
     s4tControls .= "s4tWPMinCardsLabel,s4tWPMinCards,S4TDiscordSettingsSubHeading,Txt_S4T_DiscordID,"
@@ -530,7 +563,7 @@ HideAllSections() {
     discordControls .= "DiscordSettingsSeparator,Discord_Divider3"
     downloadControls := "DownloadSettingsHeading,Txt_MainIdsURL,mainIdsURL,Txt_VipIdsURL,vipIdsURL,"
     downloadControls .= "showcaseEnabled,Txt_ShowcaseURL,showcaseURL"
-    
+
     ; Hide section headings
     GuiControl, Hide, PackSettingsLabel
 
@@ -544,10 +577,10 @@ HideAllSections() {
     HideControls(s4tControls)
     HideControls(discordControls)
     HideControls(downloadControls)
-    
+
     ; Hide separators
     GuiControl, Hide, RerollSettingsSeparator
-    
+
     ; Hide ALL divider elements
     dividerList := "FriendID_Divider,Instance_Divider3,System_Divider1,System_Divider2,System_Divider3,"
     dividerList .= "System_Divider4,Pack_Divider1,Pack_Divider2,Pack_Divider3,Discord_Divider3,"
@@ -555,7 +588,7 @@ HideAllSections() {
     HideControls(dividerList)
 }
 
-; ========== show Reroll Settings section (Updated) ==========
+; ========== show Reroll Settings section ==========
 ShowRerollSettingsSection() {
     global isDarkTheme, DARK_TEXT, LIGHT_TEXT
     global DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
@@ -575,49 +608,49 @@ ShowRerollSettingsSection() {
     instanceControls := "InstanceSettingsHeading,Txt_Instances,Instances,Txt_Columns,Columns,"
     instanceControls .= "Txt_InstanceStartDelay,instanceStartDelay,runMain,Txt_AccountName,AccountName,Instance_Divider3"
     timeControls := "TimeSettingsHeading,Txt_Delay,Delay,Txt_WaitTime,waitTime,Txt_SwipeSpeed,swipeSpeed,slowMotion"
-    
+
     ; Show controls using helper function
     ShowControls(friendIDControls)
     ShowControls(instanceControls)
     ShowControls(timeControls)
-    
+
     ; Apply section colors to headings
     GuiControl, +c%sectionColor%, FriendIDHeading
     GuiControl, +c%sectionColor%, InstanceSettingsHeading
     GuiControl, +c%sectionColor%, TimeSettingsHeading
-    
+
     ; Show Mains if runMain is checked
     GuiControlGet, runMain
     if (runMain) {
         GuiControl, Show, Mains
     }
-    
+
     ; Apply styling based on theme
     textColor := isDarkTheme ? DARK_TEXT : LIGHT_TEXT
     inputBgColor := isDarkTheme ? DARK_INPUT_BG : LIGHT_INPUT_BG
     inputTextColor := isDarkTheme ? DARK_INPUT_TEXT : LIGHT_INPUT_TEXT
-    
+
     ; Text controls
     textControls := "FriendIDLabel,Txt_Instances,Txt_InstanceStartDelay,Txt_Columns,runMain,"
     textControls .= "Txt_AccountName,Txt_Delay,Txt_WaitTime,Txt_SwipeSpeed,slowMotion"
-    
+
     ; Input controls
     inputControls := "FriendID,Instances,instanceStartDelay,Columns,AccountName,Delay,waitTime,swipeSpeed"
-    
+
     ; Apply text styling
     Loop, Parse, textControls, `,
     {
         if (A_LoopField)
             GuiControl, +c%textColor%, %A_LoopField%
     }
-    
+
     ; Apply input styling
     Loop, Parse, inputControls, `,
     {
         if (A_LoopField)
             GuiControl, +Background%inputBgColor% +c%inputTextColor%, %A_LoopField%
     }
-    
+
     ; Apply styling to Mains if shown
     if (runMain)
         GuiControl, +Background%inputBgColor% +c%inputTextColor%, Mains
@@ -626,7 +659,7 @@ ShowRerollSettingsSection() {
     UpdateSectionHeaders()
 }
 
-; ========== show System Settings Section (updated with dividers) ==========
+; ========== show System Settings Section ==========
 ShowSystemSettingsSection() {
     global isDarkTheme, DARK_TEXT, LIGHT_TEXT, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
     global DARK_SECTION_COLORS, LIGHT_SECTION_COLORS
@@ -643,10 +676,10 @@ ShowSystemSettingsSection() {
     mainControls := "SystemSettingsHeading,Txt_Monitor,SelectedMonitorIndex,Txt_Scale,defaultLanguage,"
     mainControls .= "Txt_FolderPath,folderPath,Txt_OcrLanguage,ocrLanguage,Txt_ClientLanguage,clientLanguage,"
     mainControls .= "Txt_InstanceLaunchDelay,instanceLaunchDelay,autoLaunchMonitor,SystemSettingsSeparator"
-    
+
     ; Show main system controls
     ShowControls(mainControls)
-    
+
     ; Apply section color to heading
     GuiControl, +c%sectionColor%, SystemSettingsHeading
 
@@ -654,17 +687,17 @@ ShowSystemSettingsSection() {
     textColor := isDarkTheme ? DARK_TEXT : LIGHT_TEXT
     inputBgColor := isDarkTheme ? DARK_INPUT_BG : LIGHT_INPUT_BG
     inputTextColor := isDarkTheme ? DARK_INPUT_TEXT : LIGHT_INPUT_TEXT
-    
+
     ; Text controls
     textControls := "Txt_Monitor,Txt_Scale,Txt_FolderPath,Txt_OcrLanguage,Txt_ClientLanguage,"
     textControls .= "Txt_InstanceLaunchDelay,autoLaunchMonitor"
-    
+
     ; Input controls
     inputControls := "folderPath,instanceLaunchDelay"
-    
+
     ; Apply text styling
     ApplyTextColorToMultiple(textControls)
-    
+
     ; Apply input styling
     ApplyInputStyleToMultiple(inputControls)
 
@@ -674,17 +707,17 @@ ShowSystemSettingsSection() {
     GuiControl, +c%sectionColor%, ExtraSettingsHeading
 
     SetNormalFont()
-    
+
     ; Show tesseract option
     GuiControl, Show, tesseractOption
-    
+
     ; Show tesseract path controls conditionally
     GuiControlGet, tesseractOption
     if (tesseractOption) {
         GuiControl, Show, Txt_TesseractPath
         GuiControl, Show, tesseractPath
     }
-    
+
     ; Show other extra settings
     GuiControl, Show, applyRoleFilters
     GuiControl, Show, debugMode
@@ -696,17 +729,18 @@ ShowSystemSettingsSection() {
         extraTextControls .= ",Txt_TesseractPath"
         ApplyInputStyle("tesseractPath")
     }
-    
+
     ApplyTextColorToMultiple(extraTextControls)
 
     ; Update section headers with appropriate colors
     UpdateSectionHeaders()
 }
 
-; ========== Show Pack Settings Section (IMPROVED LAYOUT with dividers) ==========
+; ========== Show Pack Settings Section ==========
 ShowPackSettingsSection() {
     global isDarkTheme, DARK_TEXT, LIGHT_TEXT, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
     global DARK_SECTION_COLORS, LIGHT_SECTION_COLORS, deleteMethod, nukeAccount
+    global Shining, Arceus, Palkia, Dialga, Pikachu, Charizard, Mewtwo, Mew, Solgaleo, Lunala
 
     SetNormalFont()
 
@@ -718,21 +752,20 @@ ShowPackSettingsSection() {
 
     ; === God Pack Settings Subsection ===
     ; Define control lists for each subsection
-    godPackControls := "PackSettingsSubHeading1,Txt_MinStars,minStars,Txt_A2bMinStar,minStarsA2b,"
+    godPackControls := "PackSettingsSubHeading1,Txt_MinStars,minStars,Txt_ShinyMinStars,minStarsShiny,"
     godPackControls .= "Txt_DeleteMethod,deleteMethod,packMethod,nukeAccount,Pack_Divider1"
-    
-    packSelectionControls := "PackSettingsSubHeading2,Shining,Arceus,Palkia,Dialga,Pikachu,"
-    packSelectionControls .= "Charizard,Mewtwo,Mew,Solgaleo,Lunala,Pack_Divider2"
-    
+
+    packSelectionControls := "PackSettingsSubHeading2,PackSelectionList,Pack_Divider2"
+
     cardDetectionControls := "PackSettingsSubHeading3,FullArtCheck,TrainerCheck,RainbowCheck,"
     cardDetectionControls .= "PseudoGodPack,Txt_vector,CrownCheck,ShinyCheck,ImmersiveCheck,"
-    cardDetectionControls .= "InvalidCheck,CheckShiningPackOnly,Pack_Divider3"
-    
+    cardDetectionControls .= "InvalidCheck,CheckShinyPackOnly,Pack_Divider3"
+
     ; Show controls by subsection
     ShowControls(godPackControls)
     ShowControls(packSelectionControls)
     ShowControls(cardDetectionControls)
-    
+
     ; Apply section colors to headings
     GuiControl, +c%sectionColor%, PackSettingsSubHeading1
     GuiControl, +c%sectionColor%, PackSettingsSubHeading2
@@ -747,40 +780,59 @@ ShowPackSettingsSection() {
         GuiControl, Show, nukeAccount
     }
 
+    ; Initialize ListView for pack selection
+    LV_Delete() ; Clear the ListView first
+
+    ; Add items and check them based on variables
+    LV_Add(Solgaleo ? "Check" : "", "Solgaleo")
+    LV_Add(Lunala ? "Check" : "", "Lunala")
+    LV_Add(Shining ? "Check" : "", "Shining")
+    LV_Add(Arceus ? "Check" : "", "Arceus")
+    LV_Add(Palkia ? "Check" : "", "Palkia")
+    LV_Add(Dialga ? "Check" : "", "Dialga")
+    LV_Add(Pikachu ? "Check" : "", "Pikachu")
+    LV_Add(Charizard ? "Check" : "", "Charizard")
+    LV_Add(Mewtwo ? "Check" : "", "Mewtwo")
+    LV_Add(Mew ? "Check" : "", "Mew")
+
+
     ; Apply theme-based styling
     textColor := isDarkTheme ? DARK_TEXT : LIGHT_TEXT
     inputBgColor := isDarkTheme ? DARK_INPUT_BG : LIGHT_INPUT_BG
     inputTextColor := isDarkTheme ? DARK_INPUT_TEXT : LIGHT_INPUT_TEXT
-    
+
     ; God Pack Settings text controls
-    godPackTextControls := "Txt_MinStars,Txt_A2bMinStar,Txt_DeleteMethod,packMethod"
+    godPackTextControls := "Txt_MinStars,Txt_ShinyMinStars,Txt_DeleteMethod,packMethod"
     if (!InStr(deleteMethod, "Inject")) {
         godPackTextControls .= ",nukeAccount"
     }
-    
-    ; Pack Selection text controls
-    packSelectionTextControls := "Shining,Arceus,Palkia,Dialga,Pikachu,Charizard,Mewtwo,Mew"
-    
+
     ; Card Detection text controls
     cardDetectionTextControls := "FullArtCheck,TrainerCheck,RainbowCheck,PseudoGodPack,"
-    cardDetectionTextControls .= "CrownCheck,ShinyCheck,ImmersiveCheck,InvalidCheck,CheckShiningPackOnly"
-    
+    cardDetectionTextControls .= "CrownCheck,ShinyCheck,ImmersiveCheck,InvalidCheck,CheckShinyPackOnly"
+
     ; Input controls
-    inputControls := "minStars,minStarsA2b"
-    
+    inputControls := "minStars,minStarsShiny"
+
     ; Apply text styling to all controls
     ApplyTextColorToMultiple(godPackTextControls)
-    ApplyTextColorToMultiple(packSelectionTextControls)
     ApplyTextColorToMultiple(cardDetectionTextControls)
-    
+
     ; Apply input styling
     ApplyInputStyleToMultiple(inputControls)
+    
+    ; Apply styling to the ListView
+    if (isDarkTheme) {
+        GuiControl, +Background%DARK_INPUT_BG% +c%DARK_INPUT_TEXT%, PackSelectionList
+    } else {
+        GuiControl, +Background%LIGHT_INPUT_BG% +c%LIGHT_INPUT_TEXT%, PackSelectionList
+    }
 
     ; Update section headers with appropriate colors
     UpdateSectionHeaders()
 }
 
-; ========== Show Save For Trade Section (Updated with dividers) ==========
+; ========== Show Save For Trade Section ==========
 ShowSaveForTradeSection() {
     global isDarkTheme, DARK_TEXT, LIGHT_TEXT, DARK_TEXT_SECONDARY, LIGHT_TEXT_SECONDARY
     global DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
@@ -801,7 +853,7 @@ ShowSaveForTradeSection() {
     ; Show s4tEnabled toggle
     GuiControl, Show, s4tEnabled
     GuiControl, +c%sectionColor%, s4tEnabled
-    
+
     ; Show dividers
     GuiControl, Show, SaveForTradeDivider_1
     GuiControl, Show, SaveForTradeDivider_2
@@ -812,38 +864,38 @@ ShowSaveForTradeSection() {
         ; Define control lists for enabled state
         mainS4TControls := "s4tSilent,s4t3Dmnd,s4t4Dmnd,s4t1Star,Txt_S4TSeparator,s4tWP"
         ShowControls(mainS4TControls)
-        
+
         ; Discord subsection controls
         s4tDiscordControls := "S4TDiscordSettingsSubHeading,Txt_S4T_DiscordID,s4tDiscordUserId,"
         s4tDiscordControls .= "Txt_S4T_DiscordWebhook,s4tDiscordWebhookURL,s4tSendAccountXml"
         ShowControls(s4tDiscordControls)
-        
+
         ; Apply section color to sub-heading
         GuiControl, +c%sectionColor%, S4TDiscordSettingsSubHeading
-        
+
         ; Apply text styling
         textColor := isDarkTheme ? DARK_TEXT : LIGHT_TEXT
         secondaryTextColor := isDarkTheme ? DARK_TEXT_SECONDARY : LIGHT_TEXT_SECONDARY
-        
+
         ; Set text colors
         mainTextControls := "s4tSilent,s4t3Dmnd,s4t4Dmnd,s4t1Star,s4tWP,"
         mainTextControls .= "Txt_S4T_DiscordID,Txt_S4T_DiscordWebhook,s4tSendAccountXml"
         ApplyTextColorToMultiple(mainTextControls)
-        
+
         ; Set secondary text color
         GuiControl, +c%secondaryTextColor%, Txt_S4TSeparator
-        
+
         ; Apply input styling to fields
         inputControls := "s4tDiscordUserId,s4tDiscordWebhookURL"
         ApplyInputStyleToMultiple(inputControls)
-        
+
         ; Check if Shining is enabled to show Gholdengo
         GuiControlGet, Shining
         if (Shining) {
             GuiControl, Show, s4tGholdengo
             GuiControl, Show, s4tGholdengoEmblem
             GuiControl, Show, s4tGholdengoArrow
-            
+
             gholdengoControls := "s4tGholdengo,s4tGholdengoArrow"
             ApplyTextColorToMultiple(gholdengoControls)
         }
@@ -853,7 +905,7 @@ ShowSaveForTradeSection() {
         if (s4tWP) {
             GuiControl, Show, s4tWPMinCardsLabel
             GuiControl, Show, s4tWPMinCards
-            
+
             ApplyTextColor("s4tWPMinCardsLabel")
             ApplyInputStyle("s4tWPMinCards")
         }
@@ -863,7 +915,7 @@ ShowSaveForTradeSection() {
     UpdateSectionHeaders()
 }
 
-; ========== Show Discord Settings Section (Updated with dividers) ==========
+; ========== Show Discord Settings Section ==========
 ShowDiscordSettingsSection() {
     global isDarkTheme, DARK_TEXT, LIGHT_TEXT
     global DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
@@ -880,13 +932,13 @@ ShowDiscordSettingsSection() {
     ; Define control lists
     mainDiscordControls := "DiscordSettingsHeading,Txt_DiscordID,discordUserId,"
     mainDiscordControls .= "Txt_DiscordWebhook,discordWebhookURL,sendAccountXml"
-    
+
     heartbeatHeadingControls := "HeartbeatSettingsSubHeading,Discord_Divider3,heartBeat"
-    
+
     ; Show main Discord controls
     ShowControls(mainDiscordControls)
     ShowControls(heartbeatHeadingControls)
-    
+
     ; Apply section color to headings
     GuiControl, +c%sectionColor%, DiscordSettingsHeading
     GuiControl, +c%sectionColor%, HeartbeatSettingsSubHeading
@@ -895,7 +947,7 @@ ShowDiscordSettingsSection() {
     textColor := isDarkTheme ? DARK_TEXT : LIGHT_TEXT
     mainTextControls := "Txt_DiscordID,Txt_DiscordWebhook,sendAccountXml,heartBeat"
     ApplyTextColorToMultiple(mainTextControls)
-    
+
     ; Apply input styling
     inputControls := "discordUserId,discordWebhookURL"
     ApplyInputStyleToMultiple(inputControls)
@@ -905,11 +957,11 @@ ShowDiscordSettingsSection() {
     if (heartBeat) {
         heartbeatControls := "hbName,heartBeatName,hbURL,heartBeatWebhookURL,hbDelay,heartBeatDelay"
         ShowControls(heartbeatControls)
-        
+
         ; Apply text styling to heartbeat controls
         heartbeatTextControls := "hbName,hbURL,hbDelay"
         ApplyTextColorToMultiple(heartbeatTextControls)
-        
+
         ; Apply input styling to heartbeat fields
         heartbeatInputControls := "heartBeatName,heartBeatWebhookURL,heartBeatDelay"
         ApplyInputStyleToMultiple(heartbeatInputControls)
@@ -922,7 +974,7 @@ ShowDiscordSettingsSection() {
     UpdateSectionHeaders()
 }
 
-; ========== Download Settings Section (updated with divider and showcase options) ==========
+; ========== Download Settings Section ==========
 ShowDownloadSettingsSection() {
     global isDarkTheme, DARK_TEXT, LIGHT_TEXT
     global DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
@@ -937,20 +989,20 @@ ShowDownloadSettingsSection() {
     ; Define control lists
     mainControls := "DownloadSettingsHeading,Txt_MainIdsURL,mainIdsURL,Txt_VipIdsURL,vipIdsURL,showcaseEnabled"
     ShowControls(mainControls)
-    
+
     ; Get section color and apply to heading
     sectionColor := isDarkTheme ? DARK_SECTION_COLORS["DownloadSettings"] : LIGHT_SECTION_COLORS["DownloadSettings"]
     GuiControl, +c%sectionColor%, DownloadSettingsHeading
-    
+
     ; Apply text styling
     textColor := isDarkTheme ? DARK_TEXT : LIGHT_TEXT
     mainTextControls := "Txt_MainIdsURL,Txt_VipIdsURL,showcaseEnabled"
     ApplyTextColorToMultiple(mainTextControls)
-    
+
     ; Apply input styling
     inputControls := "mainIdsURL,vipIdsURL"
     ApplyInputStyleToMultiple(inputControls)
-    
+
     ; Check if showcaseEnabled is checked to show related controls
     GuiControlGet, showcaseEnabled
     if (showcaseEnabled) {
@@ -963,6 +1015,22 @@ ShowDownloadSettingsSection() {
     UpdateSectionHeaders()
 }
 
+; Add ListBox item selection helper function
+LB_SelectItem(controlID, itemText) {
+    SendMessage, 0x18A, 0, 0,, ahk_id %controlID% ; LB_GETCOUNT
+    itemCount := ErrorLevel
+    
+    Loop, %itemCount% {
+        SendMessage, 0x186, A_Index-1, 0,, ahk_id %controlID% ; LB_GETTEXT
+        currText := ErrorLevel
+        if (currText = itemText) {
+            SendMessage, 0x185, A_Index-1, 1,, ahk_id %controlID% ; LB_SETSEL (select)
+            break
+        }
+    }
+}
+
+; Handle keyboard shortcuts
 HandleKeyboardShortcut(sectionIndex) {
     ; Create array for sections (updated to new structure)
     sections := []
@@ -997,7 +1065,7 @@ HandleKeyboardShortcut(sectionIndex) {
 
         ; Update current section and tab highlighting
         CurrentVisibleSection := sectionName
-        
+
         ; Set section title
         friendlyName := GetFriendlyName(sectionName)
         GuiControl,, ActiveSection, Current Section: %friendlyName%
@@ -1024,10 +1092,10 @@ ShowHelpMenu() {
     helpText := "Keyboard Shortcuts:`n`n"
     helpText .= "Ctrl+1: Reroll Settings`n"
     helpText .= "Ctrl+2: System Settings`n"
-    helpText .= "Ctrl+3: Pack Settings`n"     ; Updated
-    helpText .= "Ctrl+4: Save For Trade`n"    ; Updated
-    helpText .= "Ctrl+5: Discord Settings`n"  ; Updated
-    helpText .= "Ctrl+6: Download Settings`n" ; Updated
+    helpText .= "Ctrl+3: Pack Settings`n"
+    helpText .= "Ctrl+4: Save For Trade`n"
+    helpText .= "Ctrl+5: Discord Settings`n"
+    helpText .= "Ctrl+6: Download Settings`n"
     helpText .= "`nFunction Keys:`n"
     helpText .= "F1: Launch All Mumu`n"
     helpText .= "F2: Arrange Windows`n"
@@ -1049,7 +1117,7 @@ GetFriendlyName(sectionName) {
         return "Reroll Settings"
     else if (sectionName = "SystemSettings")
         return "System Settings"
-    else if (sectionName = "PackSettings")   ; Updated
+    else if (sectionName = "PackSettings")
         return "Pack Settings"
     else if (sectionName = "SaveForTrade")
         return "Save For Trade"
@@ -1084,13 +1152,11 @@ LoadSettingsFromIni() {
         IniRead, Mains, Settings.ini, UserSettings, Mains, 1
         IniRead, AccountName, Settings.ini, UserSettings, AccountName, ""
         IniRead, heartBeat, Settings.ini, UserSettings, heartBeat, 0
-
-        ; Continue reading all other settings
         IniRead, heartBeatWebhookURL, Settings.ini, UserSettings, heartBeatWebhookURL, ""
         IniRead, heartBeatName, Settings.ini, UserSettings, heartBeatName, ""
         IniRead, nukeAccount, Settings.ini, UserSettings, nukeAccount, 0
         IniRead, packMethod, Settings.ini, UserSettings, packMethod, 0
-        IniRead, CheckShiningPackOnly, Settings.ini, UserSettings, CheckShiningPackOnly, 0
+        IniRead, CheckShinyPackOnly, Settings.ini, UserSettings, CheckShinyPackOnly, 0
         IniRead, TrainerCheck, Settings.ini, UserSettings, TrainerCheck, 0
         IniRead, FullArtCheck, Settings.ini, UserSettings, FullArtCheck, 0
         IniRead, RainbowCheck, Settings.ini, UserSettings, RainbowCheck, 0
@@ -1103,7 +1169,7 @@ LoadSettingsFromIni() {
         IniRead, Palkia, Settings.ini, UserSettings, Palkia, 0
         IniRead, Dialga, Settings.ini, UserSettings, Dialga, 0
         IniRead, Arceus, Settings.ini, UserSettings, Arceus, 0
-        IniRead, Shining, Settings.ini, UserSettings, Shining, 1
+        IniRead, Shining, Settings.ini, UserSettings, Shining, 0
         IniRead, Mew, Settings.ini, UserSettings, Mew, 0
         IniRead, Pikachu, Settings.ini, UserSettings, Pikachu, 0
         IniRead, Charizard, Settings.ini, UserSettings, Charizard, 0
@@ -1117,8 +1183,6 @@ LoadSettingsFromIni() {
         IniRead, mainIdsURL, Settings.ini, UserSettings, mainIdsURL, ""
         IniRead, vipIdsURL, Settings.ini, UserSettings, vipIdsURL, ""
         IniRead, instanceLaunchDelay, Settings.ini, UserSettings, instanceLaunchDelay, 5
-        
-        ; Read S4T settings
         IniRead, s4tEnabled, Settings.ini, UserSettings, s4tEnabled, 0
         IniRead, s4tSilent, Settings.ini, UserSettings, s4tSilent, 1
         IniRead, s4t3Dmnd, Settings.ini, UserSettings, s4t3Dmnd, 0
@@ -1130,8 +1194,7 @@ LoadSettingsFromIni() {
         IniRead, s4tDiscordWebhookURL, Settings.ini, UserSettings, s4tDiscordWebhookURL, ""
         IniRead, s4tDiscordUserId, Settings.ini, UserSettings, s4tDiscordUserId, ""
         IniRead, s4tSendAccountXml, Settings.ini, UserSettings, s4tSendAccountXml, 1
-
-        ; Advanced settings
+        IniRead, minStarsShiny, Settings.ini, UserSettings, minStarsShiny, 0
         IniRead, minStarsA1Charizard, Settings.ini, UserSettings, minStarsA1Charizard, 0
         IniRead, minStarsA1Mewtwo, Settings.ini, UserSettings, minStarsA1Mewtwo, 0
         IniRead, minStarsA1Pikachu, Settings.ini, UserSettings, minStarsA1Pikachu, 0
@@ -1139,22 +1202,15 @@ LoadSettingsFromIni() {
         IniRead, minStarsA2Dialga, Settings.ini, UserSettings, minStarsA2Dialga, 0
         IniRead, minStarsA2Palkia, Settings.ini, UserSettings, minStarsA2Palkia, 0
         IniRead, minStarsA2a, Settings.ini, UserSettings, minStarsA2a, 0
-        IniRead, minStarsA2b, Settings.ini, UserSettings, minStarsA2b, 0
+        IniRead, minStarsA3Solgaleo, Settings.ini, UserSettings, minStarsA3Solgaleo, 0
+        IniRead, minStarsA3Lunala, Settings.ini, UserSettings, minStarsA3Lunala, 0
         IniRead, heartBeatDelay, Settings.ini, UserSettings, heartBeatDelay, 30
         IniRead, sendAccountXml, Settings.ini, UserSettings, sendAccountXml, 0
-
-        ; Showcase settings
         IniRead, showcaseEnabled, Settings.ini, UserSettings, showcaseEnabled, 0
         IniRead, showcaseURL, Settings.ini, UserSettings, showcaseURL, ""
         IniRead, showcaseLikes, Settings.ini, UserSettings, showcaseLikes, 5
-
-        ; Theme setting
         IniRead, isDarkTheme, Settings.ini, UserSettings, isDarkTheme, 1
-
-        ; Background image setting
         IniRead, useBackgroundImage, Settings.ini, UserSettings, useBackgroundImage, 1
-        
-        ; Extra Settings
         IniRead, tesseractPath, Settings.ini, UserSettings, tesseractPath, C:\Program Files\Tesseract-OCR\tesseract.exe
         IniRead, applyRoleFilters, Settings.ini, UserSettings, applyRoleFilters, 0
         IniRead, debugMode, Settings.ini, UserSettings, debugMode, 0
@@ -1205,13 +1261,9 @@ CreateDefaultSettingsFile() {
         IniWrite, 0, Settings.ini, UserSettings, debugMode
         IniWrite, 0, Settings.ini, UserSettings, tesseractOption
         IniWrite, 0, Settings.ini, UserSettings, statusMessage
-
-        ; Add showcase settings default values
         IniWrite, 0, Settings.ini, UserSettings, showcaseEnabled
         IniWrite, "", Settings.ini, UserSettings, showcaseURL
         IniWrite, 5, Settings.ini, UserSettings, showcaseLikes
-
-        ; Add the rest of default settings here
         IniWrite, 1, Settings.ini, UserSettings, isDarkTheme
         IniWrite, 1, Settings.ini, UserSettings, useBackgroundImage
 
@@ -1326,7 +1378,7 @@ Gui, Add, Edit, x15 y+15 w450 h28 vActiveSection +Center +ReadOnly -Border -VScr
 ; Navigation sidebar with improved styling and adjusted sizes
 SetHeaderFont()
 
-; Navigation buttons with updated structure
+; Navigation buttons
 Gui, Add, Button, x15 y100 w140 h25 gToggleSection vBtn_RerollSettings, Reroll Settings
 
 Gui, Add, Button, y+5 w140 h25 gToggleSection vBtn_SystemSettings, System Settings
@@ -1347,7 +1399,7 @@ Gui, Add, Button, gCheckForUpdate y+5 w140 h25 vCheckUpdates, 🔄 Check for Upd
 
 Gui, Add, Button, gBalanceXMLs y+5 w140 h25 vBalanceXMLs,⚖️ Balance XMLs
 
-; ========== Friend ID Section with better layout ==========
+; ========== Friend ID Section ==========
 SetHeaderFont()
 Gui, Add, Text, x170 y100 vFriendIDHeading Hidden, Friend ID Settings
 
@@ -1384,6 +1436,7 @@ Gui, Add, Edit, vAccountName w200 x260 y+-17 h25 Hidden, %AccountName%
 
 ; Add dividers for Instance Settings section
 AddSectionDivider(170, "+25", 290, "Instance_Divider3")
+
 ; ========== Time Settings Section ==========
 SetHeaderFont()
 Gui, Add, Text, y+25 vTimeSettingsHeading Hidden, Time Settings
@@ -1467,6 +1520,7 @@ if (clientLanguage != "")
         }
     }
 }
+
 Gui, Add, DropDownList, vclientLanguage choose%defaultClientLang% x285 y+-17 w65 Hidden, %clientLanguageList%
 
 Gui, Add, Text, x170 y+17 Hidden vTxt_InstanceLaunchDelay, Launch Mumu Delay:
@@ -1494,92 +1548,90 @@ Gui, Add, Checkbox, % (statusMessage ? "Checked" : "") " vstatusMessage x170 y+1
 Gui, Add, Text, x170 y+20 Hidden vTxt_TesseractPath, Tesseract Path:
 Gui, Add, Edit, vtesseractPath w290 x170 y+5 h25 Hidden, %tesseractPath%
 
-; ========== Pack Settings Section (Merged God Pack, Pack Selection and Card Detection) ==========
+; ========== Pack Settings Section ==========
 SetHeaderFont()
 Gui, Add, Text, x170 y100 c%sectionColor% Hidden vPackSettingsSubHeading1, God Pack Settings
 GuiControl, Show, PackSettingsSubHeading1
-    
-    SetNormalFont()
-    
-    ; === Min. 2★ and 2★ for SR fields with ABSOLUTE positioning ===
-    ; First row - left side
-    Gui, Add, Text, x170 y130 Hidden vTxt_MinStars, Min. 2 ★:
-    Gui, Add, Edit, vminStars w50 x230 y128 h25 Center Hidden, %minStars%
-    
-    ; First row - right side
-    Gui, Add, Text, x310 y130 Hidden vTxt_A2bMinStar, 2 ★ for SR:
-    Gui, Add, Edit, vminStarsA2b w50 x375 y128 h25 Center Hidden, %minStarsA2b%
-    
-    ; Second row - Method dropdown
-    Gui, Add, Text, x170 y165 Hidden vTxt_DeleteMethod, Method:
-    Gui, Add, DropDownList, vdeleteMethod gdeleteSettings choose%defaultDelete% x230 y163 w120 Hidden, 5 Pack|3 Pack|Inject|5 Pack (Fast)|13 Pack|Inject 10P
-    
-    ; Third row - Pack Method and Menu Delete
-    Gui, Add, Checkbox, % (packMethod ? "Checked" : "") " vpackMethod x170 y195 Hidden", 1 Pack Method
-    Gui, Add, Checkbox, % (nukeAccount ? "Checked" : "") " vnukeAccount x310 y195 Hidden", Menu Delete
-    
-    ; Add divider for God Pack Settings section at a fixed position
-    AddSectionDivider(170, 220, 290, "Pack_Divider1")
-    GuiControl, Show, Pack_Divider1
-    
-    ; === Pack Selection Section with ABSOLUTE positioning ===
-    SetHeaderFont()
-    Gui, Add, Text, x170 y240 c%sectionColor% Hidden vPackSettingsSubHeading2, Pack Selection
-    
-    SetNormalFont()
-    
-    ; Fixed grid layout with absolute Y positions - First row
-    Gui, Add, Checkbox, % (Shining ? "Checked" : "") " vShining x170 y270 Hidden", Shining
-    Gui, Add, Checkbox, % (Arceus ? "Checked" : "") " vArceus x260 y270 Hidden", Arceus
-    Gui, Add, Checkbox, % (Palkia ? "Checked" : "") " vPalkia x350 y270 Hidden", Palkia
-    
-    ; Second row
-    Gui, Add, Checkbox, % (Dialga ? "Checked" : "") " vDialga x170 y300 Hidden", Dialga
-    Gui, Add, Checkbox, % (Pikachu ? "Checked" : "") " vPikachu x260 y300 Hidden", Pikachu
-    Gui, Add, Checkbox, % (Charizard ? "Checked" : "") " vCharizard x350 y300 Hidden", Charizard
-    
-    ; Third row
-    Gui, Add, Checkbox, % (Mewtwo ? "Checked" : "") " vMewtwo x170 y330 Hidden", Mewtwo
-    Gui, Add, Checkbox, % (Mew ? "Checked" : "") " vMew x260 y330 Hidden", Mew
-    
-    ; Fourth row - new packs
-    Gui, Add, Checkbox, % (Solgaleo ? "Checked" : "") " vSolgaleo x170 y360 Hidden", Solgaleo
-    Gui, Add, Checkbox, % (Lunala ? "Checked" : "") " vLunala x260 y360 Hidden", Lunala
-    
-    ; Add divider for Pack Selection section
-    AddSectionDivider(170, 410, 290, "Pack_Divider2")
-    GuiControl, Show, Pack_Divider2
-    
-    ; === Card Detection Section with ABSOLUTE positioning ===
-    ; Keep the original Card Detection section code, but use absolute positioning
-    SetHeaderFont()
-    Gui, Add, Text, x170 y430 c%sectionColor% Hidden vPackSettingsSubHeading3, Card Detection
-    
-    SetNormalFont()
-    ; Left Column
-    Gui, Add, Checkbox, % (FullArtCheck ? "Checked" : "") " vFullArtCheck x170 y460 Hidden", Single Full Art
-    Gui, Add, Checkbox, % (TrainerCheck ? "Checked" : "") " vTrainerCheck x170 y490 Hidden", Single Trainer
-    Gui, Add, Checkbox, % (RainbowCheck ? "Checked" : "") " vRainbowCheck x170 y520 Hidden", Single Rainbow
-    Gui, Add, Checkbox, % (PseudoGodPack ? "Checked" : "") " vPseudoGodPack x170 y550 Hidden", Double 2 ★
-    
-    ; Show the divider between columns
-    Gui, Add, Text, x285 y440 w2 h110 Hidden vTxt_vector +0x10  ; Creates a vertical line
-    GuiControl, Show, Txt_vector
-    
-    ; Right Column
-    Gui, Add, Checkbox, % (CrownCheck ? "Checked" : "") " vCrownCheck x320 y460 Hidden", Save Crowns
-    Gui, Add, Checkbox, % (ShinyCheck ? "Checked" : "") " vShinyCheck x320 y490 Hidden", Save Shiny
-    Gui, Add, Checkbox, % (ImmersiveCheck ? "Checked" : "") " vImmersiveCheck x320 y520 Hidden", Save Immersives
-    
-    ; Bottom options
-    Gui, Add, Checkbox, % (CheckShiningPackOnly ? "Checked" : "") " vCheckShiningPackOnly x170 y580 Hidden", Only Shining Boost
-    Gui, Add, Checkbox, % (InvalidCheck ? "Checked" : "") " vInvalidCheck x320 y580 Hidden", Ignore Invalid Packs
-    
-    ; Add divider for Card Detection section
-    AddSectionDivider(170, 620, 290, "Pack_Divider3")
-    GuiControl, Show, Pack_Divider3
 
-; ========== Save For Trade Section (with integrated S4T Discord settings) ==========
+SetNormalFont()
+
+; === Min. 2★ and 2★ for Shiny Packs fields with ABSOLUTE positioning ===
+; First row - left side
+Gui, Add, Text, x170 y130 Hidden vTxt_MinStars, Min. 2 ★:
+Gui, Add, Edit, vminStars w50 x230 y128 h25 Center Hidden, %minStars%
+
+; First row - right side
+Gui, Add, Text, x300 y130 Hidden vTxt_ShinyMinStars, 2 ★ for Shiny Packs:
+Gui, Add, Edit, vminStarsShiny w50 x413 y128 h25 Center Hidden, %minStarsShiny%
+
+; Second row - Method dropdown
+Gui, Add, Text, x170 y165 Hidden vTxt_DeleteMethod, Method:
+Gui, Add, DropDownList, vdeleteMethod gdeleteSettings choose%defaultDelete% x230 y163 w120 Hidden, 5 Pack|3 Pack|Inject|5 Pack (Fast)|13 Pack|Inject 10P
+
+; Third row - Pack Method and Menu Delete
+Gui, Add, Checkbox, % (packMethod ? "Checked" : "") " vpackMethod x170 y195 Hidden", 1 Pack Method
+Gui, Add, Checkbox, % (nukeAccount ? "Checked" : "") " vnukeAccount x300 y195 Hidden", Menu Delete
+
+; Add divider for God Pack Settings section at a fixed position
+AddSectionDivider(170, 220, 290, "Pack_Divider1")
+GuiControl, Show, Pack_Divider1
+
+; === Pack Selection Section ===
+SetHeaderFont()
+Gui, Add, Text, x170 y240 c%sectionColor% Hidden vPackSettingsSubHeading2, Pack Selection
+
+SetNormalFont()
+
+; Add a ListView with checkboxes for Pack Selection
+Gui, Add, ListView, vPackSelectionList gUpdatePackSelection x170 y270 w290 h120 Checked Grid -Multi -HScroll AltSubmit Hidden, Pack Name
+LV_ModifyCol(1, 270)
+
+; Add the packs to the ListView
+LV_Add("", "Solgaleo")
+LV_Add("", "Lunala")
+LV_Add("", "Shining")
+LV_Add("", "Arceus")
+LV_Add("", "Palkia")
+LV_Add("", "Dialga")
+LV_Add("", "Pikachu")
+LV_Add("", "Charizard")
+LV_Add("", "Mewtwo")
+LV_Add("", "Mew")
+
+; Add divider for Pack Selection section
+AddSectionDivider(170, 400, 290, "Pack_Divider2")
+GuiControl, Show, Pack_Divider2
+
+; === Card Detection Section ===
+; Keep the original Card Detection section code, but use absolute positioning
+SetHeaderFont()
+Gui, Add, Text, x170 y430 c%sectionColor% Hidden vPackSettingsSubHeading3, Card Detection
+
+SetNormalFont()
+; Left Column
+Gui, Add, Checkbox, % (FullArtCheck ? "Checked" : "") " vFullArtCheck x170 y460 Hidden", Single Full Art
+Gui, Add, Checkbox, % (TrainerCheck ? "Checked" : "") " vTrainerCheck x170 y490 Hidden", Single Trainer
+Gui, Add, Checkbox, % (RainbowCheck ? "Checked" : "") " vRainbowCheck x170 y520 Hidden", Single Rainbow
+Gui, Add, Checkbox, % (PseudoGodPack ? "Checked" : "") " vPseudoGodPack x170 y550 Hidden", Double 2 ★
+
+; Show the divider between columns
+Gui, Add, Text, x285 y440 w2 h110 Hidden vTxt_vector +0x10  ; Creates a vertical line
+GuiControl, Show, Txt_vector
+
+; Right Column
+Gui, Add, Checkbox, % (CrownCheck ? "Checked" : "") " vCrownCheck x320 y460 Hidden", Save Crowns
+Gui, Add, Checkbox, % (ShinyCheck ? "Checked" : "") " vShinyCheck x320 y490 Hidden", Save Shiny
+Gui, Add, Checkbox, % (ImmersiveCheck ? "Checked" : "") " vImmersiveCheck x320 y520 Hidden", Save Immersives
+
+; Bottom options
+Gui, Add, Checkbox, % (CheckShinyPackOnly ? "Checked" : "") " vCheckShinyPackOnly x170 y580 Hidden", Only Shiny Packs
+Gui, Add, Checkbox, % (InvalidCheck ? "Checked" : "") " vInvalidCheck x320 y580 Hidden", Ignore Invalid Packs
+
+; Add divider for Card Detection section
+AddSectionDivider(170, 620, 290, "Pack_Divider3")
+GuiControl, Show, Pack_Divider3
+
+; ========== Save For Trade Section ==========
 SetSectionFont()
 ; Add main heading for Save For Trade section
 Gui, Add, Text, x170 y100 Hidden vSaveForTradeHeading, Save For Trade
@@ -1620,7 +1672,7 @@ Gui, Add, Text, y+20 Hidden vTxt_S4T_DiscordWebhook, Webhook URL:
 Gui, Add, Edit, vs4tDiscordWebhookURL w290 y+10 h25 Center Hidden, %s4tDiscordWebhookURL%
 Gui, Add, Checkbox, % (s4tSendAccountXml ? "Checked" : "") " vs4tSendAccountXml y+20 Hidden", Send Account XML
 
-; ========== Discord Settings Section (with integrated Heartbeat settings) ==========
+; ========== Discord Settings Section ==========
 SetSectionFont()
 ; Add main heading for Discord Settings section
 Gui, Add, Text, x170 y100 Hidden vDiscordSettingsHeading, Discord Settings
@@ -1681,6 +1733,7 @@ Gui, Add, Checkbox, % (showcaseEnabled ? "Checked" : "") " vshowcaseEnabled gsho
 
 Gui, Add, Text, y+15 Hidden vTxt_ShowcaseURL, Showcase.txt API:
 Gui, Add, Edit, vshowcaseURL w290 y+10 h25 Center Hidden, %showcaseURL%
+
 ; ========== Action Buttons with New 3-Row Layout - Adjusted Positioning ==========
 SetHeaderFont()
 
@@ -1745,7 +1798,7 @@ ApplyTheme()  ; Ensure everything is colored properly on startup
 ; Update the section title to indicate welcome screen
 GuiControl,, ActiveSection, Welcome to PTCGP Bot - Select a section from the sidebar
 
-; Update keyboard shortcuts for sections (updated to new structure)
+; Update keyboard shortcuts for sections
 ^1::HandleKeyboardShortcut(1)    ; Reroll Settings
 ^2::HandleKeyboardShortcut(2)    ; System Settings
 ^3::HandleKeyboardShortcut(3)    ; Pack Settings
@@ -1760,6 +1813,81 @@ F3::HandleFunctionKeyShortcut(3)  ; Start Bot
 F4::ShowHelpMenu()                ; Help Menu
 Return
 
+; NEW: Add function to handle updates to the Pack Selection ListBox
+UpdatePackSelection:
+    Gui, Submit, NoHide
+    
+    ; Reset all pack variables to 0 first
+    Shining := 0
+    Arceus := 0
+    Palkia := 0
+    Dialga := 0
+    Pikachu := 0
+    Charizard := 0
+    Mewtwo := 0
+    Mew := 0
+    Solgaleo := 0
+    Lunala := 0
+    
+    ; Loop through the ListView and check which items are checked
+    Loop, % LV_GetCount()
+    {
+        ; Get the checked state of the row
+        isChecked := LV_GetNext(A_Index-1, "Checked")
+        if (isChecked)
+        {
+            ; Get the text of the pack name
+            LV_GetText(packName, A_Index)
+            
+            ; Set the corresponding variable to 1
+            if (packName = "Shining")
+                Shining := 1
+            else if (packName = "Arceus")
+                Arceus := 1
+            else if (packName = "Palkia")
+                Palkia := 1
+            else if (packName = "Dialga")
+                Dialga := 1
+            else if (packName = "Pikachu")
+                Pikachu := 1
+            else if (packName = "Charizard")
+                Charizard := 1
+            else if (packName = "Mewtwo")
+                Mewtwo := 1
+            else if (packName = "Mew")
+                Mew := 1
+            else if (packName = "Solgaleo")
+                Solgaleo := 1
+            else if (packName = "Lunala")
+                Lunala := 1
+        }
+    }
+    
+    ; Function to handle Shining/Gholdengo visibility
+    if (CurrentVisibleSection = "SaveForTrade" && s4tEnabled) {
+        if (Shining) {
+            GuiControl, Show, s4tGholdengo
+            GuiControl, Show, s4tGholdengoEmblem
+            GuiControl, Show, s4tGholdengoArrow
+            
+            ; Apply text styling
+            if (isDarkTheme) {
+                GuiControl, +c%DARK_TEXT%, s4tGholdengo
+                GuiControl, +c%DARK_TEXT%, s4tGholdengoArrow
+            } else {
+                GuiControl, +c%LIGHT_TEXT%, s4tGholdengo
+                GuiControl, +c%LIGHT_TEXT%, s4tGholdengoArrow
+            }
+        } else {
+            GuiControl, Hide, s4tGholdengo
+            GuiControl, Hide, s4tGholdengoEmblem
+            GuiControl, Hide, s4tGholdengoArrow
+        }
+    }
+    
+    SaveAllSettings()
+return
+
 ToggleTheme:
     ; Toggle the theme
     global isDarkTheme
@@ -1770,7 +1898,7 @@ ToggleTheme:
 
     ; Apply the new theme - ensure all colors update
     ApplyTheme()
-    
+
     ; Update header text and colors
     GuiControl,, HeaderTitle, % "Arturo's PTCGP Bot"
     if (isDarkTheme) {
@@ -1846,7 +1974,7 @@ ToggleSection:
 
     ; Update current section and tab highlighting
     CurrentVisibleSection := SectionName
-    
+
     ; Set section title with section-specific color
     friendlyName := GetFriendlyName(SectionName)
     GuiControl,, ActiveSection, Current Section: %friendlyName%
@@ -1857,79 +1985,23 @@ ToggleSection:
 
     ; Update section headers with appropriate colors
     UpdateSectionHeaders()
+    
+    ; Force a thorough refresh of the GUI
+    WinGet, hwnd, ID, A
+    DllCall("InvalidateRect", "Ptr", hwnd, "Ptr", 0, "Int", 1)
+    
+    ; Send resize message to recalculate positions and layouts
+    SendMessage, 0x5, 0, 0,, ahk_id %hwnd%
+    
+    ; Force redraw 
+    WinSet, Redraw,, A
+    
+    ; Give a tiny delay for repainting to complete
+    Sleep, 10
 Return
 
 CheckForUpdates:
     CheckForUpdate()
-return
-
-BalanceXMLs:
-    if(Instances>0) {
-        
-        ;get current # of instances in box
-        GuiControlGet, Instances,, Instances
-
-        ;todo better status message location or method
-        GuiControlGet, ButtonPos, Pos, BalanceXMLs
-        XTooltipPos = % ButtonPosX + 10
-        YTooltipPos = % ButtonPosY + 140
-
-        saveDir := A_ScriptDir "\Accounts\Saved\"
-        if !FileExist(saveDir) ; Check if the directory exists
-            FileCreateDir, %saveDir% ; Create the directory if it doesn't exist
-        
-        Tooltip, Moving stray XMLs back into Saved..., XTooltipPos, YTooltipPos
-        tmpDir := A_ScriptDir "\Accounts\Tmp\"
-        if FileExist(tmpDir) {
-            Loop, Files, %tmpDir%\*.xml
-            {
-                FileMove, %A_LoopFilePath%, %saveDir%
-            }
-        }
-
-        Loop , %Instances%
-        { 
-            instanceDir := saveDir . "\" . A_Index
-            if !FileExist(instanceDir) ; Check if the directory exists
-                FileCreateDir, %instanceDir% ; Create the directory if it doesn't exist
-            instanceDirList := saveDir . "\" . A_Index . "\list.txt"
-            if FileExist(instanceDirList)
-                FileDelete, %instanceDirList%
-        }
-        
-        tmpDir := A_ScriptDir "\Accounts\Tmp\"
-        if !FileExist(tmpDir) ; Check if the directory exists
-            FileCreateDir, %tmpDir% ; Create the directory if it doesn't exist
-        
-        outputTxt := tmpDir . "\list.txt"
-        if(FileExist(outputTxt))
-            FileDelete, %outputTxt%
-
-        Tooltip, Moving all xmls into Tmp folder..., XTooltipPos, YTooltipPos
-        Loop, Files, %saveDir%\*.xml , R 
-        {
-            FileMove %A_LoopFilePath%, %tmpDir%
-            FileAppend, % A_LoopFileName "`n", %outputTxt%  ; Append file path to list.txt\
-        }
-        FileRead, fileContent, %outputTxt%  ; Read entire file
-        fileLines := StrSplit(fileContent, "`n", "`r")  ; Split into lines
-
-        Tooltip, Balancing XMLs between instances..., XTooltipPos, YTooltipPos
-        if (fileLines.MaxIndex() >= 1) {    
-           instance := 1
-           accountsPerInstance := fileLines.MaxIndex()/Instances
-            Loop, % fileLines.MaxIndex() -1 
-            {
-                tmpFile := tmpDir . "\" . fileLines[A_Index]
-                toDir := saveDir . "\" . instance
-                FileMove, %tmpFile%, %toDir%
-                if(A_Index>accountsPerInstance*instance)
-                    instance += 1
-            }
-        }
-        Tooltip ;clear tooltip
-        MsgBox, Done balancing XMLs between %Instances% instances
-    }
 return
 
 mainSettings:
@@ -1958,11 +2030,11 @@ discordSettings:
     if (heartBeat) {
         heartbeatControls := "heartBeatName,heartBeatWebhookURL,heartBeatDelay,hbName,hbURL,hbDelay"
         ShowControls(heartbeatControls)
-        
+
         ; Apply theme-specific styling using helper functions
         textControls := "hbName,hbURL,hbDelay"
         ApplyTextColorToMultiple(textControls)
-        
+
         inputControls := "heartBeatName,heartBeatWebhookURL,heartBeatDelay"
         ApplyInputStyleToMultiple(inputControls)
     }
@@ -1984,15 +2056,15 @@ s4tSettings:
         s4tMainControls .= "Txt_S4T_DiscordWebhook,s4tDiscordWebhookURL,s4tSendAccountXml,"
         s4tMainControls .= "SaveForTradeDivider_1,SaveForTradeDivider_2"
         ShowControls(s4tMainControls)
-        
+
         ; Apply theme styling using helper functions
         textControls := "s4tSilent,s4t3Dmnd,s4t4Dmnd,s4t1Star,s4tWP,Txt_S4T_DiscordID,"
         textControls .= "Txt_S4T_DiscordWebhook,s4tSendAccountXml"
         ApplyTextColorToMultiple(textControls)
-        
+
         inputControls := "s4tDiscordUserId,s4tDiscordWebhookURL"
         ApplyInputStyleToMultiple(inputControls)
-        
+
         ; Apply section color to sub-heading
         sectionColor := isDarkTheme ? DARK_SECTION_COLORS["SaveForTrade"] : LIGHT_SECTION_COLORS["SaveForTrade"]
         GuiControl, +c%sectionColor%, S4TDiscordSettingsSubHeading
@@ -2003,7 +2075,7 @@ s4tSettings:
             GuiControl, Show, s4tGholdengo
             GuiControl, Show, s4tGholdengoEmblem
             GuiControl, Show, s4tGholdengoArrow
-            
+
             ; Apply text styling
             if (isDarkTheme) {
                 GuiControl, +c%DARK_TEXT%, s4tGholdengo
@@ -2022,7 +2094,7 @@ s4tSettings:
         if (s4tWP) {
             GuiControl, Show, s4tWPMinCardsLabel
             GuiControl, Show, s4tWPMinCards
-            
+
             ; Apply styling
             ApplyTextColor("s4tWPMinCardsLabel")
             ApplyInputStyle("s4tWPMinCards")
@@ -2061,11 +2133,11 @@ return
 TesseractOptionSettings:
     Gui, Submit, NoHide
     global isDarkTheme, DARK_TEXT, LIGHT_TEXT, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
-    
+
     if (tesseractOption) {
         GuiControl, Show, Txt_TesseractPath
         GuiControl, Show, tesseractPath
-        
+
         ; Apply styling using helper functions
         ApplyTextColor("Txt_TesseractPath")
         ApplyInputStyle("tesseractPath")
@@ -2078,13 +2150,13 @@ return
 deleteSettings:
     Gui, Submit, NoHide
     global scaleParam, defaultLanguage
-    
+
     ; Store the current scaleParam value
     currentScaleParam := scaleParam
-    
+
     ; Get the current value of deleteMethod control
     GuiControlGet, currentMethod,, deleteMethod
-    
+
     if(InStr(currentMethod, "Inject")) {
         GuiControl, Hide, nukeAccount
         GuiControl,, nukeAccount, 0  ; Uncheck the checkbox when hidden
@@ -2145,16 +2217,16 @@ ArrangeWindows:
     GuiControlGet, Columns,, Columns
     GuiControlGet, SelectedMonitorIndex,, SelectedMonitorIndex
     GuiControlGet, defaultLanguage,, defaultLanguage
-    
+
     ; Re-validate scaleParam based on current language
     if (defaultLanguage = "Scale125") {
         scaleParam := 277
     } else if (defaultLanguage = "Scale100") {
         scaleParam := 287
     }
-    
+
     windowsPositioned := 0
-    
+
     if (runMain && Mains > 0) {
         Loop %Mains% {
             mainInstanceName := "Main" . (A_Index > 1 ? A_Index : "")
@@ -2165,7 +2237,7 @@ ArrangeWindows:
             }
         }
     }
-    
+
     if (Instances > 0) {
         Loop %Instances% {
             if (WinExist(A_Index)) {
@@ -2175,7 +2247,7 @@ ArrangeWindows:
             }
         }
     }
-    
+
     if (debugMode && windowsPositioned == 0) {
         MsgBox, No windows found to arrange
     } else {
@@ -2213,16 +2285,85 @@ return
 
 SaveReload:
     Gui, Submit
-    
+
     ; Use the centralized function to save all settings
     SaveAllSettings()
-    
+
     Reload
+return
+
+BalanceXMLs:
+    if(Instances>0) {
+
+        ;get current # of instances in box
+        GuiControlGet, Instances,, Instances
+
+        ;todo better status message location or method
+        GuiControlGet, ButtonPos, Pos, BalanceXMLs
+        XTooltipPos = % ButtonPosX + 10
+        YTooltipPos = % ButtonPosY + 140
+
+        saveDir := A_ScriptDir "\Accounts\Saved\"
+        if !FileExist(saveDir) ; Check if the directory exists
+            FileCreateDir, %saveDir% ; Create the directory if it doesn't exist
+
+        Tooltip, Moving stray XMLs back into Saved..., XTooltipPos, YTooltipPos
+        tmpDir := A_ScriptDir "\Accounts\Tmp\"
+        if FileExist(tmpDir) {
+            Loop, Files, %tmpDir%\*.xml
+            {
+                FileMove, %A_LoopFilePath%, %saveDir%
+            }
+        }
+
+        Loop , %Instances%
+        {
+            instanceDir := saveDir . "\" . A_Index
+            if !FileExist(instanceDir) ; Check if the directory exists
+                FileCreateDir, %instanceDir% ; Create the directory if it doesn't exist
+            instanceDirList := saveDir . "\" . A_Index . "\list.txt"
+            if FileExist(instanceDirList)
+                FileDelete, %instanceDirList%
+        }
+
+        tmpDir := A_ScriptDir "\Accounts\Tmp\"
+        if !FileExist(tmpDir) ; Check if the directory exists
+            FileCreateDir, %tmpDir% ; Create the directory if it doesn't exist
+
+        outputTxt := tmpDir . "\list.txt"
+        if(FileExist(outputTxt))
+            FileDelete, %outputTxt%
+
+        Tooltip, Moving all xmls into Tmp folder..., XTooltipPos, YTooltipPos
+        Loop, Files, %saveDir%\*.xml , R
+        {
+            FileMove %A_LoopFilePath%, %tmpDir%
+            FileAppend, % A_LoopFileName "`n", %outputTxt%  ; Append file path to list.txt\
+        }
+        FileRead, fileContent, %outputTxt%  ; Read entire file
+        fileLines := StrSplit(fileContent, "`n", "`r")  ; Split into lines
+
+        Tooltip, Balancing XMLs between instances..., XTooltipPos, YTooltipPos
+        if (fileLines.MaxIndex() >= 1) {
+           instance := 1
+           accountsPerInstance := fileLines.MaxIndex()/Instances
+            Loop, % fileLines.MaxIndex() -1
+            {
+                tmpFile := tmpDir . "\" . fileLines[A_Index]
+                toDir := saveDir . "\" . instance
+                FileMove, %tmpFile%, %toDir%
+                if(A_Index>accountsPerInstance*instance)
+                    instance += 1
+            }
+        }
+        Tooltip ;clear tooltip
+        MsgBox, Done balancing XMLs between %Instances% instances
+    }
 return
 
 StartBot:
     Gui, Submit  ; Collect the input values from the first page
-    
+
     ; Use the centralized function to save all settings
     SaveAllSettings()
 
@@ -2232,7 +2373,7 @@ StartBot:
     } else if (defaultLanguage = "Scale100") {
          scaleParam := 287
     }
-    
+
     ; Create the second page dynamically based on the number of instances
     Gui, Destroy ; Close the first page
 
@@ -2283,7 +2424,7 @@ StartBot:
             Run, %Command%
         }
     }
-    
+
 ; Loop to process each instance
     Loop, %Instances%
     {
@@ -2378,7 +2519,7 @@ SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
         if (mainTestMode != -1) {
             ; Main has toggled test mode, get status and send notification
             IniRead, mainStatus, HeartBeat.ini, HeartBeat, Main, 0
-            
+
             onlineAHK := ""
             offlineAHK := ""
             Online := []
@@ -2430,26 +2571,26 @@ SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
             ; Create status message with all regular heartbeat info
             discMessage := heartBeatName ? "\n" . heartBeatName : ""
             discMessage .= "\n" . onlineAHK . "\n" . offlineAHK
-            
+
             total := SumVariablesInJsonFile()
             totalSeconds := Round((A_TickCount - rerollTime) / 1000)
             mminutes := Floor(totalSeconds / 60)
             packStatus := "Time: " . mminutes . "m | Packs: " . total
             packStatus .= " | Avg: " . Round(total / mminutes, 2) . " packs/min"
-            
+
             discMessage .= "\n" . packStatus . "\nVersion: " . RegExReplace(githubUser, "-.*$") . "-" . localVersion
             discMessage .= typeMsg
             discMessage .= selectMsg
-            
+
             ; Add special note about Main's test mode status
             if (mainTestMode == "1")
                 discMessage .= "\n\nMain entered GP Test Mode ✕" ;We can change this later
             else
                 discMessage .= "\n\nMain exited GP Test Mode ✓" ;We can change this later
-                
+
             ; Send the message
             LogToDiscord(discMessage,, false,,, heartBeatWebhookURL)
-            
+
             ; Clear the flag
             IniDelete, HeartBeat.ini, TestMode, Main
         }
@@ -2462,7 +2603,7 @@ SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
               if(FileExist("ids.txt"))
                 FileDelete, ids.txt
           }
-          
+
           if(showcaseEnabled && showcaseURL != "") {
              DownloadFile(showcaseURL, "showcase_codes.txt")
           }
@@ -2553,10 +2694,10 @@ return
 SendAllInstancesOfflineStatus() {
     global heartBeatName, heartBeatWebhookURL, localVersion, githubUser, Instances, runMain, Mains
     global typeMsg, selectMsg, rerollTime, scaleParam
-    
+
     ; Display visual feedback that the hotkey was triggered
     DisplayPackStatus("Shift+F7 pressed - Sending offline heartbeat to Discord...", ((runMain ? Mains * scaleParam : 0) + 5), 490)
-    
+
     ; Create message showing all instances as offline
     offlineInstances := ""
     if (runMain) {
@@ -2568,33 +2709,33 @@ SendAllInstancesOfflineStatus() {
         if (Instances > 0)
             offlineInstances .= ", "
     }
-    
+
     Loop, %Instances% {
         offlineInstances .= A_Index
         if (A_Index < Instances)
             offlineInstances .= ", "
     }
-    
+
     ; Create status message with heartbeat info
     discMessage := heartBeatName ? "\n" . heartBeatName : ""
     discMessage .= "\nOnline: none"
     discMessage .= "\nOffline: " . offlineInstances
-    
+
     ; Add pack statistics
     total := SumVariablesInJsonFile()
     totalSeconds := Round((A_TickCount - rerollTime) / 1000)
     mminutes := Floor(totalSeconds / 60)
     packStatus := "Time: " . mminutes . "m | Packs: " . total
     packStatus .= " | Avg: " . Round(total / mminutes, 2) . " packs/min"
-    
+
     discMessage .= "\n" . packStatus . "\nVersion: " . RegExReplace(githubUser, "-.*$") . "-" . localVersion
     discMessage .= typeMsg
     discMessage .= selectMsg
     discMessage .= "\n\n All instances marked as OFFLINE"
-    
+
     ; Send the message
     LogToDiscord(discMessage,, false,,, heartBeatWebhookURL)
-    
+
     ; Display confirmation in the status bar
     DisplayPackStatus("Discord notification sent: All instances marked as OFFLINE", ((runMain ? Mains * scaleParam : 0) + 5), 490)
 }
@@ -2651,10 +2792,10 @@ global jsonFileName := ""
 InitializeJsonFile() {
     global jsonFileName
     fileName := A_ScriptDir . "\json\Packs.json"
-    
+
     ; Add this line to create the directory if it doesn't exist
     FileCreateDir, %A_ScriptDir%\json
-    
+
     if FileExist(fileName)
         FileDelete, %fileName%
     if !FileExist(fileName) {
@@ -2865,7 +3006,7 @@ HttpGet(url) {
     return http.ResponseText
 }
 
-; Existing function to extract value from JSON
+; Function to extract value from JSON
 ExtractJSONValue(json, key1, key2:="", ext:="") {
     value := ""
     json := StrReplace(json, """", "")
@@ -2954,4 +3095,3 @@ ReadFile(filename, numbers := false) {
 
     return values.MaxIndex() ? values : false
 }
-
