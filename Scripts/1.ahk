@@ -3565,13 +3565,10 @@ getChangeDateTime() {
 }
 
 
-/*
 ^e::
-    msgbox ss
     pToken := Gdip_Startup()
-    Screenshot()
+    Screenshot_dev()
 return
-*/
 
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; Find Card Count and Relevant Functions
