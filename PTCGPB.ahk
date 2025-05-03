@@ -1672,14 +1672,11 @@ SetSectionFont()
 Gui, Add, Text, x170 y100 Hidden vDiscordSettingsHeading, Discord Settings
 
 SetNormalFont()
-discordUserId := "" 
-discordWebhookURL := ""
-
 Gui, Add, Text, y+20 Hidden vTxt_DiscordID, Discord ID:
-Gui, Add, Edit, vdiscordUserId w290 y+10 h25 Hidden,
+Gui, Add, Edit, vdiscordUserId w290 y+10 h25 Hidden, %discordUserId%
 
 Gui, Add, Text, y+20 Hidden vTxt_DiscordWebhook, Webhook URL:
-Gui, Add, Edit, vdiscordWebhookURL w290 y+10 h25 Hidden,
+Gui, Add, Edit, vdiscordWebhookURL w290 y+10 h25 Hidden, %discordWebhookURL%
 
 Gui, Add, Checkbox, % (sendAccountXml ? "Checked" : "") " vsendAccountXml y+20 Hidden", Send Account XML
 
@@ -1692,13 +1689,10 @@ Gui, Add, Text, y+20 Hidden vHeartbeatSettingsSubHeading, Heartbeat Settings
 SetNormalFont()
 Gui, Add, Checkbox, % (heartBeat ? "Checked" : "") " vheartBeat gdiscordSettings y+20 Hidden", Discord Heartbeat
 
-heartBeatName := "" 
-heartBeatWebhookURL := ""
-
 Gui, Add, Text, vhbName y+20 Hidden, Name:
-Gui, Add, Edit, vheartBeatName w290 y+10 h25 Hidden,
+Gui, Add, Edit, vheartBeatName w290 y+10 h25 Hidden, %heartBeatName%
 Gui, Add, Text, vhbURL y+20 Hidden, Webhook URL:
-Gui, Add, Edit, vheartBeatWebhookURL w290 y+10 h25 Center Hidden,
+Gui, Add, Edit, vheartBeatWebhookURL w290 y+10 h25 Center Hidden, %heartBeatWebhookURL%
 Gui, Add, Text, vhbDelay y+20 Hidden, Heartbeat Delay (min):
 Gui, Add, Edit, vheartBeatDelay x300 y+-17 w55 h25 Center Hidden, %heartBeatDelay%
 
