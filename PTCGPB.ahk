@@ -2781,8 +2781,8 @@ SendAllInstancesOfflineStatus() {
     global typeMsg, selectMsg, rerollTime, scaleParam
 
     ; Display visual feedback that the hotkey was triggered
-    DisplayPackStatus("Shift+F7 pressed - Sending offline heartbeat to Discord...", ((runMain ? Mains * scaleParam : 0) + 5), 490)
-
+    DisplayPackStatus("Shift+F7 pressed - Sending offline heartbeat to Discord...", ((runMain ? Mains * scaleParam : 0) + 5), 625)
+    
     ; Create message showing all instances as offline
     offlineInstances := ""
     if (runMain) {
@@ -2822,11 +2822,11 @@ SendAllInstancesOfflineStatus() {
     LogToDiscord(discMessage,, false,,, heartBeatWebhookURL)
 
     ; Display confirmation in the status bar
-    DisplayPackStatus("Discord notification sent: All instances marked as OFFLINE", ((runMain ? Mains * scaleParam : 0) + 5), 490)
+    DisplayPackStatus("Discord notification sent: All instances marked as OFFLINE", ((runMain ? Mains * scaleParam : 0) + 5), 625)
 }
 
 ; Improved status display function
-DisplayPackStatus(Message, X := 0, Y := 80) {
+DisplayPackStatus(Message, X := 0, Y := 625) {
     global SelectedMonitorIndex
     static GuiName := "PackStatusGUI"
 
@@ -2853,9 +2853,9 @@ DisplayPackStatus(Message, X := 0, Y := 80) {
             ; Create a new GUI with light theme styling
             OwnerWND := WinExist(1)
             if(!OwnerWND)
-                Gui, %GuiName%:New, +ToolWindow -Caption +LastFound
+                Gui, %GuiName%:New, +ToolWindow -Caption +LastFound -DPIScale
             else
-                Gui, %GuiName%:New, +Owner%OwnerWND% +ToolWindow -Caption +LastFound
+                Gui, %GuiName%:New, +Owner%OwnerWND% +ToolWindow -Caption +LastFound -DPIScale
 
             Gui, %GuiName%:Color, %bgColor%  ; Light background
             Gui, %GuiName%:Margin, 2, 2
