@@ -219,55 +219,22 @@ SaveAllSettings() {
     global CheckShinyPackOnly, TrainerCheck, FullArtCheck, RainbowCheck, ShinyCheck, CrownCheck
     global InvalidCheck, ImmersiveCheck, PseudoGodPack, minStars, Palkia, Dialga, Arceus, Shining
     global Mew, Pikachu, Charizard, Mewtwo, Solgaleo, Lunala, slowMotion, ocrLanguage, clientLanguage, autoLaunchMonitor
-    global CurrentVisibleSection
+    global CurrentVisibleSection, heartBeatDelay, sendAccountXml, showcaseEnabled, showcaseURL, isDarkTheme
+    global useBackgroundImage, tesseractPath, applyRoleFilters, debugMode, tesseractOption, statusMessage
+    global s4tEnabled, s4tSilent, s4t3Dmnd, s4t4Dmnd, s4t1Star, s4tGholdengo, s4tWP, s4tWPMinCards
+    global s4tDiscordUserId, s4tDiscordWebhookURL, s4tSendAccountXml, minStarsShiny, instanceLaunchDelay, mainIdsURL, vipIdsURL
     
-    ; IMPORTANT: For ListView-based pack selection - explicitly reset all pack variables to 0 first
-    Shining := 0
-    Arceus := 0
-    Palkia := 0
-    Dialga := 0
-    Pikachu := 0
-    Charizard := 0
-    Mewtwo := 0
-    Mew := 0
-    Solgaleo := 0
-    Lunala := 0
-    
-    ; Then set them based on ListView state if we're on the Pack Settings page
-    if (CurrentVisibleSection = "PackSettings") {
-        ; Loop through the ListView rows one by one
-        Loop, % LV_GetCount()
-        {
-            ; Check if current row is checked
-            isChecked := LV_GetNext(A_Index-1, "Checked") = A_Index
-            if (isChecked) {
-                ; Get pack name directly from this row
-                LV_GetText(packName, A_Index)
-                
-                ; Set the correct variable based on the actual pack name
-                if (packName = "Shining")
-                    Shining := 1
-                else if (packName = "Arceus")
-                    Arceus := 1
-                else if (packName = "Palkia")
-                    Palkia := 1
-                else if (packName = "Dialga")
-                    Dialga := 1
-                else if (packName = "Pikachu")
-                    Pikachu := 1
-                else if (packName = "Charizard")
-                    Charizard := 1
-                else if (packName = "Mewtwo")
-                    Mewtwo := 1
-                else if (packName = "Mew")
-                    Mew := 1
-                else if (packName = "Solgaleo")
-                    Solgaleo := 1
-                else if (packName = "Lunala")
-                    Lunala := 1
-            }
-        }
-    }
+    ; Save pack selections directly without resetting them
+    IniWrite, %Palkia%, Settings.ini, UserSettings, Palkia
+    IniWrite, %Dialga%, Settings.ini, UserSettings, Dialga
+    IniWrite, %Arceus%, Settings.ini, UserSettings, Arceus
+    IniWrite, %Shining%, Settings.ini, UserSettings, Shining
+    IniWrite, %Mew%, Settings.ini, UserSettings, Mew
+    IniWrite, %Pikachu%, Settings.ini, UserSettings, Pikachu
+    IniWrite, %Charizard%, Settings.ini, UserSettings, Charizard
+    IniWrite, %Mewtwo%, Settings.ini, UserSettings, Mewtwo
+    IniWrite, %Solgaleo%, Settings.ini, UserSettings, Solgaleo
+    IniWrite, %Lunala%, Settings.ini, UserSettings, Lunala
     
     ; Save basic settings
     IniWrite, %FriendID%, Settings.ini, UserSettings, FriendID
@@ -290,6 +257,7 @@ SaveAllSettings() {
     IniWrite, %heartBeat%, Settings.ini, UserSettings, heartBeat
     IniWrite, %heartBeatWebhookURL%, Settings.ini, UserSettings, heartBeatWebhookURL
     IniWrite, %heartBeatName%, Settings.ini, UserSettings, heartBeatName
+    IniWrite, %heartBeatDelay%, Settings.ini, UserSettings, heartBeatDelay
     IniWrite, %nukeAccount%, Settings.ini, UserSettings, nukeAccount
     IniWrite, %packMethod%, Settings.ini, UserSettings, packMethod
     IniWrite, %CheckShinyPackOnly%, Settings.ini, UserSettings, CheckShinyPackOnly
@@ -302,16 +270,6 @@ SaveAllSettings() {
     IniWrite, %ImmersiveCheck%, Settings.ini, UserSettings, ImmersiveCheck
     IniWrite, %PseudoGodPack%, Settings.ini, UserSettings, PseudoGodPack
     IniWrite, %minStars%, Settings.ini, UserSettings, minStars
-    IniWrite, %Palkia%, Settings.ini, UserSettings, Palkia
-    IniWrite, %Dialga%, Settings.ini, UserSettings, Dialga
-    IniWrite, %Arceus%, Settings.ini, UserSettings, Arceus
-    IniWrite, %Shining%, Settings.ini, UserSettings, Shining
-    IniWrite, %Mew%, Settings.ini, UserSettings, Mew
-    IniWrite, %Pikachu%, Settings.ini, UserSettings, Pikachu
-    IniWrite, %Charizard%, Settings.ini, UserSettings, Charizard
-    IniWrite, %Mewtwo%, Settings.ini, UserSettings, Mewtwo
-    IniWrite, %Solgaleo%, Settings.ini, UserSettings, Solgaleo
-    IniWrite, %Lunala%, Settings.ini, UserSettings, Lunala
     IniWrite, %slowMotion%, Settings.ini, UserSettings, slowMotion
     IniWrite, %ocrLanguage%, Settings.ini, UserSettings, ocrLanguage
     IniWrite, %clientLanguage%, Settings.ini, UserSettings, clientLanguage
@@ -786,9 +744,9 @@ ShowPackSettingsSection() {
     ; Initialize ListView for pack selection
     LV_Delete()
 
-    ; Add all items in the specified order WITHOUT checking any of them
+    ; Add all items in the specified order
     LV_Add("", "Solgaleo")
-    LV_Add("", "Lunala")
+    LV_Add("", "Lunala") 
     LV_Add("", "Shining")
     LV_Add("", "Arceus")
     LV_Add("", "Palkia")
@@ -798,27 +756,38 @@ ShowPackSettingsSection() {
     LV_Add("", "Mewtwo")
     LV_Add("", "Mew")
 
-    ; Then, go through each variable and check the corresponding row if it's set to 1
+    ; Then check rows based on the actual variable values
     Loop, % LV_GetCount()
     {
         LV_GetText(packName, A_Index)
     
         ; Check if the corresponding variable is 1
-        if ( (packName = "Solgaleo" && Solgaleo)
-           || (packName = "Lunala" && Lunala))
-           || (packName = "Shining" && Shining)
-           || (packName = "Arceus" && Arceus)
-           || (packName = "Palkia" && Palkia)
-           || (packName = "Dialga" && Dialga)
-           || (packName = "Pikachu" && Pikachu)
-           || (packName = "Charizard" && Charizard)
-           || (packName = "Mewtwo" && Mewtwo)
-           || (packName = "Mew" && Mew)
-        {
-           ; Check the row
-           LV_Modify(A_Index, "Check")
-        }
-     }
+        isChecked := false
+        if (packName = "Solgaleo" && Solgaleo = 1)
+            isChecked := true
+        else if (packName = "Lunala" && Lunala = 1)
+            isChecked := true
+        else if (packName = "Shining" && Shining = 1)
+            isChecked := true
+        else if (packName = "Arceus" && Arceus = 1)
+            isChecked := true
+        else if (packName = "Palkia" && Palkia = 1)
+            isChecked := true
+        else if (packName = "Dialga" && Dialga = 1)
+            isChecked := true
+        else if (packName = "Pikachu" && Pikachu = 1)
+            isChecked := true
+        else if (packName = "Charizard" && Charizard = 1)
+            isChecked := true
+        else if (packName = "Mewtwo" && Mewtwo = 1)
+            isChecked := true
+        else if (packName = "Mew" && Mew = 1)
+            isChecked := true
+    
+        ; Check or uncheck the row based on the variable value
+        if (isChecked)
+            LV_Modify(A_Index, "Check")
+    }
 
     ; Apply theme-based styling
     textColor := isDarkTheme ? DARK_TEXT : LIGHT_TEXT
@@ -1280,6 +1249,7 @@ CreateDefaultSettingsFile() {
         IniWrite, 0, Settings.ini, UserSettings, heartBeat
         IniWrite, "", Settings.ini, UserSettings, heartBeatWebhookURL
         IniWrite, "", Settings.ini, UserSettings, heartBeatName
+        IniWrite, 30, Settings.ini, UserSettings, heartBeatDelay
         IniWrite, C:\Program Files\Tesseract-OCR\tesseract.exe, Settings.ini, UserSettings, tesseractPath
         IniWrite, 0, Settings.ini, UserSettings, applyRoleFilters
         IniWrite, 0, Settings.ini, UserSettings, debugMode
@@ -1702,16 +1672,14 @@ SetSectionFont()
 Gui, Add, Text, x170 y100 Hidden vDiscordSettingsHeading, Discord Settings
 
 SetNormalFont()
-if(StrLen(discordUserID) < 3)
-    discordUserID =
-if(StrLen(discordWebhookURL) < 3)
-    discordWebhookURL =
+discordUserId := "" 
+discordWebhookURL := ""
 
 Gui, Add, Text, y+20 Hidden vTxt_DiscordID, Discord ID:
-Gui, Add, Edit, vdiscordUserId w290 y+10 h25 Hidden, %discordUserId%
+Gui, Add, Edit, vdiscordUserId w290 y+10 h25 Hidden,
 
 Gui, Add, Text, y+20 Hidden vTxt_DiscordWebhook, Webhook URL:
-Gui, Add, Edit, vdiscordWebhookURL w290 y+10 h25 Hidden, %discordWebhookURL%
+Gui, Add, Edit, vdiscordWebhookURL w290 y+10 h25 Hidden,
 
 Gui, Add, Checkbox, % (sendAccountXml ? "Checked" : "") " vsendAccountXml y+20 Hidden", Send Account XML
 
@@ -1724,15 +1692,13 @@ Gui, Add, Text, y+20 Hidden vHeartbeatSettingsSubHeading, Heartbeat Settings
 SetNormalFont()
 Gui, Add, Checkbox, % (heartBeat ? "Checked" : "") " vheartBeat gdiscordSettings y+20 Hidden", Discord Heartbeat
 
-if(StrLen(heartBeatName) < 3)
-    heartBeatName =
-if(StrLen(heartBeatWebhookURL) < 3)
-    heartBeatWebhookURL =
+heartBeatName := "" 
+heartBeatWebhookURL := ""
 
 Gui, Add, Text, vhbName y+20 Hidden, Name:
-Gui, Add, Edit, vheartBeatName w220 w290 y+10 h25 Center Hidden, %heartBeatName%
+Gui, Add, Edit, vheartBeatName w290 y+10 h25 Hidden,
 Gui, Add, Text, vhbURL y+20 Hidden, Webhook URL:
-Gui, Add, Edit, vheartBeatWebhookURL w290 y+10 h25 Center Hidden, %heartBeatWebhookURL%
+Gui, Add, Edit, vheartBeatWebhookURL w290 y+10 h25 Center Hidden,
 Gui, Add, Text, vhbDelay y+20 Hidden, Heartbeat Delay (min):
 Gui, Add, Edit, vheartBeatDelay x300 y+-17 w55 h25 Center Hidden, %heartBeatDelay%
 
@@ -1859,7 +1825,7 @@ UpdatePackSelection:
         ; Check if current row is checked
         isChecked := LV_GetNext(A_Index-1, "Checked") = A_Index
         if (isChecked) {
-            ; Get the pack name
+            ; Get the pack name from this row
             LV_GetText(packName, A_Index)
             
             ; Set the corresponding variable to 1
@@ -1885,33 +1851,23 @@ UpdatePackSelection:
                 Mew := 1
         }
     }
-    
-    ; Check if Shining is selected, update s4tGholdengo visibility in SaveForTrade section
-    if (CurrentVisibleSection = "SaveForTrade" && s4tEnabled) {
-        if (Shining) {
-            GuiControl, Show, s4tGholdengo
-            GuiControl, Show, s4tGholdengoEmblem
-            GuiControl, Show, s4tGholdengoArrow
-            
-            ; Apply text styling
-            if (isDarkTheme) {
-                GuiControl, +c%DARK_TEXT%, s4tGholdengo
-                GuiControl, +c%DARK_TEXT%, s4tGholdengoArrow
-            } else {
-                GuiControl, +c%LIGHT_TEXT%, s4tGholdengo
-                GuiControl, +c%LIGHT_TEXT%, s4tGholdengoArrow
-            }
-        } else {
-            GuiControl, Hide, s4tGholdengo
-            GuiControl, Hide, s4tGholdengoEmblem
-            GuiControl, Hide, s4tGholdengoArrow
-        }
-    }
-    
-    SaveAllSettings()
-return
 
-    ; Function to handle Shining/Gholdengo visibility
+    ; Explicitly save each pack variable to the INI file directly
+    IniWrite, %Solgaleo%, Settings.ini, UserSettings, Solgaleo
+    IniWrite, %Lunala%, Settings.ini, UserSettings, Lunala
+    IniWrite, %Shining%, Settings.ini, UserSettings, Shining
+    IniWrite, %Arceus%, Settings.ini, UserSettings, Arceus
+    IniWrite, %Palkia%, Settings.ini, UserSettings, Palkia
+    IniWrite, %Dialga%, Settings.ini, UserSettings, Dialga
+    IniWrite, %Pikachu%, Settings.ini, UserSettings, Pikachu
+    IniWrite, %Charizard%, Settings.ini, UserSettings, Charizard
+    IniWrite, %Mewtwo%, Settings.ini, UserSettings, Mewtwo
+    IniWrite, %Mew%, Settings.ini, UserSettings, Mew
+    
+    ; Also call SaveAllSettings to ensure other settings are saved as well
+    SaveAllSettings()
+    
+    ; Update Gholdengo visibility if needed
     if (CurrentVisibleSection = "SaveForTrade" && s4tEnabled) {
         if (Shining) {
             GuiControl, Show, s4tGholdengo
@@ -1932,8 +1888,6 @@ return
             GuiControl, Hide, s4tGholdengoArrow
         }
     }
-    
-    SaveAllSettings()
 return
 
 ToggleTheme:
@@ -1998,6 +1952,9 @@ Return
 ToggleSection:
     ; Get clicked button name
     ClickedButton := A_GuiControl
+
+    ; First, save current settings in case we're leaving the Pack Settings section
+    SaveAllSettings()
 
     ; Extract just the section name without the "Btn_" prefix
     StringTrimLeft, SectionName, ClickedButton, 4
@@ -2090,6 +2047,8 @@ discordSettings:
         heartbeatControls := "heartBeatName,heartBeatWebhookURL,heartBeatDelay,hbName,hbURL,hbDelay"
         HideControls(heartbeatControls)
     }
+    ; Save settings when heartbeat settings are changed
+    SaveAllSettings()
 return
 
 s4tSettings:
@@ -2411,6 +2370,7 @@ return
 
 StartBot:
     Gui, Submit  ; Collect the input values from the first page
+    SaveAllSettings()
 
     ; Use the centralized function to save all settings
     SaveAllSettings()
@@ -2559,15 +2519,125 @@ SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
         else
             selectMsg .= value . commaSeparate
     }
-    Loop {
-        Sleep, 30000
 
-        ; Check if Main toggled GP Test Mode and send notification if needed
-        IniRead, mainTestMode, HeartBeat.ini, TestMode, Main, -1
-        if (mainTestMode != -1) {
-            ; Main has toggled test mode, get status and send notification
-            IniRead, mainStatus, HeartBeat.ini, HeartBeat, Main, 0
+ ; Inside the StartBot main loop where heartbeat is handled
+Loop {
+    Sleep, 30000
 
+    ; Check if Main toggled GP Test Mode and send notification if needed
+    IniRead, mainTestMode, HeartBeat.ini, TestMode, Main, -1
+    if (mainTestMode != -1) {
+        ; Main has toggled test mode, get status and send notification
+        IniRead, mainStatus, HeartBeat.ini, HeartBeat, Main, 0
+        
+        onlineAHK := ""
+        offlineAHK := ""
+        Online := []
+
+        Loop %Instances% {
+            IniRead, value, HeartBeat.ini, HeartBeat, Instance%A_Index%
+            if(value)
+                Online.Push(1)
+            else
+                Online.Push(0)
+            IniWrite, 0, HeartBeat.ini, HeartBeat, Instance%A_Index%
+        }
+
+        for index, value in Online {
+            if(index = Online.MaxIndex())
+                commaSeparate := ""
+            else
+                commaSeparate := ", "
+            if(value)
+                onlineAHK .= A_Index . commaSeparate
+            else
+                offlineAHK .= A_Index . commaSeparate
+        }
+
+        if (runMain) {
+            if(mainStatus) {
+                if (onlineAHK)
+                    onlineAHK := "Main, " . onlineAHK
+                else
+                    onlineAHK := "Main"
+            }
+            else {
+                if (offlineAHK)
+                    offlineAHK := "Main, " . offlineAHK
+                else
+                    offlineAHK := "Main"
+            }
+        }
+
+        if(offlineAHK = "")
+            offlineAHK := "Offline: none"
+        else
+            offlineAHK := "Offline: " . RTrim(offlineAHK, ", ")
+        if(onlineAHK = "")
+            onlineAHK := "Online: none"
+        else
+            onlineAHK := "Online: " . RTrim(onlineAHK, ", ")
+
+        ; Create status message with all regular heartbeat info
+        discMessage := heartBeatName ? "\n" . heartBeatName : ""
+        discMessage .= "\n" . onlineAHK . "\n" . offlineAHK
+        
+        total := SumVariablesInJsonFile()
+        totalSeconds := Round((A_TickCount - rerollTime) / 1000)
+        mminutes := Floor(totalSeconds / 60)
+        packStatus := "Time: " . mminutes . "m | Packs: " . total
+        packStatus .= " | Avg: " . Round(total / mminutes, 2) . " packs/min"
+        
+        discMessage .= "\n" . packStatus . "\nVersion: " . RegExReplace(githubUser, "-.*$") . "-" . localVersion
+        discMessage .= typeMsg
+        discMessage .= selectMsg
+        
+        ; Add special note about Main's test mode status
+        if (mainTestMode == "1")
+            discMessage .= "\n\nMain entered GP Test Mode ✕"
+        else
+            discMessage .= "\n\nMain exited GP Test Mode ✓"
+            
+        ; Send the message
+        LogToDiscord(discMessage,, false,,, heartBeatWebhookURL)
+        
+        ; Clear the flag
+        IniDelete, HeartBeat.ini, TestMode, Main
+    }
+
+    ; Every 5 minutes, pull down the main ID list and showcase list
+    if(Mod(A_Index, 10) = 0) {
+        if(mainIdsURL != "") {
+            DownloadFile(mainIdsURL, "ids.txt")
+        } else {
+            if(FileExist("ids.txt"))
+                FileDelete, ids.txt
+        }
+        
+        if(showcaseEnabled && showcaseURL != "") {
+            DownloadFile(showcaseURL, "showcase_codes.txt")
+        }
+    }
+    
+    ; Sum all variable values and write to total.json
+    total := SumVariablesInJsonFile()
+    totalSeconds := Round((A_TickCount - rerollTime) / 1000) ; Total time in seconds
+    mminutes := Floor(totalSeconds / 60)
+
+    packStatus := "Time: " . mminutes . "m Packs: " . total
+    packStatus .= "   |   Avg: " . Round(total / mminutes, 2) . " packs/min"
+
+    ; Display pack status at the bottom of the first reroll instance
+    DisplayPackStatus(packStatus, ((runMain ? Mains * scaleParam : 0) + 5), 490)
+    
+    ; FIXED HEARTBEAT CODE
+    if(heartBeat) {
+        ; Each loop iteration is 30 seconds (0.5 minutes)
+        ; So for X minutes, we need X * 2 iterations
+        heartbeatIterations := heartBeatDelay * 2
+        
+        ; Send heartbeat at start (A_Index = 1) or every heartbeatDelay minutes
+        if (A_Index = 1 || Mod(A_Index, heartbeatIterations) = 0) {
             onlineAHK := ""
             offlineAHK := ""
             Online := []
@@ -2592,8 +2662,9 @@ SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
                     offlineAHK .= A_Index . commaSeparate
             }
 
-            if (runMain) {
-                if(mainStatus) {
+            if(runMain) {
+                IniRead, value, HeartBeat.ini, HeartBeat, Main
+                if(value) {
                     if (onlineAHK)
                         onlineAHK := "Main, " . onlineAHK
                     else
@@ -2605,6 +2676,7 @@ SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
                     else
                         offlineAHK := "Main"
                 }
+                IniWrite, 0, HeartBeat.ini, HeartBeat, Main
             }
 
             if(offlineAHK = "")
@@ -2616,116 +2688,21 @@ SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
             else
                 onlineAHK := "Online: " . RTrim(onlineAHK, ", ")
 
-            ; Create status message with all regular heartbeat info
             discMessage := heartBeatName ? "\n" . heartBeatName : ""
-            discMessage .= "\n" . onlineAHK . "\n" . offlineAHK
-
-            total := SumVariablesInJsonFile()
-            totalSeconds := Round((A_TickCount - rerollTime) / 1000)
-            mminutes := Floor(totalSeconds / 60)
-            packStatus := "Time: " . mminutes . "m | Packs: " . total
-            packStatus .= " | Avg: " . Round(total / mminutes, 2) . " packs/min"
-
-            discMessage .= "\n" . packStatus . "\nVersion: " . RegExReplace(githubUser, "-.*$") . "-" . localVersion
+            discMessage .= "\n" . onlineAHK . "\n" . offlineAHK . "\n" . packStatus . "\nVersion: " . RegExReplace(githubUser, "-.*$") . "-" . localVersion
             discMessage .= typeMsg
             discMessage .= selectMsg
 
-            ; Add special note about Main's test mode status
-            if (mainTestMode == "1")
-                discMessage .= "\n\nMain entered GP Test Mode ✕" ;We can change this later
-            else
-                discMessage .= "\n\nMain exited GP Test Mode ✓" ;We can change this later
-
-            ; Send the message
             LogToDiscord(discMessage,, false,,, heartBeatWebhookURL)
-
-            ; Clear the flag
-            IniDelete, HeartBeat.ini, TestMode, Main
-        }
-
-; Every 5 minutes, pull down the main ID list and showcase list
-       if(Mod(A_Index, 10) = 0) {
-          if(mainIdsURL != "") {
-              DownloadFile(mainIdsURL, "ids.txt")
-          } else {
-              if(FileExist("ids.txt"))
-                FileDelete, ids.txt
-          }
-
-          if(showcaseEnabled && showcaseURL != "") {
-             DownloadFile(showcaseURL, "showcase_codes.txt")
-          }
-        }
-        ; Sum all variable values and write to total.json
-        total := SumVariablesInJsonFile()
-        totalSeconds := Round((A_TickCount - rerollTime) / 1000) ; Total time in seconds
-        mminutes := Floor(totalSeconds / 60)
-
-        packStatus := "Time: " . mminutes . "m Packs: " . total
-        packStatus .= "   |   Avg: " . Round(total / mminutes, 2) . " packs/min"
-
-        ; Display pack status at the bottom of the first reroll instance
-        DisplayPackStatus(packStatus, ((runMain ? Mains * scaleParam : 0) + 5), 490)
-        if(heartBeat)
-            if((A_Index = 1 || (Mod(A_Index, (heartBeatDelay // 0.5)) = 0))) {
-                onlineAHK := ""
-                offlineAHK := ""
-                Online := []
-
-                Loop %Instances% {
-                    IniRead, value, HeartBeat.ini, HeartBeat, Instance%A_Index%
-                    if(value)
-                        Online.Push(1)
-                    else
-                        Online.Push(0)
-                    IniWrite, 0, HeartBeat.ini, HeartBeat, Instance%A_Index%
-                }
-
-                for index, value in Online {
-                    if(index = Online.MaxIndex())
-                        commaSeparate := ""
-                    else
-                        commaSeparate := ", "
-                    if(value)
-                        onlineAHK .= A_Index . commaSeparate
-                    else
-                        offlineAHK .= A_Index . commaSeparate
-                }
-
-                if(runMain) {
-                    IniRead, value, HeartBeat.ini, HeartBeat, Main
-                    if(value) {
-                        if (onlineAHK)
-                            onlineAHK := "Main, " . onlineAHK
-                        else
-                            onlineAHK := "Main"
-                    }
-                    else {
-                        if (offlineAHK)
-                            offlineAHK := "Main, " . offlineAHK
-                        else
-                            offlineAHK := "Main"
-                    }
-                    IniWrite, 0, HeartBeat.ini, HeartBeat, Main
-                }
-
-                if(offlineAHK = "")
-                    offlineAHK := "Offline: none"
-                else
-                    offlineAHK := "Offline: " . RTrim(offlineAHK, ", ")
-                if(onlineAHK = "")
-                    onlineAHK := "Online: none"
-                else
-                    onlineAHK := "Online: " . RTrim(onlineAHK, ", ")
-
-                discMessage := heartBeatName ? "\n" . heartBeatName : ""
-                discMessage .= "\n" . onlineAHK . "\n" . offlineAHK . "\n" . packStatus . "\nVersion: " . RegExReplace(githubUser, "-.*$") . "-" . localVersion
-                discMessage .= typeMsg
-                discMessage .= selectMsg
-
-                LogToDiscord(discMessage,, false,,, heartBeatWebhookURL)
+            
+            ; Optional debug log
+            if (debugMode) {
+                FileAppend, % A_Now . " - Heartbeat sent at iteration " . A_Index . "`n", %A_ScriptDir%\heartbeat_log.txt
             }
+        }
     }
+}   
+
 Return
 
 GuiClose:
