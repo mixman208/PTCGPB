@@ -2685,7 +2685,7 @@ Loop {
     packStatus .= "   |   Avg: " . Round(total / mminutes, 2) . " packs/min"
 
     ; Display pack status at the bottom of the first reroll instance
-    DisplayPackStatus(packStatus, ((runMain ? Mains * scaleParam : 0) + 5), 490)
+    DisplayPackStatus(packStatus, ((runMain ? Mains * scaleParam : 0) + 5), 625)
     
     ; FIXED HEARTBEAT CODE
     if(heartBeat) {
