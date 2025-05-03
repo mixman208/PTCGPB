@@ -18,8 +18,9 @@ CoordMode, Pixel, Screen
 DllCall("AllocConsole")
 WinHide % "ahk_id " DllCall("GetConsoleWindow", "ptr")
 
-global winTitle, changeDate, failSafe, openPack, Delay, failSafeTime, StartSkipTime, Columns, failSafe, scriptName, GPTest, StatusText, defaultLanguage, setSpeed, jsonFileName, pauseToggle, SelectedMonitorIndex, swipeSpeed, godPack, scaleParam, deleteMethod, packs, FriendID, friendIDs, Instances, username, friendCode, stopToggle, friended, runMain, Mains, showStatus, injectMethod, packMethod, loadDir, loadedAccount, nukeAccount, CheckShiningPackOnly, TrainerCheck, FullArtCheck, RainbowCheck, ShinyCheck, dateChange, foundGP, friendsAdded, minStars, PseudoGodPack, Palkia, Dialga, Mew, Pikachu, Charizard, Mewtwo, packArray, CrownCheck, ImmersiveCheck, InvalidCheck, slowMotion, screenShot, accountFile, invalid, starCount, keepAccount, minStarsA1Charizard, minStarsA1Mewtwo, minStarsA1Pikachu, minStarsA1a, minStarsA2Dialga, minStarsA2Palkia, minStarsA2a, minStarsA2b, AccountName
-
+global winTitle, changeDate, failSafe, openPack, Delay, failSafeTime, StartSkipTime, Columns, failSafe, scriptName, GPTest, StatusText, defaultLanguage, setSpeed, jsonFileName, pauseToggle, SelectedMonitorIndex, swipeSpeed, godPack, scaleParam, deleteMethod, packs, FriendID, friendIDs, Instances, username, friendCode, stopToggle, friended, runMain, Mains, showStatus, injectMethod, packMethod, loadDir, loadedAccount, nukeAccount, CheckShinyPackOnly, TrainerCheck, FullArtCheck, RainbowCheck, ShinyCheck, dateChange, foundGP, friendsAdded, PseudoGodPack, packArray, CrownCheck, ImmersiveCheck, InvalidCheck, slowMotion, screenShot, accountFile, invalid, starCount, keepAccount
+global Mewtwo, Charizard, Pikachu, Mew, Dialga, Palkia, Arceus, Shining, Solgaleo, Lunala
+global shinyPacks, minStars, minStarsShiny, minStarsA1Mewtwo, minStarsA1Charizard, minStarsA1Pikachu, minStarsA1a, minStarsA2Dialga, minStarsA2Palkia, minStarsA2a, minStarsA2b, minStarsA3Solgaleo, minStarsA3Lunala
 global DeadCheck
 global s4tEnabled, s4tSilent, s4t3Dmnd, s4t4Dmnd, s4t1Star, s4tGholdengo, s4tWP, s4tWPMinCards, s4tDiscordWebhookURL, s4tDiscordUserId, s4tSendAccountXml
 global avgtotalSeconds
@@ -49,7 +50,7 @@ IniRead, Mains, %A_ScriptDir%\..\Settings.ini, UserSettings, Mains, 1
 IniRead, AccountName, %A_ScriptDir%\..\Settings.ini, UserSettings, AccountName, ""
 IniRead, nukeAccount, %A_ScriptDir%\..\Settings.ini, UserSettings, nukeAccount, 0
 IniRead, packMethod, %A_ScriptDir%\..\Settings.ini, UserSettings, packMethod, 0
-IniRead, CheckShiningPackOnly, %A_ScriptDir%\..\Settings.ini, UserSettings, CheckShiningPackOnly, 0
+IniRead, CheckShinyPackOnly, %A_ScriptDir%\..\Settings.ini, UserSettings, CheckShinyPackOnly, 0
 IniRead, TrainerCheck, %A_ScriptDir%\..\Settings.ini, UserSettings, TrainerCheck, 0
 IniRead, FullArtCheck, %A_ScriptDir%\..\Settings.ini, UserSettings, FullArtCheck, 0
 IniRead, RainbowCheck, %A_ScriptDir%\..\Settings.ini, UserSettings, RainbowCheck, 0
@@ -59,26 +60,31 @@ IniRead, ImmersiveCheck, %A_ScriptDir%\..\Settings.ini, UserSettings, ImmersiveC
 IniRead, InvalidCheck, %A_ScriptDir%\..\Settings.ini, UserSettings, InvalidCheck, 0
 IniRead, PseudoGodPack, %A_ScriptDir%\..\Settings.ini, UserSettings, PseudoGodPack, 0
 IniRead, minStars, %A_ScriptDir%\..\Settings.ini, UserSettings, minStars, 0
-IniRead, Palkia, %A_ScriptDir%\..\Settings.ini, UserSettings, Palkia, 0
-IniRead, Dialga, %A_ScriptDir%\..\Settings.ini, UserSettings, Dialga, 0
+IniRead, minStarsShiny, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsShiny, 0
+IniRead, Solgaleo, %A_ScriptDir%\..\Settings.ini, UserSettings, Solgaleo, 1
+IniRead, Lunala, %A_ScriptDir%\..\Settings.ini, UserSettings, Lunala, 1
+IniRead, Shining, %A_ScriptDir%\..\Settings.ini, UserSettings, Shining, 0
 IniRead, Arceus, %A_ScriptDir%\..\Settings.ini, UserSettings, Arceus, 0
-IniRead, Shining, %A_ScriptDir%\..\Settings.ini, UserSettings, Shining, 1
-IniRead, Mew, %A_ScriptDir%\..\Settings.ini, UserSettings, Mew, 0
-IniRead, Pikachu, %A_ScriptDir%\..\Settings.ini, UserSettings, Pikachu, 0
-IniRead, Charizard, %A_ScriptDir%\..\Settings.ini, UserSettings, Charizard, 0
+IniRead, Dialga, %A_ScriptDir%\..\Settings.ini, UserSettings, Dialga, 0
+IniRead, Palkia, %A_ScriptDir%\..\Settings.ini, UserSettings, Palkia, 0
 IniRead, Mewtwo, %A_ScriptDir%\..\Settings.ini, UserSettings, Mewtwo, 0
+IniRead, Charizard, %A_ScriptDir%\..\Settings.ini, UserSettings, Charizard, 0
+IniRead, Pikachu, %A_ScriptDir%\..\Settings.ini, UserSettings, Pikachu, 0
+IniRead, Mew, %A_ScriptDir%\..\Settings.ini, UserSettings, Mew, 0
 IniRead, slowMotion, %A_ScriptDir%\..\Settings.ini, UserSettings, slowMotion, 0
 IniRead, DeadCheck, %A_ScriptDir%\%scriptName%.ini, UserSettings, DeadCheck, 0
 IniRead, ocrLanguage, %A_ScriptDir%\..\Settings.ini, UserSettings, ocrLanguage, en
 
-IniRead, minStarsA1Charizard, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA1Charizard, 0
 IniRead, minStarsA1Mewtwo, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA1Mewtwo, 0
+IniRead, minStarsA1Charizard, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA1Charizard, 0
 IniRead, minStarsA1Pikachu, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA1Pikachu, 0
 IniRead, minStarsA1a, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA1a, 0
 IniRead, minStarsA2Dialga, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA2Dialga, 0
 IniRead, minStarsA2Palkia, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA2Palkia, 0
 IniRead, minStarsA2a, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA2a, 0
 IniRead, minStarsA2b, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA2b, 0
+IniRead, minStarsA3Solgaleo, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA3Solgaleo, 0
+IniRead, minStarsA3Lunala, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA3Lunala, 0
 
 IniRead, s4tEnabled, %A_ScriptDir%\..\Settings.ini, UserSettings, s4tEnabled, 0
 IniRead, s4tSilent, %A_ScriptDir%\..\Settings.ini, UserSettings, s4tSilent, 1
@@ -92,7 +98,8 @@ IniRead, s4tDiscordWebhookURL, %A_ScriptDir%\..\Settings.ini, UserSettings, s4tD
 IniRead, s4tDiscordUserId, %A_ScriptDir%\..\Settings.ini, UserSettings, s4tDiscordUserId
 IniRead, s4tSendAccountXml, %A_ScriptDir%\..\Settings.ini, UserSettings, s4tSendAccountXml, 1
 
-pokemonList := ["Palkia", "Dialga", "Mew", "Pikachu", "Charizard", "Mewtwo", "Arceus", "Shining"]
+pokemonList := ["Mewtwo", "Charizard", "Pikachu", "Mew", "Dialga", "Palkia", "Arceus", "Shining", "Solgaleo", "Lunala"]
+shinyPacks := {"Shining": 1, "Solgaleo": 1, "Lunala": 1}
 
 packArray := []  ; Initialize an empty array
 
@@ -224,9 +231,9 @@ if(DeadCheck = 1 && !injectMethod){
         openPack := packArray[rand]
         friended := false
         IniWrite, 1, %A_ScriptDir%\..\HeartBeat.ini, HeartBeat, Instance%scriptName%
-        
+
 		changeDate := getChangeDateTime() ; get server reset time
-		
+
 		if (avgtotalSeconds > 0 ) {
 			StartTime := changeDate
 			StartTime += -(1.5*avgtotalSeconds), Seconds
@@ -238,26 +245,26 @@ if(DeadCheck = 1 && !injectMethod){
 			EndTime := changeDate
 			EndTime += 5, minutes
 		}
-		
+
 		StartCurrentTimeDiff := A_Now
 		EnvSub, StartCurrentTimeDiff, %StartTime%, Seconds
 		EndCurrentTimeDiff := A_Now
 		EnvSub, EndCurrentTimeDiff, %EndTime%, Seconds
-		
+
 		dateChange := false
-		
+
 		while (StartCurrentTimeDiff > 0 && EndCurrentTimeDiff < 0) {
             CreateStatusMessage("I need a break... Sleeping until " . EndTime ,,,, false)
             dateChange := true
             Sleep, 5000
-			
+
 			StartCurrentTimeDiff := A_Now
 			EnvSub, StartCurrentTimeDiff, %StartTime%, Seconds
 			EndCurrentTimeDiff := A_Now
 			EnvSub, EndCurrentTimeDiff, %EndTime%, Seconds
 		}
-		
-		
+
+
         if(dateChange)
 	   ; This resets the counter for liking showcase to 5
 	     IniWrite, 5, %A_ScriptDir%\..\Settings.ini, UserSettings, showcaseLikes ;###✔️✔️
@@ -311,13 +318,13 @@ if(DeadCheck = 1 && !injectMethod){
             ;                         5p-no delete community mod created by DietPepperPhD in the discord server.
 
             if(deleteMethod = "5 Pack" || packMethod) {
-                friendsAdded := AddFriends(true)		
+                friendsAdded := AddFriends(true)
 				SelectPack("HGPack")
 				PackOpening()
             } else {
 				HourglassOpening(true)
             }
-			
+
             if(packMethod) {
                 friendsAdded := AddFriends(true)
                 SelectPack("HGPack")
@@ -327,28 +334,28 @@ if(DeadCheck = 1 && !injectMethod){
                 HourglassOpening(true)
             }
 		}
-		
+
 		if(deleteMethod = "13 Pack" || (injectMethod && !loadedAccount) || (deleteMethod = "Inject 10P" && loadedAccount)) {
 			;-----------------------------
 			;if error during mission collection, try commenting the first line and uncommenting the second
 			HomeAndMission()
 			;HomeAndMission(0,true)
 			;-----------------------------
-						
+
 			SelectPack("HGPack")
 			PackOpening() ;6
 			HourglassOpening(true) ;7
-			
+
 			HomeAndMission()
 			SelectPack("HGPack")
 			PackOpening() ;8
 			HourglassOpening(true) ;9
-			
+
 			HomeAndMission()
 			SelectPack("HGPack")
 			PackOpening() ;10
 			HourglassOpening(true) ;11
-			
+
 			HomeAndMission(1)
 			SelectPack("HGPack")
 			PackOpening() ;12
@@ -421,11 +428,11 @@ if(DeadCheck = 1 && !injectMethod){
 
             CreateStatusMessage("New Run",,,, false)
         }
-		
+
         if (injectMethod)
             loadedAccount := loadAccount()
 		if (injectMethod && !loadedAccount)	;restartGameInstance if injection and no account loaded, switch to 13p
-			restartGameInstance("Finished injecting", false)									   
+			restartGameInstance("Finished injecting", false)
     }
 }
 return
@@ -491,12 +498,12 @@ clearMissionCache() {
 
 RemoveFriends() {
     global friendIDs, friended
-	
+
 	if(!friendIDs && friendID = "") {
 		friended := false
 		return false
 	}
-	
+
     failSafe := A_TickCount
     failSafeTime := 0
     Loop {
@@ -634,10 +641,10 @@ AddFriends(renew := false, getFC := false) {
     friended := true
     failSafe := A_TickCount
     failSafeTime := 0
-	
+
 	if(!getFC && !friendIDs && friendID = "")
 		return false
-	
+
     Loop {
         if(count > waitTime) {
             break
@@ -809,7 +816,7 @@ IniRead, showcaseNumber, %A_ScriptDir%\..\Settings.ini, UserSettings, showcaseLi
 				;MsgBox, showcaseNumber is > 0
 				Loop, Read, %A_ScriptDir%\..\showcase_ids.txt
 				{
-					showcaseID := Trim(A_LoopReadLine)        
+					showcaseID := Trim(A_LoopReadLine)
 					; clicking friend id search
 					adbClick(220, 467)
 					Delay(3)
@@ -1154,7 +1161,7 @@ FindImageAndClick(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT",
                 Reload
             }
         }
-		
+
         if(imageName = "Missions") { ; may input extra ESC and stuck at exit game
             Path = %imagePath%Delete2.png
             pNeedle := GetNeedle(Path)
@@ -1165,7 +1172,7 @@ FindImageAndClick(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT",
                 Delay(1)
             }
         }
-		
+
         Gdip_DisposeImage(pBitmap)
         if(imageName = "Points" || imageName = "Home") { ;look for level up ok "button"
             LevelUp()
@@ -1207,7 +1214,7 @@ LevelUp() {
     Delay(1)
 }
 
-resetWindows(){
+resetWindows() {
     global Columns, winTitle, SelectedMonitorIndex, scaleParam
     CreateStatusMessage("Arranging window positions and sizes",,,, false)
     RetryCount := 0
@@ -1250,7 +1257,6 @@ restartGameInstance(reason, RL := true){
 	;delete device account only when new run, only not inject or not loaded, and no deadcheck
 	;godpack, RL = godPack
 	;stuckat RL = true
-	
 
     if (Debug)
         CreateStatusMessage("Restarting game reason:`n" . reason)
@@ -1268,7 +1274,7 @@ restartGameInstance(reason, RL := true){
 			;TODO force stop, remove account
 			ExitApp
 		}
-			
+
         Reload
     } else {
         adbShell.StdIn.WriteLine("am force-stop jp.pokemon.pokemontcgp")
@@ -1303,7 +1309,7 @@ restartGameInstance(reason, RL := true){
             }
             Reload
         }
-		
+
 		if (stopToggle) {
 			CreateStatusMessage("Stopping...",,,, false)
 			;TODO force stop, remove account
@@ -1463,7 +1469,7 @@ CheckPack() {
     packs += 1
     if (packMethod)
         packs := 1
-		
+
 	if(!friendIDs && friend = "" && !s4tEnabled)
 		return false
 
@@ -1523,7 +1529,7 @@ CheckPack() {
     }
 
     ; Check for 2-star cards.
-    if (!CheckShiningPackOnly || openPack = "Shining") {
+    if (!CheckShinyPackOnly || shinyPacks.HasKey(openPack)) {
         foundTrainer := false
         foundRainbow := false
         foundFullArt := false
@@ -1870,22 +1876,26 @@ FindGodPack(invalidPack := false) {
 
     ; Count stars if required.
     packMinStars := minStars
-    if (openPack = "Shining") {
+    if (openPack = "Solgaleo") {
+        packMinStars := minStarsA3Solgaleo
+    } else if (openPack = "Lunala") {
+        packMinStars := minStarsA3Lunala
+    } else if (openPack = "Shining") {
         packMinStars := minStarsA2b
     } else if (openPack = "Arceus") {
         packMinStars := minStarsA2a
-    } else if (openPack = "Palkia") {
-        packMinStars := minStarsA2Palkia
     } else if (openPack = "Dialga") {
         packMinStars := minStarsA2Dialga
-    } else if (openPack = "Mew") {
-        packMinStars := minStarsA1a
-    } else if (openPack = "Pikachu") {
-        packMinStars := minStarsA1Pikachu
-    } else if (openPack = "Charizard") {
-        packMinStars := minStarsA1Charizard
+    } else if (openPack = "Palkia") {
+        packMinStars := minStarsA2Palkia
     } else if (openPack = "Mewtwo") {
         packMinStars := minStarsA1Mewtwo
+    } else if (openPack = "Charizard") {
+        packMinStars := minStarsA1Charizard
+    } else if (openPack = "Pikachu") {
+        packMinStars := minStarsA1Pikachu
+    } else if (openPack = "Mew") {
+        packMinStars := minStarsA1a
     }
 
     if (!invalidPack && packMinStars > 0) {
@@ -1970,7 +1980,7 @@ loadAccount() {
 		;TODO force stop, remove account
 		ExitApp
 	}
-	
+
     CreateStatusMessage("Loading account...",,,, false)
 
     saveDir := A_ScriptDir "\..\Accounts\Saved\" . winTitle
@@ -1999,7 +2009,7 @@ loadAccount() {
 
                 FileGetTime, accountFileTime, %loadFile%, M  ; Get last modified time of account file
                 accountModifiedTimeDiff := A_Now
-				EnvSub, accountModifiedTimeDiff, %accountFileTime%, Hours		
+				EnvSub, accountModifiedTimeDiff, %accountFileTime%, Hours
 				if (accountModifiedTimeDiff >= 24)
                     break
                 cycle++
@@ -2533,7 +2543,7 @@ DoTutorial() {
     Loop {
     ; Check for AccountName in Settings.ini
     IniRead, accountNameValue, %A_ScriptDir%\..\Settings.ini, UserSettings, AccountName, ERROR
-    
+
     ; Use AccountName if it exists and isn't empty
     if (accountNameValue != "ERROR" && accountNameValue != "") {
         Random, randomNum, 1, 500 ; Generate random number from 1 to 500
@@ -2552,7 +2562,7 @@ DoTutorial() {
         username := SubStr(username, 1, 14)  ; max character limit
         LogToFile("Using random username: " . username)
     }
-    
+
     adbInput(username)
     Delay(1)
     if(FindImageAndClick(121, 490, 161, 520, , "Return", 185, 372, , 10)) ;click through until return button on open pack
@@ -2778,15 +2788,15 @@ DoTutorial() {
 
 SelectPack(HG := false) {
     global openPack, packArray
-    packy := 196
-    if(openPack = "Shining") {
-        packx := 145
-    } else if(openPack = "Arceus") {
-        packx := 200
+    packy := 225
+    if (openPack = "Solgaleo") {
+        packx := 140
+    } else if (openPack = "Lunala") {
+        packx := 215
     } else {
-        packx := 80
+        packx := 60
     }
-	
+
 	if(HG = "First"){
 		failSafe := A_TickCount
 		failSafeTime := 0
@@ -2822,36 +2832,44 @@ SelectPack(HG := false) {
 				adbClick(203, 436) ; 203 436
 				FindImageAndClick(236, 198, 266, 226, , "Hourglass2", 180, 436, 500) ;stop at hourglasses tutorial 2 180 to 203?
 			}
-			
+
 			failSafeTime := (A_TickCount - failSafe) // 1000
 			CreateStatusMessage("Waiting for Points`n(" . failSafeTime . "/90 seconds)")
 		}
 	} else {
 		FindImageAndClick(233, 400, 264, 428, , "Points", packx, packy)
 	}
-	
-    if(openPack = "Pikachu" || openPack = "Mewtwo" || openPack = "Charizard" || openPack = "Mew") {
+
+    if (openPack = "Mewtwo" || openPack = "Charizard" || openPack = "Pikachu" || openPack = "Mew" || openPack = "Dialga" || openPack = "Palkia" || openPack = "Arceus") {
         FindImageAndClick(115, 140, 160, 155, , "SelectExpansion", 245, 475)
-        packy := 442
-        if(openPack = "Pikachu" || openPack = "Mewtwo" || openPack = "Charizard"){
-            Sleep, 500
+
+        if (openPack = "Mewtwo" || openPack = "Charizard" || openPack = "Pikachu" || openPack = "Mew") {
+            ; Swipe down
             adbSwipe("266 770 266 355 160")
             Sleep, 500
+
+            packy := 470
+            if (openPack = "Charizard") {
+                packx := 160
+            } else if (openPack = "Mewtwo") {
+                packx := 200
+            } else if (openPack = "Pikachu") {
+                packx := 243
+            } else if (openPack = "Mew") {
+                packx := 73
+            }
+        } else {
+            packy := 410
+            if (openPack = "Arceus") {
+                packx := 73
+            } else if (openPack = "Dialga") {
+                packx := 183
+            } else if (openPack = "Palkia") {
+                packx := 222
+            }
         }
-        if(openPack = "Pikachu"){
-            packx := 125
-        } else if(openPack = "Mewtwo"){
-            packx := 85
-        } else if(openPack = "Charizard"){
-            packx := 45
-        } else if(openPack = "Mew"){
-            packx := 205
-        }
+
         FindImageAndClick(233, 400, 264, 428, , "Points", packx, packy)
-    } else if(openPack = "Palkia") {
-        Sleep, 500
-        adbClick(245, 245) ;temp
-        Sleep, 500
     }
     if(HG = "Tutorial") {
         FindImageAndClick(236, 198, 266, 226, , "Hourglass2", 180, 436, 500) ;stop at hourglasses tutorial 2 180 to 203?
@@ -2956,7 +2974,7 @@ PackOpening() {
             break
 		} else {
 			adbClick(146, 494) ;146, 494
-		} 
+		}
         failSafeTime := (A_TickCount - failSafe) // 1000
         CreateStatusMessage("Waiting for Home`n(" . failSafeTime . "/45 seconds)")
         if(failSafeTime > 45)
@@ -3077,7 +3095,7 @@ HourglassOpening(HG := false) {
             break
         } else {
 			adbClick(146, 494) ;146, 494
-		} 
+		}
         failSafeTime := (A_TickCount - failSafe) // 1000
         CreateStatusMessage("Waiting for ConfirmPack`n(" . failSafeTime . "/45 seconds)")
         if(failSafeTime > 45)
@@ -3118,7 +3136,7 @@ getFriendCode() {
 
 createAccountList(instance) {
 
-    
+
 	saveDir := A_ScriptDir "\..\Accounts\Saved\" . instance
     outputTxt := saveDir . "\list.txt"
     outputTxt_current := saveDir . "\list_current.txt"
@@ -3136,7 +3154,7 @@ createAccountList(instance) {
     if (!FileExist(outputTxt)) {
 		if(FileExist(outputTxt_current))
             FileDelete, %outputTxt_current%
-			
+
         Loop, %saveDir%\*.xml {
             xml := saveDir . "\" . A_LoopFileName
 			fileModifiedTimeDiff := A_Now
@@ -3240,14 +3258,125 @@ DoWonderPick() {
     return true
 }
 
+FindPackStats() {
+    global adbShell, scriptName, ocrLanguage, loadDir
+
+	; Click for hamburger menu
+    Loop {
+        adbClick(240, 499)
+        if(FindOrLoseImage(230, 120, 260, 150, , "UserProfile", 0)) {
+            break
+        }
+        
+		; Check for dialogue boxes
+        clickButton := FindOrLoseImage(75, 340, 195, 530, 80, "Button", 0)
+        if(clickButton) {
+            StringSplit, pos, clickButton, `,
+            if (scaleParam = 287) {
+                pos2 += 5
+            }
+            adbClick(pos1, pos2)
+        }
+        
+        LevelUp()
+        Delay(1)
+    }
+
+	; Open up profile/stats page
+    Loop {
+        adbClick(210, 140)
+        if(FindOrLoseImage(203, 272, 237, 300, , "Profile", 0)) {
+            break
+        }
+        Delay(1)
+    }
+
+    ; Swipe up 3 times
+    Loop, 3 {
+        adbSwipe("266 770 266 355 300")
+        Delay(1)
+    }
+
+	;OCR Card Count, Try 3 Times
+  	Sleep, 1000
+    fcScreenshot := Screenshot("PACKSTATS")
+    
+    debugInfo := ""
+    packValue := 0
+    maxRetries := 3
+    currentTry := 1
+    
+    while (currentTry <= maxRetries) {
+        try {
+            if(IsFunc("ocr")) {
+                ocrText := Func("ocr").Call(fcScreenshot, ocrLanguage)
+                
+                ; Look for numbers
+                foundNumbers := []
+                pos := 1
+                while pos := RegExMatch(ocrText, "O)(\d+)", match, pos) {
+                    foundNumbers.Push(match.1)
+                    pos += match.len
+                }
+                
+                ; If we found any numbers, calculate pack count
+                if (foundNumbers.Length() > 0) {
+                    ; Get the largest number found
+                    maxNumber := 0
+                    for i, num in foundNumbers {
+                        if (num > maxNumber)
+                            maxNumber := num
+                    }
+                    
+                    ; Calculate pack count by dividing by 5 and rounding down
+                    packValue := Floor(maxNumber / 5)
+                    break ; Exit retry loop if we found a number
+                }
+            } else {
+                break
+            }
+        } catch e {
+            LogToFile("Failed OCR attempt " . currentTry . ": " . e.message, "BC.txt")
+        }
+        
+        currentTry++
+        if (currentTry <= maxRetries)
+            Sleep, 1000 ; Wait a second before retrying
+    }
+
+    ; Update XML filename if we have a valid loadDir and either got a pack value or OCR failed/Overwrite old pack counts
+	if (loadDir && FileExist(loadDir) && packValue) {
+		; Get the base path and current filename
+		SplitPath, loadDir, currentFileName, fileDir
+		
+		; Extract the timestamp part (assuming format: YYYYMMDDHHMMSS_instance)
+		timestamp := RegExMatch(currentFileName, "^(\d+)_", timestampMatch) ? timestampMatch1 : ""
+		instance := RegExMatch(currentFileName, "_(\d+)", instanceMatch) ? instanceMatch1 : ""
+		
+		if (timestamp && instance) {
+			; Create new filename with pack count
+			newFileName := timestamp . "_" . instance . "_" . packValue . "P.xml"
+			newFilePath := fileDir . "\" . newFileName
+			
+			; Rename the file
+			FileMove, %loadDir%, %newFilePath%
+			
+			; Update loadDir to point to new file location
+			loadDir := newFilePath
+		}
+	}
+
+    return packValue
+}
+
 getChangeDateTime() {
 	offset := A_Now
 	currenttimeutc := A_NowUTC
 	EnvSub, offset, %currenttimeutc%, Hours   ;offset from local timezone to UTC
-	
+
     resetTime := SubStr(A_Now, 1, 8) "060000" ;today at 6am [utc] zero seconds is the reset time at UTC
 	resetTime += offset, Hours                ;reset time in local timezone
-	
+
 	;find the closest reset time
 	currentTime := A_Now
 	timeToReset := resetTime
@@ -3257,7 +3386,7 @@ getChangeDateTime() {
 	} else if (timeToReset < -12) {
 		resetTime += 1, Days
 	}
-	
+
     return resetTime
 }
 
