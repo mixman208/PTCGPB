@@ -331,6 +331,7 @@ SetAllTextColors(textColor) {
     controlList .= "Txt_Monitor,Txt_Scale,Txt_FolderPath,Txt_OcrLanguage,Txt_ClientLanguage,"
     controlList .= "Txt_InstanceLaunchDelay,autoLaunchMonitor,"
     controlList .= "Txt_MinStars,Txt_ShinyMinStars,Txt_DeleteMethod,packMethod,nukeAccount,"
+
     controlList .= "FullArtCheck,TrainerCheck,RainbowCheck,PseudoGodPack,CheckShinyPackOnly,"
     controlList .= "InvalidCheck,CrownCheck,ShinyCheck,ImmersiveCheck,"
     controlList .= "s4tEnabled,s4tSilent,s4t3Dmnd,s4t4Dmnd,s4t1Star,s4tGholdengo,s4tWP,"
@@ -1167,8 +1168,8 @@ LoadSettingsFromIni() {
         IniRead, Pikachu, Settings.ini, UserSettings, Pikachu, 0
         IniRead, Charizard, Settings.ini, UserSettings, Charizard, 0
         IniRead, Mewtwo, Settings.ini, UserSettings, Mewtwo, 0
-        IniRead, Solgaleo, Settings.ini, UserSettings, Solgaleo, 0
-        IniRead, Lunala, Settings.ini, UserSettings, Lunala, 0
+        IniRead, Solgaleo, Settings.ini, UserSettings, Solgaleo, 1
+        IniRead, Lunala, Settings.ini, UserSettings, Lunala, 1
         IniRead, slowMotion, Settings.ini, UserSettings, slowMotion, 0
         IniRead, ocrLanguage, Settings.ini, UserSettings, ocrLanguage, en
         IniRead, clientLanguage, Settings.ini, UserSettings, clientLanguage, en
@@ -1176,6 +1177,9 @@ LoadSettingsFromIni() {
         IniRead, mainIdsURL, Settings.ini, UserSettings, mainIdsURL, ""
         IniRead, vipIdsURL, Settings.ini, UserSettings, vipIdsURL, ""
         IniRead, instanceLaunchDelay, Settings.ini, UserSettings, instanceLaunchDelay, 5
+
+
+        ; Read S4T settings
         IniRead, s4tEnabled, Settings.ini, UserSettings, s4tEnabled, 0
         IniRead, s4tSilent, Settings.ini, UserSettings, s4tSilent, 1
         IniRead, s4t3Dmnd, Settings.ini, UserSettings, s4t3Dmnd, 0
@@ -1187,6 +1191,9 @@ LoadSettingsFromIni() {
         IniRead, s4tDiscordWebhookURL, Settings.ini, UserSettings, s4tDiscordWebhookURL, ""
         IniRead, s4tDiscordUserId, Settings.ini, UserSettings, s4tDiscordUserId, ""
         IniRead, s4tSendAccountXml, Settings.ini, UserSettings, s4tSendAccountXml, 1
+
+
+        ; Advanced settings
         IniRead, minStarsShiny, Settings.ini, UserSettings, minStarsShiny, 0
         IniRead, minStarsA1Charizard, Settings.ini, UserSettings, minStarsA1Charizard, 0
         IniRead, minStarsA1Mewtwo, Settings.ini, UserSettings, minStarsA1Mewtwo, 0
@@ -1197,6 +1204,7 @@ LoadSettingsFromIni() {
         IniRead, minStarsA2a, Settings.ini, UserSettings, minStarsA2a, 0
         IniRead, minStarsA3Solgaleo, Settings.ini, UserSettings, minStarsA3Solgaleo, 0
         IniRead, minStarsA3Lunala, Settings.ini, UserSettings, minStarsA3Lunala, 0
+
         IniRead, heartBeatDelay, Settings.ini, UserSettings, heartBeatDelay, 30
         IniRead, sendAccountXml, Settings.ini, UserSettings, sendAccountXml, 0
         IniRead, showcaseEnabled, Settings.ini, UserSettings, showcaseEnabled, 0
@@ -1204,6 +1212,8 @@ LoadSettingsFromIni() {
         IniRead, showcaseLikes, Settings.ini, UserSettings, showcaseLikes, 5
         IniRead, isDarkTheme, Settings.ini, UserSettings, isDarkTheme, 1
         IniRead, useBackgroundImage, Settings.ini, UserSettings, useBackgroundImage, 1
+
+        ; Extra Settings
         IniRead, tesseractPath, Settings.ini, UserSettings, tesseractPath, C:\Program Files\Tesseract-OCR\tesseract.exe
         IniRead, applyRoleFilters, Settings.ini, UserSettings, applyRoleFilters, 0
         IniRead, debugMode, Settings.ini, UserSettings, debugMode, 0
@@ -1546,6 +1556,7 @@ Gui, Add, Edit, vtesseractPath w290 x170 y+5 h25 Hidden, %tesseractPath%
 SetHeaderFont()
 Gui, Add, Text, x170 y100 c%sectionColor% Hidden vPackSettingsSubHeading1, God Pack Settings
 GuiControl, Show, PackSettingsSubHeading1
+
 
 SetNormalFont()
 
@@ -2364,6 +2375,7 @@ return
 
 StartBot:
     Gui, Submit  ; Collect the input values from the first page
+
     SaveAllSettings()
 
     ; Use the centralized function to save all settings
@@ -2632,6 +2644,7 @@ Loop {
         
         ; Send heartbeat at start (A_Index = 1) or every heartbeatDelay minutes
         if (A_Index = 1 || Mod(A_Index, heartbeatIterations) = 0) {
+
             onlineAHK := ""
             offlineAHK := ""
             Online := []
@@ -2683,6 +2696,7 @@ Loop {
                 onlineAHK := "Online: " . RTrim(onlineAHK, ", ")
 
             discMessage := heartBeatName ? "\n" . heartBeatName : ""
+
             discMessage .= "\n" . onlineAHK . "\n" . offlineAHK . "\n" . packStatus . "\nVersion: " . RegExReplace(githubUser, "-.*$") . "-" . localVersion
             discMessage .= typeMsg
             discMessage .= selectMsg
@@ -2692,6 +2706,7 @@ Loop {
             ; Optional debug log
             if (debugMode) {
                 FileAppend, % A_Now . " - Heartbeat sent at iteration " . A_Index . "`n", %A_ScriptDir%\heartbeat_log.txt
+
             }
         }
     }
