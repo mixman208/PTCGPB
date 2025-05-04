@@ -3078,13 +3078,8 @@ SelectPack(HG := false) {
 				break
 			}
 			else if(!renew && !getFC) {
-				clickButton := FindOrLoseImage(75, 340, 195, 530, 80, "Button", 0)
-				if(clickButton) {
-					StringSplit, pos, clickButton, `,  ; Split at ", "
-					if (scaleParam = 287) {
-						pos2 += 5
-					}
-					adbClick_wbb(pos1, pos2)
+				if(FindOrLoseImage(241, 377, 269, 407, , "closeduringpack", 0)) {
+					adbClick_wbb(139, 371)
 				}
 			}
 			else if(FindOrLoseImage(175, 165, 255, 235, , "Hourglass3", 0)) {
