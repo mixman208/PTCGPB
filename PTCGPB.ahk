@@ -2441,96 +2441,96 @@ BalanceXMLs:
 return
 
 StartBot:
-    ; Get the current method selection
-    GuiControlGet, deleteMethod
+    ; Force a complete refresh of all variables from the GUI
+    Gui, Submit, NoHide
     
-    ; If no method is selected, direct them to Pack Settings
-    if (deleteMethod = "") {
-        MsgBox, 48, Method Required, No method selected. Please select a method in Pack Settings before starting the bot.
-        
-        ; Show Pack Settings section to help the user
-        HideAllSections()
-        ShowPackSettingsSection()
-        CurrentVisibleSection := "PackSettings"
-        
-        ; Update section title with section-specific color
-        friendlyName := "Pack Settings"
-        GuiControl,, ActiveSection, Current Section: %friendlyName%
-        
-        ; Don't proceed further, but keep GUI open
-        return
-    }
-    
-    ; Build a message showing selected method and pack types
-    confirmMsg := "Selected method: " . deleteMethod . "`n`n"
-    confirmMsg .= "Selected packs:`n"
-    
-    ; Add pack selections to the message
-    packCount := 0
-    if (Solgaleo) {
+    ; Now build the confirmation message with the freshly updated variables
+    confirmMsg := "Selected Method: " . deleteMethod . "`n`n"
+    confirmMsg .= "Selected Packs:`n"
+    if (Solgaleo)
         confirmMsg .= "• Solgaleo`n"
-        packCount++
-    }
-    if (Lunala) {
+    if (Lunala)
         confirmMsg .= "• Lunala`n"
-        packCount++
-    }
-    if (Shining) {
+    if (Shining)
         confirmMsg .= "• Shining`n"
-        packCount++
-    }
-    if (Arceus) {
+    if (Arceus)
         confirmMsg .= "• Arceus`n"
-        packCount++
-    }
-    if (Palkia) {
+    if (Palkia)
         confirmMsg .= "• Palkia`n"
-        packCount++
-    }
-    if (Dialga) {
+    if (Dialga)
         confirmMsg .= "• Dialga`n"
-        packCount++
-    }
-    if (Pikachu) {
+    if (Pikachu)
         confirmMsg .= "• Pikachu`n"
-        packCount++
-    }
-    if (Charizard) {
+    if (Charizard)
         confirmMsg .= "• Charizard`n"
-        packCount++
-    }
-    if (Mewtwo) {
+    if (Mewtwo)
         confirmMsg .= "• Mewtwo`n"
-        packCount++
-    }
-    if (Mew) {
+    if (Mew)
         confirmMsg .= "• Mew`n"
-        packCount++
+
+    confirmMsg .= "`nAdditional settings:"
+    additionalSettingsFound := false
+    if (packMethod) {
+        confirmMsg .= "`n• 1 Pack Method"
+        additionalSettingsFound := true
     }
-    
-    ; If no packs selected, add warning
-    if (packCount = 0) {
-        confirmMsg .= "No packs selected!`n"
+    if (nukeAccount && !InStr(deleteMethod, "Inject")) {
+        confirmMsg .= "`n• Menu Delete"
+        additionalSettingsFound := true
     }
-    
-    ; Add additional settings
-    confirmMsg .= "`nAdditional settings:`n"
-    if (packMethod)
-        confirmMsg .= "• 1 Pack Method`n"
-    if (nukeAccount && !InStr(deleteMethod, "Inject"))
-        confirmMsg .= "• Menu Delete`n"
-    
-    ; Show confirmation dialog with clearer wording
-    confirmMsg .= "`n`nClick 'Yes' to START THE BOT with these settings.`nClick 'No' to RETURN to settings."
+    if (!additionalSettingsFound)
+        confirmMsg .= "`nNone"
+
+confirmMsg .= "`n`nCard Detection:"
+cardDetectionFound := false
+
+if (FullArtCheck) {
+    confirmMsg .= "`n• Single Full Art"
+    cardDetectionFound := true
+}
+if (TrainerCheck) {
+    confirmMsg .= "`n• Single Trainer"
+    cardDetectionFound := true
+}
+if (RainbowCheck) {
+    confirmMsg .= "`n• Single Rainbow"
+    cardDetectionFound := true
+}
+if (PseudoGodPack) {
+    confirmMsg .= "`n• Double 2 ★"
+    cardDetectionFound := true
+}
+if (CrownCheck) {
+    confirmMsg .= "`n• Save Crowns"
+    cardDetectionFound := true
+}
+if (ShinyCheck) {
+    confirmMsg .= "`n• Save Shiny"
+    cardDetectionFound := true
+}
+if (ImmersiveCheck) {
+    confirmMsg .= "`n• Save Immersives"
+    cardDetectionFound := true
+}
+if (CheckShinyPackOnly) {
+    confirmMsg .= "`n• Only Shiny Packs"
+    cardDetectionFound := true
+}
+if (InvalidCheck) {
+    confirmMsg .= "`n• Ignore Invalid Packs"
+    cardDetectionFound := true
+}
+
+if (!cardDetectionFound)
+    confirmMsg .= "`nNone"
+
+    confirmMsg .= "`n`nClick 'Yes' to START THE BOT with these settings.`nClick 'No' to CHANGE settings."
+
     MsgBox, 4, Confirm Bot Settings, %confirmMsg%
     IfMsgBox, No
     {
         return  ; Return to GUI for user to modify settings
     }
-    ; Continue with starting the bot
-    Gui, Submit  ; Collect all the input values
-    
-    SaveAllSettings()
 
     ; Re-validate scaleParam based on current language
     if (defaultLanguage = "Scale125") {
