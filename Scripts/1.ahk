@@ -1178,6 +1178,14 @@ FindImageAndClick(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT",
                 Delay(1)
             }
         }
+		if(imageName = "Skip2") {
+			Path = %imagePath%notenoughitems.png
+            pNeedle := GetNeedle(Path)
+            vRet := Gdip_ImageSearch_wbb(pBitmap, pNeedle, vPosXY, 92, 299, 115, 317, 0)
+			if(vRet = 1) {
+				restartGameInstance("Not Enough Items")
+			}
+		}
 
         Gdip_DisposeImage(pBitmap)
         if(imageName = "Points" || imageName = "Home") { ;look for level up ok "button"
@@ -3059,7 +3067,7 @@ DoTutorial() {
 
 SelectPack(HG := false) {
     global openPack, packArray
-    packy := 225
+    packy := 203 ;196
     if (openPack = "Solgaleo") {
         packx := 140
     } else if (openPack = "Lunala") {
@@ -3168,10 +3176,13 @@ SelectPack(HG := false) {
         failSafe := A_TickCount
         failSafeTime := 0
         Loop {
-            if(FindImageAndClick(233, 486, 272, 519, , "Skip2", 130, 430, , 2)) ;click on next until skip button appears
+            if(FindImageAndClick(233, 486, 272, 519, , "Skip2", 172, 430, , 2)) { ;click on next until skip button appears
                 break
+			} else if(FindOrLoseImage(92, 299, 115, 317, , "notenoughitems", 0)) {
+				restartGameInstance("Not Enough Items")
+			}
             Delay(1)
-            adbClick_wbb(200, 451)
+            adbClick_wbb(200, 451) ;for hourglass???
             failSafeTime := (A_TickCount - failSafe) // 1000
             CreateStatusMessage("Waiting for Skip2`n(" . failSafeTime . "/45 seconds)")
         }
@@ -3182,11 +3193,15 @@ PackOpening() {
     failSafeTime := 0
     Loop {
         adbClick_wbb(146, 439)
+		;stuck here if not enough items for the second pack
         Delay(1)
-        if(FindOrLoseImage(225, 273, 235, 290, , "Pack", 0, failSafeTime))
+        if(FindOrLoseImage(225, 273, 235, 290, , "Pack", 0, failSafeTime)) {
             break ;wait for pack to be ready to Trace and click skip
-        else
+		} else if(FindOrLoseImage(92, 299, 115, 317, , "notenoughitems", 0)) {
+			restartGameInstance("Not Enough Items")
+		} else {
             adbClick_wbb(239, 497)
+		}
         failSafeTime := (A_TickCount - failSafe) // 1000
         CreateStatusMessage("Waiting for Pack`n(" . failSafeTime . "/45 seconds)")
         if(failSafeTime > 45)
