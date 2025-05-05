@@ -473,6 +473,10 @@ HomeAndMission(homeonly := 0, completeSecondMisson=false) {
 	else {
 		FindImageAndClick(136, 158, 156, 190, , "Mission_dino2", 150, 286, 1000)
 		}
+	if(FindOrLoseImage(108, 180, 177, 208, , "1solobattlemission", 0, failSafeTime)) {
+		restartGameInstance("begginer missions done except solo battle")
+	}
+
 	failSafe := A_TickCount
 	failSafeTime := 0
 	Loop {
@@ -1184,6 +1188,14 @@ FindImageAndClick(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT",
             vRet := Gdip_ImageSearch_wbb(pBitmap, pNeedle, vPosXY, 92, 299, 115, 317, 0)
 			if(vRet = 1) {
 				restartGameInstance("Not Enough Items")
+			}
+		}
+		if(imageName = "Mission_dino2") {
+			Path = %imagePath%1solobattlemission.png
+            pNeedle := GetNeedle(Path)
+            vRet := Gdip_ImageSearch_wbb(pBitmap, pNeedle, vPosXY, 108, 180, 177, 208, 0)
+			if(vRet = 1) {
+				restartGameInstance("begginer missions done except solo battle")
 			}
 		}
 
