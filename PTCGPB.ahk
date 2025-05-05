@@ -1278,9 +1278,17 @@ CreateDefaultSettingsFile() {
 
 ; Function to handle window positioning with enhanced error handling
 resetWindows(Title, SelectedMonitorIndex, silent := true) {
-    global Columns, runMain, Mains, scaleParam, debugMode
+    global Columns, runMain, Mains, scaleParam, debugMode, defaultLanguage
     RetryCount := 0
     MaxRetries := 10
+    
+    ; Set an appropriate row gap based on the scale setting
+    if (defaultLanguage = "Scale125" || scaleParam = 277) {
+        rowGap := 75  ; Gap for 125% scale
+    } else {
+        rowGap := 60  ; Adjusted gap for 100% scale (slightly smaller)
+    }
+    
     Loop
     {
         try {
@@ -1300,7 +1308,7 @@ resetWindows(Title, SelectedMonitorIndex, silent := true) {
             }
             rowHeight := 533  ; Adjust the height of each row
             currentRow := Floor((instanceIndex - 1) / Columns)
-            y := currentRow * rowHeight
+            y := currentRow * rowHeight + (currentRow * rowGap)  ; Add row gap here
             x := Mod((instanceIndex - 1), Columns) * scaleParam
             WinMove, %Title%, , % (MonitorLeft + x), % (MonitorTop + y), scaleParam, 533
             break
