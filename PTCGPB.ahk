@@ -1278,9 +1278,17 @@ CreateDefaultSettingsFile() {
 
 ; Function to handle window positioning with enhanced error handling
 resetWindows(Title, SelectedMonitorIndex, silent := true) {
-    global Columns, runMain, Mains, scaleParam, debugMode
+    global Columns, runMain, Mains, scaleParam, debugMode, defaultLanguage
     RetryCount := 0
     MaxRetries := 10
+    
+    ; Set an appropriate row gap based on the scale setting
+    if (defaultLanguage = "Scale125" || scaleParam = 277) {
+        rowGap := 75  ; Gap for 125% scale
+    } else {
+        rowGap := 60  ; Adjusted gap for 100% scale (slightly smaller)
+    }
+    
     Loop
     {
         try {
@@ -1300,7 +1308,7 @@ resetWindows(Title, SelectedMonitorIndex, silent := true) {
             }
             rowHeight := 533  ; Adjust the height of each row
             currentRow := Floor((instanceIndex - 1) / Columns)
-            y := currentRow * rowHeight
+            y := currentRow * rowHeight + (currentRow * rowGap)  ; Add row gap here
             x := Mod((instanceIndex - 1), Columns) * scaleParam
             WinMove, %Title%, , % (MonitorLeft + x), % (MonitorTop + y), scaleParam, 533
             break
@@ -1571,6 +1579,22 @@ Gui, Add, Edit, vminStarsShiny w50 x413 y128 h25 Center Hidden, %minStarsShiny%
 
 ; Second row - Method dropdown
 Gui, Add, Text, x170 y165 Hidden vTxt_DeleteMethod, Method:
+
+; Determine which option in the dropdown to select based on the loaded deleteMethod value
+defaultDelete := 1 ; Default to the first option
+if (deleteMethod = "5 Pack")
+    defaultDelete := 1
+else if (deleteMethod = "3 Pack")
+    defaultDelete := 2
+else if (deleteMethod = "Inject")
+    defaultDelete := 3
+else if (deleteMethod = "5 Pack (Fast)")
+    defaultDelete := 4
+else if (deleteMethod = "13 Pack")
+    defaultDelete := 5
+else if (deleteMethod = "Inject 10P")
+    defaultDelete := 6
+
 Gui, Add, DropDownList, vdeleteMethod gdeleteSettings choose%defaultDelete% x230 y163 w120 Hidden, 5 Pack|3 Pack|Inject|5 Pack (Fast)|13 Pack|Inject 10P
 
 ; Third row - Pack Method and Menu Delete
@@ -2425,12 +2449,96 @@ BalanceXMLs:
 return
 
 StartBot:
-    Gui, Submit  ; Collect the input values from the first page
+    ; Force a complete refresh of all variables from the GUI
+    Gui, Submit, NoHide
+    
+    ; Now build the confirmation message with the freshly updated variables
+    confirmMsg := "Selected Method: " . deleteMethod . "`n`n"
+    confirmMsg .= "Selected Packs:`n"
+    if (Solgaleo)
+        confirmMsg .= "• Solgaleo`n"
+    if (Lunala)
+        confirmMsg .= "• Lunala`n"
+    if (Shining)
+        confirmMsg .= "• Shining`n"
+    if (Arceus)
+        confirmMsg .= "• Arceus`n"
+    if (Palkia)
+        confirmMsg .= "• Palkia`n"
+    if (Dialga)
+        confirmMsg .= "• Dialga`n"
+    if (Pikachu)
+        confirmMsg .= "• Pikachu`n"
+    if (Charizard)
+        confirmMsg .= "• Charizard`n"
+    if (Mewtwo)
+        confirmMsg .= "• Mewtwo`n"
+    if (Mew)
+        confirmMsg .= "• Mew`n"
 
-    SaveAllSettings()
+    confirmMsg .= "`nAdditional settings:"
+    additionalSettingsFound := false
+    if (packMethod) {
+        confirmMsg .= "`n• 1 Pack Method"
+        additionalSettingsFound := true
+    }
+    if (nukeAccount && !InStr(deleteMethod, "Inject")) {
+        confirmMsg .= "`n• Menu Delete"
+        additionalSettingsFound := true
+    }
+    if (!additionalSettingsFound)
+        confirmMsg .= "`nNone"
 
-    ; Use the centralized function to save all settings
-    SaveAllSettings()
+confirmMsg .= "`n`nCard Detection:"
+cardDetectionFound := false
+
+if (FullArtCheck) {
+    confirmMsg .= "`n• Single Full Art"
+    cardDetectionFound := true
+}
+if (TrainerCheck) {
+    confirmMsg .= "`n• Single Trainer"
+    cardDetectionFound := true
+}
+if (RainbowCheck) {
+    confirmMsg .= "`n• Single Rainbow"
+    cardDetectionFound := true
+}
+if (PseudoGodPack) {
+    confirmMsg .= "`n• Double 2 ★"
+    cardDetectionFound := true
+}
+if (CrownCheck) {
+    confirmMsg .= "`n• Save Crowns"
+    cardDetectionFound := true
+}
+if (ShinyCheck) {
+    confirmMsg .= "`n• Save Shiny"
+    cardDetectionFound := true
+}
+if (ImmersiveCheck) {
+    confirmMsg .= "`n• Save Immersives"
+    cardDetectionFound := true
+}
+if (CheckShinyPackOnly) {
+    confirmMsg .= "`n• Only Shiny Packs"
+    cardDetectionFound := true
+}
+if (InvalidCheck) {
+    confirmMsg .= "`n• Ignore Invalid Packs"
+    cardDetectionFound := true
+}
+
+if (!cardDetectionFound)
+    confirmMsg .= "`nNone"
+
+    confirmMsg .= "`n`nClick 'Yes' to START THE BOT with these settings.`nClick 'No' to CHANGE settings."
+
+    MsgBox, 4, Confirm Bot Settings, %confirmMsg%
+    IfMsgBox, No
+    {
+        return  ; Return to GUI for user to modify settings
+    }
 
     ; Re-validate scaleParam based on current language
     if (defaultLanguage = "Scale125") {
