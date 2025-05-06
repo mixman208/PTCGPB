@@ -2451,6 +2451,7 @@ return
 StartBot:
     ; Force a complete refresh of all variables from the GUI
     Gui, Submit, NoHide
+    SaveAllSettings()
     
     ; Now build the confirmation message with the freshly updated variables
     confirmMsg := "Selected Method: " . deleteMethod . "`n`n"

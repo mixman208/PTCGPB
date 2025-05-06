@@ -988,6 +988,7 @@ FindOrLoseImage(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT", E
     if(imageName = "Points" || imageName = "Home") { ;look for level up ok "button"
         LevelUp()
     }
+	;country for new accounts, social for inject with friend id, points for inject without friend id
     if(imageName = "Country" || imageName = "Social" || imageName = "Points")
         FSTime := 90
     else
@@ -2256,22 +2257,25 @@ Screenshot_dev(fileType := "Dev",subDir := "") {
 Screenshot(fileType := "Valid", subDir := "", ByRef fileName := "") {
     global adbShell, adbPath, packs
     SetWorkingDir %A_ScriptDir%  ; Ensures the working directory is the script's directory
-
-    ; For PACKSTATS, use temp directory instead of Screenshots folder
-    if (filename = "PACKSTATS") {
-        ; Create temp directory if it doesn't exist
-        tempDir := A_ScriptDir . "\temp"
-        if !FileExist(tempDir)
-            FileCreateDir, %tempDir%
-        ; Use temp file path
-        screenshotFile := tempDir . "\packstats_temp.png"
-    } else {
-        ; Normal screenshots go to Screenshots folder as before
-        screenshotsDir := A_ScriptDir "\..\Screenshots"
-        if !FileExist(screenshotsDir)
-            FileCreateDir, %screenshotsDir%
-        screenshotFile := screenshotsDir "\" . A_Now . "_" . winTitle . "_" . filename . "_" . packs . "_packs.png"
+		
+    if !FileExist(fileDir)
+        FileCreateDir, fileDir
+    if (subDir) {
+        fileDir .= "\" . subDir
+		if !FileExist(fileDir)
+			FileCreateDir, fileDir
     }
+	if (filename = "PACKSTATS") {
+        fileDir .= "\temp"
+		if !FileExist(fileDir)
+			FileCreateDir, fileDir
+	}
+
+    ; File path for saving the screenshot locally
+    fileName := A_Now . "_" . winTitle . "_" . fileType . "_" . packs . "_packs.png"
+    if (filename = "PACKSTATS") 
+        fileName := "packstats_temp.png"
+    filePath := fileDir "\" . fileName
 
     pBitmapW := from_window(WinExist(winTitle))
     pBitmap := Gdip_CloneBitmapArea(pBitmapW, 18, 175, 240, 227)
@@ -2280,17 +2284,16 @@ Screenshot(fileType := "Valid", subDir := "", ByRef fileName := "") {
         pBitmap := Gdip_CloneBitmapArea(pBitmapW, 17, 168, 245, 230)
     }
     Gdip_DisposeImage(pBitmapW)
-
-    Gdip_SaveBitmapToFile(pBitmap, screenshotFile)
+    Gdip_SaveBitmapToFile(pBitmap, filePath)
 
     ; Don't dispose pBitmap if it's a PACKSTATS screenshot
     if (filename != "PACKSTATS") {
         Gdip_DisposeImage(pBitmap)
-        return screenshotFile
+		return filePath
     }
     
     ; For PACKSTATS, return both values and delete temp file after OCR is done
-    return {filepath: screenshotFile, bitmap: pBitmap, deleteAfterUse: true}
+    return {filepath: filePath, bitmap: pBitmap, deleteAfterUse: true}
 }
 
 
@@ -3624,6 +3627,7 @@ FindPackStats() {
                 adbClick(pos1, pos2)
 			}
 		}
+		levelUp()
         Delay(1)
     }
 
@@ -3793,11 +3797,4 @@ RegExEscape(str) {
     return RegExReplace(str, "([-[\]{}()*+?.,\^$|#\s])", "\$1")
 }
 
-; Retrieves the path to the temporary directory for the script. Creates it if it doesn't exist.
-GetTempDirectory() {
-    tempDir := A_ScriptDir . "\temp"
-    if !FileExist(tempDir)
-        FileCreateDir, %tempDir%
-    return tempDir
-}
 
