@@ -2258,6 +2258,8 @@ Screenshot(fileType := "Valid", subDir := "", ByRef fileName := "") {
     global adbShell, adbPath, packs
     SetWorkingDir %A_ScriptDir%  ; Ensures the working directory is the script's directory
 		
+    ; Define folder and file paths
+    fileDir := A_ScriptDir "\..\Screenshots"
     if !FileExist(fileDir)
         FileCreateDir, fileDir
     if (subDir) {
