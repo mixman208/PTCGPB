@@ -986,7 +986,7 @@ FindOrLoseImage(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT", E
     if(imageName = "Points" || imageName = "Home") { ;look for level up ok "button"
         LevelUp()
     }
-    if(imageName = "Country" || imageName = "Social")
+    if(imageName = "Country" || imageName = "Social" || imageName = "Points")
         FSTime := 90
     else
         FSTime := 45
