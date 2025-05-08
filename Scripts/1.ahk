@@ -1283,17 +1283,14 @@ LevelUp() {
 }
 
 resetWindows() {
-    global Columns, winTitle, SelectedMonitorIndex, scaleParam, defaultLanguage
+    global Columns, winTitle, SelectedMonitorIndex, scaleParam, defaultLanguage, rowGap
     CreateStatusMessage("Arranging window positions and sizes",,,, false)
     RetryCount := 0
     MaxRetries := 10
     
-    ; Set an appropriate row gap based on the scale setting
-    if (defaultLanguage = "Scale125" || scaleParam = 277) {
-        rowGap := 75  ; Gap for 125% scale
-    } else {
-        rowGap := 60  ; Adjusted gap for 100% scale (slightly smaller)
-    }
+    ; Use the configurable rowGap with fallback default of 100
+    if (!rowGap)
+        rowGap := 100
     
     Loop
     {
@@ -1311,7 +1308,7 @@ resetWindows() {
 
             rowHeight := 533  ; Adjust the height of each row
             currentRow := Floor((instanceIndex - 1) / Columns)
-            y := currentRow * rowHeight + (currentRow * rowGap)  ; Add row gap here
+            y := currentRow * rowHeight + (currentRow * rowGap)  ; Use the configurable gap
             x := Mod((instanceIndex - 1), Columns) * scaleParam
             WinMove, %Title%, , % (MonitorLeft + x), % (MonitorTop + y), scaleParam, 537
             break
@@ -3897,6 +3894,7 @@ FindPackStats() {
         }
     }
 
+
 	if (fcScreenshot.deleteAfterUse && FileExist(fcScreenshot.filepath))
 		FileDelete, % fcScreenshot.filepath
 
@@ -3958,5 +3956,4 @@ GetTextFromBitmap(pBitmap, charAllowList := "") {
 RegExEscape(str) {
     return RegExReplace(str, "([-[\]{}()*+?.,\^$|#\s])", "\$1")
 }
-
 
