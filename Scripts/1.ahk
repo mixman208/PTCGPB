@@ -3503,36 +3503,54 @@ getFriendCode() {
 }
 
 createAccountList(instance) {
-
-
-	saveDir := A_ScriptDir "\..\Accounts\Saved\" . instance
+    saveDir := A_ScriptDir "\..\Accounts\Saved\" . instance
     outputTxt := saveDir . "\list.txt"
     outputTxt_current := saveDir . "\list_current.txt"
 
     if FileExist(outputTxt) {
-		fileModifiedTimeDiff := A_Now
+        fileModifiedTimeDiff := A_Now
         FileGetTime, fileModifiedTime, %outputTxt%, M  ; Get last modified time
-		EnvSub, fileModifiedTimeDiff, %fileModifiedTime%, Hours
+        EnvSub, fileModifiedTimeDiff, %fileModifiedTime%, Hours
         if (fileModifiedTimeDiff >= 1) {
-			; file modified 1 hours ago or more
+            ; file modified 1 hour ago or more
             FileDelete, %outputTxt%
             FileDelete, %outputTxt_current%
-		}
+        } else {
+            ; File is recent, no need to regenerate
+            return
+        }
     }
+
     if (!FileExist(outputTxt)) {
-		if(FileExist(outputTxt_current))
+        if(FileExist(outputTxt_current))
             FileDelete, %outputTxt_current%
 
+        ; Create arrays to store files with their timestamps
+		fileMap := ""
+        ; First pass: gather all eligible files with their timestamps
         Loop, %saveDir%\*.xml {
-            xml := saveDir . "\" . A_LoopFileName
-			fileModifiedTimeDiff := A_Now
-            FileGetTime, fileModifiedTime, %xml%, M
-			EnvSub, fileModifiedTimeDiff, %fileModifiedTime%, Hours
-            if (fileModifiedTimeDiff >= 24) {  ; 24 hours
-                FileAppend, % A_LoopFileName "`n", %outputTxt%  ; Append file path to list.txt\
-                FileAppend, % A_LoopFileName "`n", %outputTxt_current%  ; Append file path to list_current.txt\
+            fileModifiedTimeDiff := A_Now
+            fileModifiedTime := A_LoopFileTimeModified
+            EnvSub, fileModifiedTimeDiff, %fileModifiedTime%, Hours
+
+            if (fileModifiedTimeDiff >= 24) {  ; 24 hours old
+                ; Store filename and actual modification time in parallel arrays
+				fileMap .= fileModifiedTime "`t" A_LoopFileName "`n"
             }
         }
+
+        ; Sort files by modification time (oldest first) using insertion sort
+		Sort, fileMap
+		
+		fileList := ""
+        Loop, Parse, fileMap, `n
+        {
+            ; Split each line into timestamp and file path (split by tab)
+            StringSplit, parts, A_LoopField, %A_Tab%
+            fileList .= parts2 "`n" ; Get the file name from the second part and append to filelist
+        }
+		FileAppend, %fileList%, %outputTxt%
+		FileAppend, %fileList%, %outputTxt_current%
     }
 }
 
