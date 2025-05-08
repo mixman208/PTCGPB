@@ -3285,25 +3285,34 @@ SelectPack(HG := false) {
 
             packy := 470 ; after swiping use this Y coordinate
 			
-            if (openPack = "Charizard") {
+			if (openPack = "Mew") {
+                packx := SelectExpansionLeftCollumnMiddleX
+            } else if (openPack = "Charizard") {
                 packx := SelectExpansionRightCollumnMiddleX + 3PackExpansionLeft
             } else if (openPack = "Mewtwo") {
                 packx := SelectExpansionRightCollumnMiddleX
             } else if (openPack = "Pikachu") {
                 packx := SelectExpansionRightCollumnMiddleX + 3PackExpansionRight
-            } else if (openPack = "Mew") {
-                packx := SelectExpansionLeftCollumnMiddleX
+            
             }
         } else {
-            packy := SelectExpansionSecondRowY
-            if (openPack = "Shining") {
+            if (openPack = "Solgaleo") {
+				packy := SelectExpansionFirstRowY
+                packx := SelectExpansionLeftCollumnMiddleX + 2PackExpansionLeft
+            } else if (openPack = "Lunala") {
+				packy := SelectExpansionFirstRowY
+                packx := SelectExpansionLeftCollumnMiddleX + 2PackExpansionRight
+            } else if (openPack = "Shining") {
 				packy := SelectExpansionFirstRowY
                 packx := SelectExpansionRightCollumnMiddleX 
             } else if (openPack = "Arceus") {
+				packy := SelectExpansionSecondRowY
                 packx := SelectExpansionLeftCollumnMiddleX
             } else if (openPack = "Dialga") {
+				packy := SelectExpansionSecondRowY
                 packx := SelectExpansionRightCollumnMiddleX + 2PackExpansionLeft
             } else if (openPack = "Palkia") {
+				packy := SelectExpansionSecondRowY
                 packx := SelectExpansionRightCollumnMiddleX + 2PackExpansionRight
             }
         }
@@ -3951,15 +3960,3 @@ RegExEscape(str) {
 }
 
 
-;FindOrLoseImage(150, 159, 176, 206, , "missionwonder", 0, failSafeTime)
-;FindImageAndClick(150, 159, 176, 206, , "missionwonder", 141, 396, sleepTime)
-;adbClick_wbb(141, 396)
-
-;levelUp()
-;FindOrLoseImage(118, 167, 167, 203, , "unlocked", 0, failSafeTime)
-;FindImageAndClick(118, 167, 167, 203, , "unlocked", 144, 396, sleepTime)
-;adbClick_wbb(144, 396)
-
-;FindOrLoseImage(53, 280, 81, 306, , "unlockdisplayboard", 0, failSafeTime)
-;FindImageAndClick(53, 280, 81, 306, , "unlockdisplayboard", 137, 362, sleepTime)
-;adbClick_wbb(137, 362)
