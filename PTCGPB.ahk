@@ -2455,6 +2455,11 @@ StartBot:
     ; Force a complete refresh of all variables from the GUI
     Gui, Submit, NoHide
     SaveAllSettings()
+	
+	if(StrLen(A_ScriptDir) > 200 || InStr(A_ScriptDir, " ")) {
+		MsgBox, the path to the bot folder is too long or contain white spaces. move it to a shorter path without spaces
+		return
+	}
     
     ; Now build the confirmation message with the freshly updated variables
     confirmMsg := "Selected Method: " . deleteMethod . "`n`n"
