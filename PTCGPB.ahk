@@ -35,6 +35,7 @@ global SaveForTradeDivider_1, SaveForTradeDivider_2
 global Discord_Divider3
 global tesseractPath, applyRoleFilters, debugMode, statusMessage
 global tesseractOption
+global rowGap
 
 if not A_IsAdmin
 {
@@ -249,6 +250,7 @@ SaveAllSettings() {
     IniWrite, %Instances%, Settings.ini, UserSettings, Instances
     IniWrite, %instanceStartDelay%, Settings.ini, UserSettings, instanceStartDelay
     IniWrite, %defaultLanguage%, Settings.ini, UserSettings, defaultLanguage
+    IniWrite, %rowGap%, Settings.ini, UserSettings, rowGap
     IniWrite, %SelectedMonitorIndex%, Settings.ini, UserSettings, SelectedMonitorIndex
     IniWrite, %swipeSpeed%, Settings.ini, UserSettings, swipeSpeed
     IniWrite, %deleteMethod%, Settings.ini, UserSettings, deleteMethod
@@ -504,6 +506,7 @@ HideAllSections() {
     timeControls .= "slowMotion,TimeSettingsSeparator"
     systemControls := "SystemSettingsHeading,Txt_Monitor,SelectedMonitorIndex,Txt_Scale,defaultLanguage,"
     systemControls .= "Txt_FolderPath,folderPath,Txt_OcrLanguage,ocrLanguage,Txt_ClientLanguage,clientLanguage,"
+    systemControls .= "Txt_RowGap,rowGap,"
     systemControls .= "Txt_InstanceLaunchDelay,instanceLaunchDelay,autoLaunchMonitor,SystemSettingsSeparator"
     extraControls := "ExtraSettingsHeading,tesseractOption,Txt_TesseractPath,tesseractPath,"
     extraControls .= "applyRoleFilters,debugMode,statusMessage"
@@ -636,6 +639,7 @@ ShowSystemSettingsSection() {
 
     ; Define control lists
     mainControls := "SystemSettingsHeading,Txt_Monitor,SelectedMonitorIndex,Txt_Scale,defaultLanguage,"
+    mainControls .= "Txt_RowGap,rowGap,"
     mainControls .= "Txt_FolderPath,folderPath,Txt_OcrLanguage,ocrLanguage,Txt_ClientLanguage,clientLanguage,"
     mainControls .= "Txt_InstanceLaunchDelay,instanceLaunchDelay,autoLaunchMonitor,SystemSettingsSeparator"
 
@@ -652,10 +656,11 @@ ShowSystemSettingsSection() {
 
     ; Text controls
     textControls := "Txt_Monitor,Txt_Scale,Txt_FolderPath,Txt_OcrLanguage,Txt_ClientLanguage,"
-    textControls .= "Txt_InstanceLaunchDelay,autoLaunchMonitor"
+    textControls .= "Txt_InstanceLaunchDelay,Txt_RowGap,autoLaunchMonitor"
 
     ; Input controls
     inputControls := "folderPath,instanceLaunchDelay"
+    inputControls := "rowGap,folderPath,instanceLaunchDelay"
 
     ; Apply text styling
     ApplyTextColorToMultiple(textControls)
@@ -1139,6 +1144,7 @@ LoadSettingsFromIni() {
         IniRead, Instances, Settings.ini, UserSettings, Instances, 1
         IniRead, instanceStartDelay, Settings.ini, UserSettings, instanceStartDelay, 0
         IniRead, defaultLanguage, Settings.ini, UserSettings, defaultLanguage, Scale125
+        IniRead, rowGap, Settings.ini, UserSettings, rowGap, 100
         IniRead, SelectedMonitorIndex, Settings.ini, UserSettings, SelectedMonitorIndex, 1
         IniRead, swipeSpeed, Settings.ini, UserSettings, swipeSpeed, 300
         IniRead, deleteMethod, Settings.ini, UserSettings, deleteMethod, 3 Pack
@@ -1276,18 +1282,14 @@ CreateDefaultSettingsFile() {
     return false
 }
 
-; Function to handle window positioning with enhanced error handling
 resetWindows(Title, SelectedMonitorIndex, silent := true) {
-    global Columns, runMain, Mains, scaleParam, debugMode, defaultLanguage
+    global Columns, runMain, Mains, scaleParam, debugMode, rowGap
     RetryCount := 0
     MaxRetries := 10
     
-    ; Set an appropriate row gap based on the scale setting
-    if (defaultLanguage = "Scale125" || scaleParam = 277) {
-        rowGap := 75  ; Gap for 125% scale
-    } else {
-        rowGap := 60  ; Adjusted gap for 100% scale (slightly smaller)
-    }
+    ; Use the configurable rowGap with fallback default of 100
+    if (!rowGap)
+        rowGap := 100
     
     Loop
     {
@@ -1295,6 +1297,7 @@ resetWindows(Title, SelectedMonitorIndex, silent := true) {
             ; Get monitor origin from index
             SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
             SysGet, Monitor, Monitor, %SelectedMonitorIndex%
+            
             if (runMain) {
                 if (InStr(Title, "Main") = 1) {
                     instanceIndex := StrReplace(Title, "Main", "")
@@ -1306,11 +1309,12 @@ resetWindows(Title, SelectedMonitorIndex, silent := true) {
             } else {
                 instanceIndex := Title
             }
+
             rowHeight := 533  ; Adjust the height of each row
             currentRow := Floor((instanceIndex - 1) / Columns)
-            y := currentRow * rowHeight + (currentRow * rowGap)  ; Add row gap here
+            y := currentRow * rowHeight + (currentRow * rowGap)  ; Use the configurable gap
             x := Mod((instanceIndex - 1), Columns) * scaleParam
-            WinMove, %Title%, , % (MonitorLeft + x), % (MonitorTop + y), scaleParam, 533
+            WinMove, %Title%, , % (MonitorLeft + x), % (MonitorTop + y), scaleParam, 537
             break
         }
         catch {
@@ -1492,6 +1496,9 @@ if (defaultLanguage = "Scale125") {
 }
 
 Gui, Add, DropDownList, x285 y+-17 w95 vdefaultLanguage gdefaultLangSetting choose%defaultLang% Hidden, Scale125|Scale100
+
+Gui, Add, Text, x170 y+17 Hidden vTxt_RowGap, Row Gap:
+Gui, Add, Edit, vrowGap w55 x285 y+-17 h25 Center Hidden, %rowGap%
 
 Gui, Add, Text, x170 y+17 Hidden vTxt_FolderPath, Folder Path:
 Gui, Add, Edit, vfolderPath x285 y+-17 w180 h25 Hidden, %folderPath%
@@ -2451,6 +2458,7 @@ return
 StartBot:
     ; Force a complete refresh of all variables from the GUI
     Gui, Submit, NoHide
+    SaveAllSettings()
     
     ; Now build the confirmation message with the freshly updated variables
     confirmMsg := "Selected Method: " . deleteMethod . "`n`n"
@@ -2950,7 +2958,9 @@ DisplayPackStatus(Message, X := 0, Y := 625) {
         SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
         SysGet, Monitor, Monitor, %SelectedMonitorIndex%
         X := MonitorLeft + X
-        Y := MonitorTop + Y
+        
+        ;Adjust Y position to be just above buttons
+        Y := MonitorTop + 503  ; This is approximately where the buttons start - 30 (status height)
 
         ; Check if GUI already exists
         Gui %GuiName%:+LastFoundExist
