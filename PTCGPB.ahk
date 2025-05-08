@@ -1599,10 +1599,10 @@ else if (deleteMethod = "5 Pack (Fast)")
     defaultDelete := 4
 else if (deleteMethod = "13 Pack")
     defaultDelete := 5
-else if (deleteMethod = "Inject long")
+else if (deleteMethod = "Inject 10P")
     defaultDelete := 6
 
-Gui, Add, DropDownList, vdeleteMethod gdeleteSettings choose%defaultDelete% x230 y163 w120 Hidden, 5 Pack|3 Pack|Inject|5 Pack (Fast)|13 Pack|Inject long
+Gui, Add, DropDownList, vdeleteMethod gdeleteSettings choose%defaultDelete% x230 y163 w120 Hidden, 5 Pack|3 Pack|Inject|5 Pack (Fast)|13 Pack|Inject 10P
 
 ; Third row - Pack Method and Menu Delete
 Gui, Add, Checkbox, % (packMethod ? "Checked" : "") " vpackMethod x170 y195 Hidden", 1 Pack Method
@@ -2377,9 +2377,6 @@ BalanceXMLs:
 			instanceDir := saveDir . "\" . A_Index
 			if !FileExist(instanceDir) ; Check if the directory exists
 				FileCreateDir, %instanceDir% ; Create the directory if it doesn't exist
-			listfile := instanceDir . "\list.txt"
-			if FileExist(listfile) 
-				FileDelete, %listfile% ; delete list if it exists
         }
 
         ToolTip, Checking for Duplicate names, XTooltipPos, YTooltipPos
@@ -2462,13 +2459,10 @@ StartBot:
     ; Force a complete refresh of all variables from the GUI
     Gui, Submit, NoHide
     SaveAllSettings()
-	
-	if(StrLen(A_ScriptDir) > 200 || InStr(A_ScriptDir, " ")) {
-		MsgBox, the path to the bot folder is too long or contain white spaces. move it to a shorter path without spaces
-		return
-	}
     
     ; Now build the confirmation message with the freshly updated variables
+    confirmMsg .= "Row Gap: " . rowGap . " pixels`n"
+
     confirmMsg := "Selected Method: " . deleteMethod . "`n`n"
     confirmMsg .= "Selected Packs:`n"
     if (Solgaleo)
@@ -2547,6 +2541,8 @@ if (InvalidCheck) {
 
 if (!cardDetectionFound)
     confirmMsg .= "`nNone"
+
+    confirmMsg .= "`n`nRow Gap: " . rowGap . " pixels"
 
     confirmMsg .= "`n`nClick 'Yes' to START THE BOT with these settings.`nClick 'No' to CHANGE settings."
 
