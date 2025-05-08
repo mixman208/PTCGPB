@@ -346,6 +346,7 @@ if(DeadCheck = 1 && !injectMethod){
 		}
 
 		if(deleteMethod = "13 Pack" || (injectMethod && !loadedAccount) || (deleteMethod = "Inject 10P" && loadedAccount)) {
+					
 			;-----------------------------
 			;if error during mission collection, try commenting the first line and uncommenting the second
 			HomeAndMission()
@@ -366,12 +367,21 @@ if(DeadCheck = 1 && !injectMethod){
 			PackOpening() ;10
 			HourglassOpening(true) ;11
 
+			if(injectMethod && loadedAccount && deleteMethod = "Inject 10P" ){				
+				HomeAndMission()
+				;TODO click on complete all missions and open packs until not nough items
+				;TODO return all missions done and open packs until not enough items
+				SelectPack("HGPack")
+				PackOpening() ;12?
+			}
+			
 			HomeAndMission(1)
 			SelectPack("HGPack")
 			PackOpening() ;12
 			HomeAndMission(1)
 			SelectPack("HGPack")
 			PackOpening() ;13
+			
 		}
 
         if (nukeAccount && !keepAccount && !injectMethod) {
@@ -451,32 +461,61 @@ return
 
 HomeAndMission(homeonly := 0, completeSecondMisson=false) {
 	Sleep, 250
-	failSafe := A_TickCount
-	failSafeTime := 0
 	Leveled := 0
 	Loop {
-		if(!Leveled)
-			Leveled := LevelUp()
-		else
-			LevelUp()
-		FindImageAndClick(191, 393, 211, 411, , "Shop", 146, 470, 500, 1)
-		if(FindImageAndClick(120, 188, 140, 208, , "Album", 79, 86 , 500, 1)){
+		failSafe := A_TickCount
+		failSafeTime := 0
+		Loop {
+			if(!Leveled)
+				Leveled := LevelUp()
+			else
+				LevelUp()
+			FindImageAndClick(191, 393, 211, 411, , "Shop", 146, 470, 500, 1)
+			if(FindImageAndClick(120, 188, 140, 208, , "Album", 79, 86 , 500, 1)){
+				FindImageAndClick(191, 393, 211, 411, , "Shop", 142, 488, 500)
+				break
+			}
+			failSafeTime := (A_TickCount - failSafe) // 1000
+		}
+		if(!homeonly){
 			FindImageAndClick(191, 393, 211, 411, , "Shop", 142, 488, 500)
+			FindImageAndClick(180, 498, 190, 508, , "Mission_dino1", 261, 478, 1000)
+			
+			wonderpicked := 0
+			failSafe := A_TickCount
+			failSafeTime := 0
+			Loop {
+				Delay(1)
+				if (completeSecondMisson){
+					adbClick_wbb(150, 390)
+				}
+				else {
+					adbClick_wbb(150, 286)
+				}
+				Delay(1)
+				
+				if(FindOrLoseImage(136, 158, 156, 190, , "Mission_dino2", 0, failSafeTime))
+					break
+				
+				if(FindOrLoseImage(108, 180, 177, 208, , "1solobattlemission", 0, failSafeTime)) {
+					restartGameInstance("begginer missions done except solo battle")
+					;return missions done instead
+				}  
+				
+				if (FindOrLoseImage(150, 159, 176, 206, , "missionwonder", 0, failSafeTime)){
+					adbClick_wbb(141, 396) ; click try it and go to wonderpick page
+					DoWonderPickOnly()
+					wonderpicked := 1
+					break
+				}
+				
+				failSafeTime := (A_TickCount - failSafe) // 1000
+			}
+			if(!wonderpicked)
+				break
+			
+		} else 
 			break
-		}
-		failSafeTime := (A_TickCount - failSafe) // 1000
-	}
-	if(!homeonly){
-	FindImageAndClick(191, 393, 211, 411, , "Shop", 142, 488, 500)
-	FindImageAndClick(180, 498, 190, 508, , "Mission_dino1", 261, 478, 1000)
-	if (completeSecondMisson){
-		FindImageAndClick(136, 158, 156, 190, , "Mission_dino2", 150, 390, 1000)
-		}
-	else {
-		FindImageAndClick(136, 158, 156, 190, , "Mission_dino2", 150, 286, 1000)
-		}
-	if(FindOrLoseImage(108, 180, 177, 208, , "1solobattlemission", 0, failSafeTime)) {
-		restartGameInstance("begginer missions done except solo battle")
 	}
 
 	failSafe := A_TickCount
@@ -498,7 +537,6 @@ HomeAndMission(homeonly := 0, completeSecondMisson=false) {
 		failSafeTime := (A_TickCount - failSafe) // 1000
 		CreateStatusMessage("In failsafe for WonderPick. " . failSafeTime "/45 seconds")
 		LogToFile("In failsafe for WonderPick. " . failSafeTime "/45 seconds")
-	}
 	}
 	return Leveled
 }
@@ -1185,11 +1223,12 @@ FindImageAndClick(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT",
                 Delay(1)
             }
         }
-		if(imageName = "Skip2") {
+		if(imageName = "Skip2" || imageName = "Pack") {
 			Path = %imagePath%notenoughitems.png
             pNeedle := GetNeedle(Path)
             vRet := Gdip_ImageSearch_wbb(pBitmap, pNeedle, vPosXY, 92, 299, 115, 317, 0)
 			if(vRet = 1) {
+				;TODO return not enough items, instead of restart
 				restartGameInstance("Not Enough Items")
 			}
 		}
@@ -3497,9 +3536,8 @@ createAccountList(instance) {
     }
 }
 
-DoWonderPick() {
-    FindImageAndClick(191, 393, 211, 411, , "Shop", 40, 515) ;click until at main menu
-    FindImageAndClick(240, 80, 265, 100, , "WonderPick", 59, 429) ;click until in wonderpick Screen
+DoWonderPickOnly() {
+
     failSafe := A_TickCount
     failSafeTime := 0
     Loop {
@@ -3550,6 +3588,7 @@ DoWonderPick() {
         failSafeTime := (A_TickCount - failSafe) // 1000
         CreateStatusMessage("Waiting for Shop`n(" . failSafeTime . "/45 seconds)")
     }
+	
     failSafe := A_TickCount
     failSafeTime := 0
     Loop {
@@ -3563,6 +3602,14 @@ DoWonderPick() {
         failSafeTime := (A_TickCount - failSafe) // 1000
         CreateStatusMessage("Waiting for Shop`n(" . failSafeTime . "/45 seconds)")
     }
+}
+
+DoWonderPick() {
+    FindImageAndClick(191, 393, 211, 411, , "Shop", 40, 515) ;click until at main menu
+    FindImageAndClick(240, 80, 265, 100, , "WonderPick", 59, 429) ;click until in wonderpick Screen
+	
+	DoWonderPickOnly()
+	
     FindImageAndClick(2, 85, 34, 120, , "Missions", 261, 478, 500)
     ;FindImageAndClick(130, 170, 170, 205, , "WPMission", 150, 286, 1000)
     FindImageAndClick(120, 185, 150, 215, , "FirstMission", 150, 286, 1000)
