@@ -3812,7 +3812,7 @@ FindPackStats() {
         try {
             if(IsFunc("ocr")) {
                 ; Try different scale factors for better OCR accuracy
-                scaleFactors := [200, 300, 400, 500]
+           		 scaleFactors := (currentTry = 1) ? [300] : (currentTry = 2) ? [400] : [500]
                 
                 for index, scaleFactor in scaleFactors {
                     ; Use the entire screenshot for OCR
