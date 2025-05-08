@@ -3154,20 +3154,64 @@ DoTutorial() {
 
 SelectPack(HG := false) {
     global openPack, packArray
-    packy := 203 ;196
+	
+	; define constants
+	MiddlePackX := 140
+	RightPackX := 215
+	LeftPackX := 60
+	HomeScreenAllPackY := 203
+	
+	PackScreenAllPackY := 320
+	
+	SelectExpansionFirstRowY := 275
+	SelectExpansionSecondRowY := 410
+	
+	SelectExpansionRightCollumnMiddleX := 200
+	SelectExpansionLeftCollumnMiddleX := 73
+	3PackExpansionLeft := -40
+	3PackExpansionRight := 40
+	2PackExpansionLeft := -20
+	2PackExpansionRight := 20
+	
+	inselectexpansionscreen := 0
+	
+    packy := HomeScreenAllPackY
     if (openPack = "Solgaleo") {
-        packx := 140
+        packx := MiddlePackX
     } else if (openPack = "Lunala") {
-        packx := 215
+        packx := RightPackX
     } else {
-        packx := 60
+        packx := LeftPackX
     }
+	
+	if(openPack = "Solgaleo" || openPack = "Lunala" || openPack = "Shining") {
+		PackIsInHomeScreen := 1
+	} else {
+		PackIsInHomeScreen := 0
+	}
+	
+	if(openPack = "Solgaleo" || openPack = "Lunala") {
+		PackIsLatest := 1
+	} else {
+		PackIsLatest := 0
+	}
+		
+	if (openPack = "Solgaleo" || openPack = "Lunala" || openPack = "Shining" || openPack = "Arceus" || openPack = "Dialga" || openPack = "Palkia") {
+		packInTopRowsOfSelectExpansion := 1
+	} else {
+		packInTopRowsOfSelectExpansion := 0
+	}
+	
+	
 
-	if(HG = "First"){
+	if(HG = "First" && injectMethod && loadedAccount ){
+		; when First and injection, if there are free packs, we don't land/start in home screen, 
+		; and we have also to search for closed during pack, hourglass, etc.
+		
 		failSafe := A_TickCount
 		failSafeTime := 0
 		Loop {
-			adbClick_wbb(packx, packy)
+			adbClick_wbb(MiddlePackX, HomeScreenAllPackY) ; click until points appear (if free packs, will land in pack scree, if no free packs, this will select the middle pack and go to same screen as if there were free packs)
 			Delay(1)
 			if(FindOrLoseImage(233, 400, 264, 428, , "Points", 0, failSafeTime)) {
 				break
@@ -3197,36 +3241,70 @@ SelectPack(HG := false) {
 			failSafeTime := (A_TickCount - failSafe) // 1000
 			CreateStatusMessage("Waiting for Points`n(" . failSafeTime . "/90 seconds)")
 		}
+		
+		if(!friendIDs && friend = "") {
+			; if we don't need to add any friends we can select directly the latest packs, or go directly to select other booster screen, 
+				
+			if(PackIsLatest) {   ; if selected pack is the latest pack select directly from the pack select screen
+				packy := PackScreenAllPackY ; Y coordinate is lower when in pack select screen then in home screen
+				;Loop {
+					Delay(10)
+					adbClick_wbb(packx, packy) ; click until points disappear (open pack screen)
+					Delay(10)
+					;if(!FindOrLoseImage(233, 400, 264, 428, , "Points", 0, failSafeTime)) {
+					;	break
+					;}
+					;failSafeTime := (A_TickCount - failSafe) // 1000
+					;CreateStatusMessage("Waiting for Points`n(" . failSafeTime . "/90 seconds)")
+				;}
+			} else {
+				FindImageAndClick(115, 140, 160, 155, , "SelectExpansion", 248, 459, 3000) ; if selected pack is not the latest pack click directly select other boosters
+				
+				if(PackIsInHomeScreen) {
+					; the only one that is not handled below because should show in home page
+					inselectexpansionscreen := 1
+				}
+			} 
+		}
 	} else {
-		FindImageAndClick(233, 400, 264, 428, , "Points", packx, packy)
+		; if not first or not injected, or friends were added, always start from home page
+		FindImageAndClick(233, 400, 264, 428, , "Points", packx, packy, 3000)  ; open selected pack from home page
 	}
 
-    if (openPack = "Mewtwo" || openPack = "Charizard" || openPack = "Pikachu" || openPack = "Mew" || openPack = "Dialga" || openPack = "Palkia" || openPack = "Arceus") {
-        FindImageAndClick(115, 140, 160, 155, , "SelectExpansion", 245, 475)
-
-        if (openPack = "Mewtwo" || openPack = "Charizard" || openPack = "Pikachu" || openPack = "Mew") {
+	; if not the ones showing in home screen, click select other booster packs
+    if (!PackIsInHomeScreen && !inselectexpansionscreen) {
+        FindImageAndClick(115, 140, 160, 155, , "SelectExpansion", 248, 459, 3000)
+		inselectexpansionscreen := 1
+	}
+	
+	if(inselectexpansionscreen) {
+        if (!packInTopRowsOfSelectExpansion) {
             ; Swipe down
             adbSwipe("266 770 266 355 160")
             Sleep, 500
 
-            packy := 470
+            packy := 470 ; after swiping use this Y coordinate
+			
             if (openPack = "Charizard") {
-                packx := 160
+                packx := SelectExpansionRightCollumnMiddleX + 3PackExpansionLeft
             } else if (openPack = "Mewtwo") {
-                packx := 200
+                packx := SelectExpansionRightCollumnMiddleX
             } else if (openPack = "Pikachu") {
-                packx := 243
+                packx := SelectExpansionRightCollumnMiddleX + 3PackExpansionRight
             } else if (openPack = "Mew") {
-                packx := 73
+                packx := SelectExpansionLeftCollumnMiddleX
             }
         } else {
-            packy := 410
-            if (openPack = "Arceus") {
-                packx := 73
+            packy := SelectExpansionSecondRowY
+            if (openPack = "Shining") {
+				packy := SelectExpansionFirstRowY
+                packx := SelectExpansionRightCollumnMiddleX 
+            } else if (openPack = "Arceus") {
+                packx := SelectExpansionLeftCollumnMiddleX
             } else if (openPack = "Dialga") {
-                packx := 183
+                packx := SelectExpansionRightCollumnMiddleX + 2PackExpansionLeft
             } else if (openPack = "Palkia") {
-                packx := 222
+                packx := SelectExpansionRightCollumnMiddleX + 2PackExpansionRight
             }
         }
 
@@ -3263,7 +3341,7 @@ SelectPack(HG := false) {
         failSafe := A_TickCount
         failSafeTime := 0
         Loop {
-            if(FindImageAndClick(233, 486, 272, 519, , "Skip2", 172, 430, , 2)) { ;click on next until skip button appears
+            if(FindImageAndClick(233, 486, 272, 519, , "Skip2", 172, 430, , 2)) { ;click on open button until skip button appears
                 break
 			} else if(FindOrLoseImage(92, 299, 115, 317, , "notenoughitems", 0)) {
 				restartGameInstance("Not Enough Items")
