@@ -345,7 +345,7 @@ if(DeadCheck = 1 && !injectMethod){
             }
 		}
 
-		if(deleteMethod = "13 Pack" || (injectMethod && !loadedAccount) || (deleteMethod = "Inject 10P" && loadedAccount)) {
+		if(deleteMethod = "13 Pack" || (injectMethod && !loadedAccount) || (deleteMethod = "Inject long" && loadedAccount)) {
 					
 			;-----------------------------
 			;if error during mission collection, try commenting the first line and uncommenting the second
@@ -367,7 +367,7 @@ if(DeadCheck = 1 && !injectMethod){
 			PackOpening() ;10
 			HourglassOpening(true) ;11
 
-			if(injectMethod && loadedAccount && deleteMethod = "Inject 10P" ){				
+			if(injectMethod && loadedAccount && deleteMethod = "Inject long" ){				
 				HomeAndMission()
 				;TODO click on complete all missions and open packs until not nough items
 				;TODO return all missions done and open packs until not enough items
@@ -393,7 +393,7 @@ if(DeadCheck = 1 && !injectMethod){
         }
 
         if (loadedAccount){
-			if(deleteMethod = "Inject 10P")
+			if(deleteMethod = "Inject long")
 				packs := 10
 			else
 				packs := 2
@@ -3873,3 +3873,15 @@ RegExEscape(str) {
 }
 
 
+;FindOrLoseImage(150, 159, 176, 206, , "missionwonder", 0, failSafeTime)
+;FindImageAndClick(150, 159, 176, 206, , "missionwonder", 141, 396, sleepTime)
+;adbClick_wbb(141, 396)
+
+;levelUp()
+;FindOrLoseImage(118, 167, 167, 203, , "unlocked", 0, failSafeTime)
+;FindImageAndClick(118, 167, 167, 203, , "unlocked", 144, 396, sleepTime)
+;adbClick_wbb(144, 396)
+
+;FindOrLoseImage(53, 280, 81, 306, , "unlockdisplayboard", 0, failSafeTime)
+;FindImageAndClick(53, 280, 81, 306, , "unlockdisplayboard", 137, 362, sleepTime)
+;adbClick_wbb(137, 362)

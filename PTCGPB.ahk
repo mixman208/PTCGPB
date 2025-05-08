@@ -1592,10 +1592,10 @@ else if (deleteMethod = "5 Pack (Fast)")
     defaultDelete := 4
 else if (deleteMethod = "13 Pack")
     defaultDelete := 5
-else if (deleteMethod = "Inject 10P")
+else if (deleteMethod = "Inject long")
     defaultDelete := 6
 
-Gui, Add, DropDownList, vdeleteMethod gdeleteSettings choose%defaultDelete% x230 y163 w120 Hidden, 5 Pack|3 Pack|Inject|5 Pack (Fast)|13 Pack|Inject 10P
+Gui, Add, DropDownList, vdeleteMethod gdeleteSettings choose%defaultDelete% x230 y163 w120 Hidden, 5 Pack|3 Pack|Inject|5 Pack (Fast)|13 Pack|Inject long
 
 ; Third row - Pack Method and Menu Delete
 Gui, Add, Checkbox, % (packMethod ? "Checked" : "") " vpackMethod x170 y195 Hidden", 1 Pack Method
