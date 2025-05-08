@@ -2370,6 +2370,9 @@ BalanceXMLs:
 			instanceDir := saveDir . "\" . A_Index
 			if !FileExist(instanceDir) ; Check if the directory exists
 				FileCreateDir, %instanceDir% ; Create the directory if it doesn't exist
+			listfile := instanceDir . "\list.txt"
+			if FileExist(listfile) 
+				FileDelete, %listfile% ; delete list if it exists
         }
 
         ToolTip, Checking for Duplicate names, XTooltipPos, YTooltipPos
