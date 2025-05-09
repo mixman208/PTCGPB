@@ -2260,6 +2260,7 @@ ArrangeWindows:
     GuiControlGet, Columns,, Columns
     GuiControlGet, SelectedMonitorIndex,, SelectedMonitorIndex
     GuiControlGet, defaultLanguage,, defaultLanguage
+    GuiControlGet, rowGap,, rowGap
 
     ; Re-validate scaleParam based on current language
     if (defaultLanguage = "Scale125") {
@@ -2274,9 +2275,25 @@ ArrangeWindows:
         Loop %Mains% {
             mainInstanceName := "Main" . (A_Index > 1 ? A_Index : "")
             if (WinExist(mainInstanceName)) {
-                resetWindows(mainInstanceName, SelectedMonitorIndex, false)
+                WinActivate, %mainInstanceName%
+                WinGetPos, curX, curY, curW, curH, %mainInstanceName%
+                
+                ; Calculate position
+                SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
+                SysGet, Monitor, Monitor, %SelectedMonitorIndex%
+                
+                instanceIndex := A_Index
+                rowHeight := 533
+                currentRow := Floor((instanceIndex - 1) / Columns)
+                y := MonitorTop + (currentRow * rowHeight) + (currentRow * rowGap)
+                x := MonitorLeft + (Mod((instanceIndex - 1), Columns) * scaleParam)
+                
+                ; Move window
+                WinMove, %mainInstanceName%,, %x%, %y%, %scaleParam%, 537
+                WinSet, Redraw, , %mainInstanceName%
+                
                 windowsPositioned++
-                sleep, 10
+                sleep, 100
             }
         }
     }
@@ -2284,9 +2301,30 @@ ArrangeWindows:
     if (Instances > 0) {
         Loop %Instances% {
             if (WinExist(A_Index)) {
-                resetWindows(A_Index, SelectedMonitorIndex, false)
+                WinActivate, %A_Index%
+                WinGetPos, curX, curY, curW, curH, %A_Index%
+                
+                ; Calculate position
+                SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
+                SysGet, Monitor, Monitor, %SelectedMonitorIndex%
+                
+                if (runMain) {
+                    instanceIndex := (Mains - 1) + A_Index + 1
+                } else {
+                    instanceIndex := A_Index
+                }
+                
+                rowHeight := 533
+                currentRow := Floor((instanceIndex - 1) / Columns)
+                y := MonitorTop + (currentRow * rowHeight) + (currentRow * rowGap)
+                x := MonitorLeft + (Mod((instanceIndex - 1), Columns) * scaleParam)
+                
+                ; Move window
+                WinMove, %A_Index%,, %x%, %y%, %scaleParam%, 537
+                WinSet, Redraw, , %A_Index%
+                
                 windowsPositioned++
-                sleep, 10
+                sleep, 100
             }
         }
     }
