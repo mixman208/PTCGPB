@@ -3854,6 +3854,10 @@ FindPackStats() {
         }
     }
 
+    if (fcScreenshot.bitmap) {
+        Gdip_DisposeImage(fcScreenshot.bitmap)
+	}
+
 	if (fcScreenshot.deleteAfterUse && FileExist(fcScreenshot.filepath))
 		FileDelete, % fcScreenshot.filepath
 
