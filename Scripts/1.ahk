@@ -51,6 +51,7 @@ IniRead, Columns, %A_ScriptDir%\..\Settings.ini, UserSettings, Columns, 5
 IniRead, godPack, %A_ScriptDir%\..\Settings.ini, UserSettings, godPack, Continue
 IniRead, Instances, %A_ScriptDir%\..\Settings.ini, UserSettings, Instances, 1
 IniRead, defaultLanguage, %A_ScriptDir%\..\Settings.ini, UserSettings, defaultLanguage, Scale125
+IniRead, rowGap, %A_ScriptDir%\..\Settings.ini, UserSettings, rowGap, 100
 IniRead, SelectedMonitorIndex, %A_ScriptDir%\..\Settings.ini, UserSettings, SelectedMonitorIndex, 1
 IniRead, swipeSpeed, %A_ScriptDir%\..\Settings.ini, UserSettings, swipeSpeed, 300
 IniRead, deleteMethod, %A_ScriptDir%\..\Settings.ini, UserSettings, deleteMethod, 3 Pack
@@ -124,16 +125,23 @@ changeDate := getChangeDateTime() ; get server reset time
 if(heartBeat)
     IniWrite, 1, %A_ScriptDir%\..\HeartBeat.ini, HeartBeat, Instance%scriptName%
 
-; connect adb
-Sleep, % scriptName * 1000
-; Attempt to connect to ADB
-ConnectAdb(folderPath)
+; Set default rowGap if not defined
+if (!rowGap)
+    rowGap := 100
 
+Sleep, % scriptName * 1000
+
+; Validate scaleParam early
 if (InStr(defaultLanguage, "100")) {
     scaleParam := 287
 } else {
     scaleParam := 277
 }
+
+DirectlyPositionWindow()
+Sleep, 1000
+
+ConnectAdb(folderPath)
 
 resetWindows()
 MaxRetries := 10
@@ -1284,44 +1292,48 @@ LevelUp() {
 
 resetWindows() {
     global Columns, winTitle, SelectedMonitorIndex, scaleParam, defaultLanguage, rowGap
-    CreateStatusMessage("Arranging window positions and sizes",,,, false)
-    RetryCount := 0
-    MaxRetries := 10
     
-    ; Use the configurable rowGap with fallback default of 100
+    ; Simply call our direct positioning function
+    DirectlyPositionWindow()
+    
+    return true
+}
+
+DirectlyPositionWindow() {
+    global Columns, runMain, Mains, scaleParam, winTitle, SelectedMonitorIndex, rowGap
+    
+    ; Make sure rowGap is defined
     if (!rowGap)
         rowGap := 100
+        
+    ; Get monitor information
+    SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
+    SysGet, Monitor, Monitor, %SelectedMonitorIndex%
     
-    Loop
-    {
-        try {
-            ; Get monitor origin from index
-            SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
-            SysGet, Monitor, Monitor, %SelectedMonitorIndex%
-            Title := winTitle
-
-            if (runMain) {
-                instanceIndex := (Mains - 1) + Title + 1
-            } else {
-                instanceIndex := Title
-            }
-
-            rowHeight := 533  ; Adjust the height of each row
-            currentRow := Floor((instanceIndex - 1) / Columns)
-            y := currentRow * rowHeight + (currentRow * rowGap)  ; Use the configurable gap
-            x := Mod((instanceIndex - 1), Columns) * scaleParam
-            WinMove, %Title%, , % (MonitorLeft + x), % (MonitorTop + y), scaleParam, 537
-            break
-        }
-        catch {
-            if (RetryCount > MaxRetries) {
-                CreateStatusMessage("Pausing. Can't find window " . winTitle . ".",,,, false)
-                Pause
-            }
-            RetryCount++
-        }
-        Sleep, 1000
+    ; Calculate position based on instance number
+    Title := winTitle
+    
+    if (runMain) {
+        instanceIndex := (Mains - 1) + Title + 1
+    } else {
+        instanceIndex := Title
     }
+    
+    rowHeight := 533
+    currentRow := Floor((instanceIndex - 1) / Columns)
+    
+    ; Calculate absolute coordinates with MonitorTop/Left
+    y := MonitorTop + (currentRow * rowHeight) + (currentRow * rowGap)
+    x := MonitorLeft + (Mod((instanceIndex - 1), Columns) * scaleParam)
+    
+    ; Position window directly without any additional checks
+    WinSet, Style, -0xC00000, %Title% ; Remove title bar temporarily
+    WinMove, %Title%, , %x%, %y%, %scaleParam%, 537
+    WinSet, Style, +0xC00000, %Title% ; Restore title bar
+    WinSet, Redraw, , %Title% ; Force redraw
+    
+    CreateStatusMessage("Positioned window at x:" . x . " y:" . y,,,, false)
+    
     return true
 }
 
@@ -3151,64 +3163,20 @@ DoTutorial() {
 
 SelectPack(HG := false) {
     global openPack, packArray
-	
-	; define constants
-	MiddlePackX := 140
-	RightPackX := 215
-	LeftPackX := 60
-	HomeScreenAllPackY := 203
-	
-	PackScreenAllPackY := 320
-	
-	SelectExpansionFirstRowY := 275
-	SelectExpansionSecondRowY := 410
-	
-	SelectExpansionRightCollumnMiddleX := 200
-	SelectExpansionLeftCollumnMiddleX := 73
-	3PackExpansionLeft := -40
-	3PackExpansionRight := 40
-	2PackExpansionLeft := -20
-	2PackExpansionRight := 20
-	
-	inselectexpansionscreen := 0
-	
-    packy := HomeScreenAllPackY
+    packy := 203 ;196
     if (openPack = "Solgaleo") {
-        packx := MiddlePackX
+        packx := 140
     } else if (openPack = "Lunala") {
-        packx := RightPackX
+        packx := 215
     } else {
-        packx := LeftPackX
+        packx := 60
     }
-	
-	if(openPack = "Solgaleo" || openPack = "Lunala" || openPack = "Shining") {
-		PackIsInHomeScreen := 1
-	} else {
-		PackIsInHomeScreen := 0
-	}
-	
-	if(openPack = "Solgaleo" || openPack = "Lunala") {
-		PackIsLatest := 1
-	} else {
-		PackIsLatest := 0
-	}
-		
-	if (openPack = "Solgaleo" || openPack = "Lunala" || openPack = "Shining" || openPack = "Arceus" || openPack = "Dialga" || openPack = "Palkia") {
-		packInTopRowsOfSelectExpansion := 1
-	} else {
-		packInTopRowsOfSelectExpansion := 0
-	}
-	
-	
 
-	if(HG = "First" && injectMethod && loadedAccount ){
-		; when First and injection, if there are free packs, we don't land/start in home screen, 
-		; and we have also to search for closed during pack, hourglass, etc.
-		
+	if(HG = "First"){
 		failSafe := A_TickCount
 		failSafeTime := 0
 		Loop {
-			adbClick_wbb(MiddlePackX, HomeScreenAllPackY) ; click until points appear (if free packs, will land in pack scree, if no free packs, this will select the middle pack and go to same screen as if there were free packs)
+			adbClick_wbb(packx, packy)
 			Delay(1)
 			if(FindOrLoseImage(233, 400, 264, 428, , "Points", 0, failSafeTime)) {
 				break
@@ -3238,79 +3206,36 @@ SelectPack(HG := false) {
 			failSafeTime := (A_TickCount - failSafe) // 1000
 			CreateStatusMessage("Waiting for Points`n(" . failSafeTime . "/90 seconds)")
 		}
-		
-		if(!friendIDs && friend = "") {
-			; if we don't need to add any friends we can select directly the latest packs, or go directly to select other booster screen, 
-				
-			if(PackIsLatest) {   ; if selected pack is the latest pack select directly from the pack select screen
-				packy := PackScreenAllPackY ; Y coordinate is lower when in pack select screen then in home screen
-				;Loop {
-					Delay(10)
-					adbClick_wbb(packx, packy) ; click until points disappear (open pack screen)
-					Delay(10)
-					;if(!FindOrLoseImage(233, 400, 264, 428, , "Points", 0, failSafeTime)) {
-					;	break
-					;}
-					;failSafeTime := (A_TickCount - failSafe) // 1000
-					;CreateStatusMessage("Waiting for Points`n(" . failSafeTime . "/90 seconds)")
-				;}
-			} else {
-				FindImageAndClick(115, 140, 160, 155, , "SelectExpansion", 248, 459, 3000) ; if selected pack is not the latest pack click directly select other boosters
-				
-				if(PackIsInHomeScreen) {
-					; the only one that is not handled below because should show in home page
-					inselectexpansionscreen := 1
-				}
-			} 
-		}
 	} else {
-		; if not first or not injected, or friends were added, always start from home page
-		FindImageAndClick(233, 400, 264, 428, , "Points", packx, packy, 3000)  ; open selected pack from home page
+		FindImageAndClick(233, 400, 264, 428, , "Points", packx, packy)
 	}
 
-	; if not the ones showing in home screen, click select other booster packs
-    if (!PackIsInHomeScreen && !inselectexpansionscreen) {
-        FindImageAndClick(115, 140, 160, 155, , "SelectExpansion", 248, 459, 3000)
-		inselectexpansionscreen := 1
-	}
-	
-	if(inselectexpansionscreen) {
-        if (!packInTopRowsOfSelectExpansion) {
+    if (openPack = "Mewtwo" || openPack = "Charizard" || openPack = "Pikachu" || openPack = "Mew" || openPack = "Dialga" || openPack = "Palkia" || openPack = "Arceus") {
+        FindImageAndClick(115, 140, 160, 155, , "SelectExpansion", 245, 475)
+
+        if (openPack = "Mewtwo" || openPack = "Charizard" || openPack = "Pikachu" || openPack = "Mew") {
             ; Swipe down
             adbSwipe("266 770 266 355 160")
             Sleep, 500
 
-            packy := 470 ; after swiping use this Y coordinate
-			
-			if (openPack = "Mew") {
-                packx := SelectExpansionLeftCollumnMiddleX
-            } else if (openPack = "Charizard") {
-                packx := SelectExpansionRightCollumnMiddleX + 3PackExpansionLeft
+            packy := 470
+            if (openPack = "Charizard") {
+                packx := 160
             } else if (openPack = "Mewtwo") {
-                packx := SelectExpansionRightCollumnMiddleX
+                packx := 200
             } else if (openPack = "Pikachu") {
-                packx := SelectExpansionRightCollumnMiddleX + 3PackExpansionRight
-            
+                packx := 243
+            } else if (openPack = "Mew") {
+                packx := 73
             }
         } else {
-            if (openPack = "Solgaleo") {
-				packy := SelectExpansionFirstRowY
-                packx := SelectExpansionLeftCollumnMiddleX + 2PackExpansionLeft
-            } else if (openPack = "Lunala") {
-				packy := SelectExpansionFirstRowY
-                packx := SelectExpansionLeftCollumnMiddleX + 2PackExpansionRight
-            } else if (openPack = "Shining") {
-				packy := SelectExpansionFirstRowY
-                packx := SelectExpansionRightCollumnMiddleX 
-            } else if (openPack = "Arceus") {
-				packy := SelectExpansionSecondRowY
-                packx := SelectExpansionLeftCollumnMiddleX
+            packy := 410
+            if (openPack = "Arceus") {
+                packx := 73
             } else if (openPack = "Dialga") {
-				packy := SelectExpansionSecondRowY
-                packx := SelectExpansionRightCollumnMiddleX + 2PackExpansionLeft
+                packx := 183
             } else if (openPack = "Palkia") {
-				packy := SelectExpansionSecondRowY
-                packx := SelectExpansionRightCollumnMiddleX + 2PackExpansionRight
+                packx := 222
             }
         }
 
@@ -3347,7 +3272,7 @@ SelectPack(HG := false) {
         failSafe := A_TickCount
         failSafeTime := 0
         Loop {
-            if(FindImageAndClick(233, 486, 272, 519, , "Skip2", 172, 430, , 2)) { ;click on open button until skip button appears
+            if(FindImageAndClick(233, 486, 272, 519, , "Skip2", 172, 430, , 2)) { ;click on next until skip button appears
                 break
 			} else if(FindOrLoseImage(92, 299, 115, 317, , "notenoughitems", 0)) {
 				restartGameInstance("Not Enough Items")
@@ -3926,3 +3851,16 @@ RegExEscape(str) {
     return RegExReplace(str, "([-[\]{}()*+?.,\^$|#\s])", "\$1")
 }
 
+
+;FindOrLoseImage(150, 159, 176, 206, , "missionwonder", 0, failSafeTime)
+;FindImageAndClick(150, 159, 176, 206, , "missionwonder", 141, 396, sleepTime)
+;adbClick_wbb(141, 396)
+
+;levelUp()
+;FindOrLoseImage(118, 167, 167, 203, , "unlocked", 0, failSafeTime)
+;FindImageAndClick(118, 167, 167, 203, , "unlocked", 144, 396, sleepTime)
+;adbClick_wbb(144, 396)
+
+;FindOrLoseImage(53, 280, 81, 306, , "unlockdisplayboard", 0, failSafeTime)
+;FindImageAndClick(53, 280, 81, 306, , "unlockdisplayboard", 137, 362, sleepTime)
+;adbClick_wbb(137, 362)
