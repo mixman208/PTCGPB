@@ -1283,17 +1283,14 @@ LevelUp() {
 }
 
 resetWindows() {
-    global Columns, winTitle, SelectedMonitorIndex, scaleParam, defaultLanguage
+    global Columns, winTitle, SelectedMonitorIndex, scaleParam, defaultLanguage, rowGap
     CreateStatusMessage("Arranging window positions and sizes",,,, false)
     RetryCount := 0
     MaxRetries := 10
     
-    ; Set an appropriate row gap based on the scale setting
-    if (defaultLanguage = "Scale125" || scaleParam = 277) {
-        rowGap := 75  ; Gap for 125% scale
-    } else {
-        rowGap := 60  ; Adjusted gap for 100% scale (slightly smaller)
-    }
+    ; Use the configurable rowGap with fallback default of 100
+    if (!rowGap)
+        rowGap := 100
     
     Loop
     {
@@ -1311,7 +1308,7 @@ resetWindows() {
 
             rowHeight := 533  ; Adjust the height of each row
             currentRow := Floor((instanceIndex - 1) / Columns)
-            y := currentRow * rowHeight + (currentRow * rowGap)  ; Add row gap here
+            y := currentRow * rowHeight + (currentRow * rowGap)  ; Use the configurable gap
             x := Mod((instanceIndex - 1), Columns) * scaleParam
             WinMove, %Title%, , % (MonitorLeft + x), % (MonitorTop + y), scaleParam, 537
             break
@@ -3285,25 +3282,34 @@ SelectPack(HG := false) {
 
             packy := 470 ; after swiping use this Y coordinate
 			
-            if (openPack = "Charizard") {
+			if (openPack = "Mew") {
+                packx := SelectExpansionLeftCollumnMiddleX
+            } else if (openPack = "Charizard") {
                 packx := SelectExpansionRightCollumnMiddleX + 3PackExpansionLeft
             } else if (openPack = "Mewtwo") {
                 packx := SelectExpansionRightCollumnMiddleX
             } else if (openPack = "Pikachu") {
                 packx := SelectExpansionRightCollumnMiddleX + 3PackExpansionRight
-            } else if (openPack = "Mew") {
-                packx := SelectExpansionLeftCollumnMiddleX
+            
             }
         } else {
-            packy := SelectExpansionSecondRowY
-            if (openPack = "Shining") {
+            if (openPack = "Solgaleo") {
+				packy := SelectExpansionFirstRowY
+                packx := SelectExpansionLeftCollumnMiddleX + 2PackExpansionLeft
+            } else if (openPack = "Lunala") {
+				packy := SelectExpansionFirstRowY
+                packx := SelectExpansionLeftCollumnMiddleX + 2PackExpansionRight
+            } else if (openPack = "Shining") {
 				packy := SelectExpansionFirstRowY
                 packx := SelectExpansionRightCollumnMiddleX 
             } else if (openPack = "Arceus") {
+				packy := SelectExpansionSecondRowY
                 packx := SelectExpansionLeftCollumnMiddleX
             } else if (openPack = "Dialga") {
+				packy := SelectExpansionSecondRowY
                 packx := SelectExpansionRightCollumnMiddleX + 2PackExpansionLeft
             } else if (openPack = "Palkia") {
+				packy := SelectExpansionSecondRowY
                 packx := SelectExpansionRightCollumnMiddleX + 2PackExpansionRight
             }
         }
@@ -3920,16 +3926,3 @@ RegExEscape(str) {
     return RegExReplace(str, "([-[\]{}()*+?.,\^$|#\s])", "\$1")
 }
 
-
-;FindOrLoseImage(150, 159, 176, 206, , "missionwonder", 0, failSafeTime)
-;FindImageAndClick(150, 159, 176, 206, , "missionwonder", 141, 396, sleepTime)
-;adbClick_wbb(141, 396)
-
-;levelUp()
-;FindOrLoseImage(118, 167, 167, 203, , "unlocked", 0, failSafeTime)
-;FindImageAndClick(118, 167, 167, 203, , "unlocked", 144, 396, sleepTime)
-;adbClick_wbb(144, 396)
-
-;FindOrLoseImage(53, 280, 81, 306, , "unlockdisplayboard", 0, failSafeTime)
-;FindImageAndClick(53, 280, 81, 306, , "unlockdisplayboard", 137, 362, sleepTime)
-;adbClick_wbb(137, 362)
