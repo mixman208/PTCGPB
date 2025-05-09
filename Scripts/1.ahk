@@ -3803,36 +3803,19 @@ FindPackStats() {
     Sleep, 1000
     fcScreenshot := Screenshot("PACKSTATS")
     
-    debugInfo := ""
     packValue := 0
-    maxRetries := 3
-    currentTry := 1
+	ocrText := ""
     
-    while (currentTry <= maxRetries) {
-        try {
-            if(IsFunc("ocr")) {
-                ; Try different scale factors for better OCR accuracy
-           		 scaleFactors := (currentTry = 1) ? [300] : (currentTry = 2) ? [400] : [500]
-                
-                for index, scaleFactor in scaleFactors {
-                    ; Use the entire screenshot for OCR
-                    pBitmap := CropAndFormatForOcr(fcScreenshot.filepath, 0, 0, 277, 537, scaleFactor)
-                    
-                    ; Extract text using OCR with allowed characters
-                    ocrText := GetTextFromBitmap(pBitmap, "0123456789")
-                    
-                    ; Clean up bitmap
-                    Gdip_DisposeImage(pBitmap)
-                    
-                    ; Look for numbers that are likely to be card counts (greater than 15)
-                    foundNumbers := []
-                    pos := 1
-                    while pos := RegExMatch(ocrText, "O)(\d{2,3})", match, pos) {
-                        number := match.1
-                        if (number >= 15)  ; Only consider numbers that could be realistic card counts
-                            foundNumbers.Push(number)
-                        pos += match.len
-                    }
+    if(ParseCardCount(fcScreenshot.filepath, 0, 0, 277, 537, "0123456789", "(\d{2,3})", ocrText)) {
+        ; OCR Card Count look for 15+ cards, but less than 100 packs calculated
+        foundNumbers := []
+        pos := 1
+        while pos := RegExMatch(ocrText, "O)(\d{2,3})", match, pos) {
+            number := match.1
+            if (number >= 15)  ; Only consider numbers that could be realistic card counts
+                foundNumbers.Push(number)
+            pos += match.len
+        }
 
                     ; Find valid numbers
                     if (foundNumbers.Length() > 0) {
@@ -3844,30 +3827,13 @@ FindPackStats() {
                         }
 
                         ; Calculate pack count
-                        packValue := Floor(maxNumber / 5)
-                        if (packValue > 100) {
-                            ; If pack count is too high, get a new screenshot and retry
-                            if (fcScreenshot.deleteAfterUse && FileExist(fcScreenshot.filepath))
-                                FileDelete, % fcScreenshot.filepath
-                            Sleep, 1000  ; Wait a bit before new screenshot
-                            fcScreenshot := Screenshot("PACKSTATS")
-                            break  ; Break inner loop to try new screenshot with all scale factors
-                        }
-                        if (packValue > 0)  ; If we got a valid value under 100, break out
-                            break 2
-                    }
-                }
-            } else {
-                break
-            }
-        } catch e {
-            LogToFile("Failed OCR attempt " . currentTry . ": " . e.message, "BC.txt")
-        }
-        
-        currentTry++
-        if (currentTry <= maxRetries)
-            Sleep, 1000
-    }
+					packValue := Floor(maxNumber / 5)
+					if (packValue > 100) {
+						; Invalid pack count, reset to 0
+						packValue := 0
+					}
+				}
+			}
 
     ; Update XML filename if needed
     if (loadDir && FileExist(loadDir) && packValue) {
@@ -3898,9 +3864,9 @@ FindPackStats() {
 }
 
 ; Attempts to extract and validate text from a specified region of a screenshot using OCR.
-ParseFriendInfoLoop(screenshotFile, x, y, w, h, allowedChars, validPattern, ByRef output) {
+ParseCardCount(screenshotFile, x, y, w, h, allowedChars, validPattern, ByRef output) {
     success := False
-    blowUp := [200, 500, 1000, 2000, 100, 250, 300, 350, 400, 450, 550, 600, 700, 800, 900]
+    blowUp := [500, 1000, 2000, 100, 200, 250, 300, 350, 400, 450, 550, 600, 700, 800, 900]
     Loop, % blowUp.Length() {
         ; Get the formatted pBitmap
         pBitmap := CropAndFormatForOcr(screenshotFile, x, y, w, h, blowUp[A_Index])
