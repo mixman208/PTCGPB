@@ -125,16 +125,23 @@ changeDate := getChangeDateTime() ; get server reset time
 if(heartBeat)
     IniWrite, 1, %A_ScriptDir%\..\HeartBeat.ini, HeartBeat, Instance%scriptName%
 
-; connect adb
-Sleep, % scriptName * 1000
-; Attempt to connect to ADB
-ConnectAdb(folderPath)
+; Set default rowGap if not defined
+if (!rowGap)
+    rowGap := 100
 
+Sleep, % scriptName * 1000
+
+; Validate scaleParam early
 if (InStr(defaultLanguage, "100")) {
     scaleParam := 287
 } else {
     scaleParam := 277
 }
+
+DirectlyPositionWindow()
+Sleep, 1000
+
+ConnectAdb(folderPath)
 
 resetWindows()
 MaxRetries := 10
@@ -1285,44 +1292,48 @@ LevelUp() {
 
 resetWindows() {
     global Columns, winTitle, SelectedMonitorIndex, scaleParam, defaultLanguage, rowGap
-    CreateStatusMessage("Arranging window positions and sizes",,,, false)
-    RetryCount := 0
-    MaxRetries := 10
     
-    ; Use the configurable rowGap with fallback default of 100
+    ; Simply call our direct positioning function
+    DirectlyPositionWindow()
+    
+    return true
+}
+
+DirectlyPositionWindow() {
+    global Columns, runMain, Mains, scaleParam, winTitle, SelectedMonitorIndex, rowGap
+    
+    ; Make sure rowGap is defined
     if (!rowGap)
         rowGap := 100
+        
+    ; Get monitor information
+    SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
+    SysGet, Monitor, Monitor, %SelectedMonitorIndex%
     
-    Loop
-    {
-        try {
-            ; Get monitor origin from index
-            SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
-            SysGet, Monitor, Monitor, %SelectedMonitorIndex%
-            Title := winTitle
-
-            if (runMain) {
-                instanceIndex := (Mains - 1) + Title + 1
-            } else {
-                instanceIndex := Title
-            }
-
-            rowHeight := 533  ; Adjust the height of each row
-            currentRow := Floor((instanceIndex - 1) / Columns)
-            y := currentRow * rowHeight + (currentRow * rowGap)  ; Use the configurable gap
-            x := Mod((instanceIndex - 1), Columns) * scaleParam
-            WinMove, %Title%, , % (MonitorLeft + x), % (MonitorTop + y), scaleParam, 537
-            break
-        }
-        catch {
-            if (RetryCount > MaxRetries) {
-                CreateStatusMessage("Pausing. Can't find window " . winTitle . ".",,,, false)
-                Pause
-            }
-            RetryCount++
-        }
-        Sleep, 1000
+    ; Calculate position based on instance number
+    Title := winTitle
+    
+    if (runMain) {
+        instanceIndex := (Mains - 1) + Title + 1
+    } else {
+        instanceIndex := Title
     }
+    
+    rowHeight := 533
+    currentRow := Floor((instanceIndex - 1) / Columns)
+    
+    ; Calculate absolute coordinates with MonitorTop/Left
+    y := MonitorTop + (currentRow * rowHeight) + (currentRow * rowGap)
+    x := MonitorLeft + (Mod((instanceIndex - 1), Columns) * scaleParam)
+    
+    ; Position window directly without any additional checks
+    WinSet, Style, -0xC00000, %Title% ; Remove title bar temporarily
+    WinMove, %Title%, , %x%, %y%, %scaleParam%, 537
+    WinSet, Style, +0xC00000, %Title% ; Restore title bar
+    WinSet, Redraw, , %Title% ; Force redraw
+    
+    CreateStatusMessage("Positioned window at x:" . x . " y:" . y,,,, false)
+    
     return true
 }
 
