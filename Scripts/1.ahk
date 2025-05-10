@@ -3685,7 +3685,7 @@ createAccountList(instance) {
 			
 			; TODO can also sort by name (num packs), or time created
             ;fileModifiedTime := A_LoopFileName
-            ;fileModifiedTime := A_LoopFileTimeCreated
+            fileModifiedTime := A_LoopFileTimeCreated
 
             if (fileModifiedTimeDiff >= 24) {  ; 24 hours old
                 ; Store filename and actual modification time in parallel arrays
