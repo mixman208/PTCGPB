@@ -2427,6 +2427,8 @@ BalanceXMLs:
         {
             fileName := A_LoopFileName
             fileTime := A_LoopFileTimeModified
+			; TODO can also sort by name (num packs), or time created
+            fileTime := A_LoopFileTimeCreated 
             filePath := A_LoopFileFullPath
         
             if seenFiles.HasKey(fileName)
@@ -2684,6 +2686,9 @@ if (!cardDetectionFound)
         if (FileExist(metricFile)) {
             IniWrite, 0, %metricFile%, Metrics, LastEndEpoch
             IniWrite, 0, %metricFile%, UserSettings, DeadCheck
+			IniWrite, 0, %metricFile%, Metrics, rerolls
+			now := A_TickCount
+			IniWrite, %now%, %metricFile%, Metrics, rerollStartTime
         }
 
         Run, %Command%
