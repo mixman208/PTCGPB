@@ -3834,7 +3834,7 @@ createAccountList(instance) {
 				if(InStr(A_LoopFileName, "P")) {
 					accountFileNameParts := StrSplit(A_LoopFileName, "P")
 					accountPackNum := accountFileNameParts[1] * 1
-					if(accountFileNameParts[1] >= maxAccountPackNum) 
+					if(!friendIDs && friendID = "" && accountFileNameParts[1] >= maxAccountPackNum) 
 						continue
 				}
                 ; Store filename and actual modification time in parallel arrays
