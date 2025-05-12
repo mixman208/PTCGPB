@@ -346,7 +346,7 @@ if(DeadCheck = 1 && !injectMethod){
 		if(cantOpenMorePacks || (!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
 			Goto, MidOfRun
 
-        if(packMethod) {
+		if(packMethod && !(!friendIDs && friendID = "")) {
             friendsAdded := AddFriends(true)
             SelectPack()
 			if(cantOpenMorePacks)
@@ -366,7 +366,7 @@ if(DeadCheck = 1 && !injectMethod){
             ;                         just to get around the checking for a level after opening a pack. This change is made based on the
             ;                         5p-no delete community mod created by DietPepperPhD in the discord server.
 
-            if(deleteMethod = "5 Pack" || packMethod) {
+            if((deleteMethod = "5 Pack" || packMethod) && !(!friendIDs && friendID = "")) {
                 friendsAdded := AddFriends(true)
 				SelectPack("HGPack")
 				PackOpening()
@@ -374,7 +374,7 @@ if(DeadCheck = 1 && !injectMethod){
 				HourglassOpening(true)
             }
 
-            if(packMethod) {
+			if(packMethod && !(!friendIDs && friendID = "")) {
                 friendsAdded := AddFriends(true)
                 SelectPack("HGPack")
                 PackOpening()
