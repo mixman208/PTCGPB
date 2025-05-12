@@ -27,10 +27,20 @@ global DeadCheck
 global s4tEnabled, s4tSilent, s4t3Dmnd, s4t4Dmnd, s4t1Star, s4tGholdengo, s4tWP, s4tWPMinCards, s4tDiscordWebhookURL, s4tDiscordUserId, s4tSendAccountXml
 global avgtotalSeconds
 
-global accountOpenPacks, accountFileName, accountFileNameOrig, accountFileNameTmp, accountHasPackInfo, ocrSuccess, packsInPool, packsThisRun, aminutes, aseconds, rerolls, rerollStartTime
+global accountOpenPacks, accountFileName, accountFileNameOrig, accountFileNameTmp, accountHasPackInfo, ocrSuccess, packsInPool, packsThisRun, aminutes, aseconds, rerolls, rerollStartTime, maxAccountPackNum, cantOpenMorePacks
 
+cantOpenMorePacks := 0
+maxAccountPackNum := 36
 aminutes := 0
 aseconds := 0
+
+global beginnerMissionsDone, soloBattleMissionDone, intermediateMissionsDone, specialMissionsDone, resetSpecialMissionsDone
+
+beginnerMissionsDone := 0
+soloBattleMissionDone := 0
+intermediateMissionsDone := 0
+specialMissionsDone := 0
+resetSpecialMissionsDone := 0
 
 global dbg_bbox, dbg_bboxNpause, dbg_bbox_click
 
@@ -307,6 +317,7 @@ if(DeadCheck = 1 && !injectMethod){
         adbClick_wbb(41, 296)
         Delay(1)
 
+		cantOpenMorePacks := 0
 		packsInPool := 0
 		packsThisRun := 0
         keepAccount := false
@@ -325,17 +336,26 @@ if(DeadCheck = 1 && !injectMethod){
         ;    SquallTCGP 2025.03.12 -     Adding the delete method 5 Pack (Fast) to the wonder pick check.
         if(deleteMethod = "5 Pack" || deleteMethod = "5 Pack (Fast)" || deleteMethod = "13 Pack" || (injectMethod && !loadedAccount))
             wonderPicked := DoWonderPick()
-		
+			
         friendsAdded := AddFriends()
         SelectPack("First")
-        PackOpening()
+		if(cantOpenMorePacks)
+			Goto, MidOfRun
+			
+		PackOpening()
+		if(cantOpenMorePacks || (!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
+			Goto, MidOfRun
 
         if(packMethod) {
             friendsAdded := AddFriends(true)
             SelectPack()
+			if(cantOpenMorePacks)
+				Goto, MidOfRun
         }
 
         PackOpening()
+		if(cantOpenMorePacks || (!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
+			Goto, MidOfRun
 
         if(!injectMethod || !loadedAccount)
             HourglassOpening() ;deletemethod check in here at the start
@@ -364,45 +384,103 @@ if(DeadCheck = 1 && !injectMethod){
             }
 		}
 
-		if(deleteMethod = "13 Pack" || (injectMethod && !loadedAccount) || (deleteMethod = "Inject long" && loadedAccount)) {
-					
+		MidOfRun:
+		
+		if(!beginnerMissionsDone && (deleteMethod = "13 Pack" || (injectMethod && !loadedAccount) || (deleteMethod = "Inject long" && loadedAccount))) {
+			
 			;-----------------------------
 			;if error during mission collection, try commenting the first line and uncommenting the second
 			HomeAndMission()
 			;HomeAndMission(0,true)
 			;-----------------------------
+			if(beginnerMissionsDone)
+				Goto, EndOfRun
 
 			SelectPack("HGPack")
+			if(cantOpenMorePacks)
+				Goto, EndOfRun
+				
 			PackOpening() ;6
+			if(cantOpenMorePacks || (!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
+				Goto, EndOfRun
+				
 			HourglassOpening(true) ;7
+			if(cantOpenMorePacks || (!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
+				Goto, EndOfRun
 
 			HomeAndMission()
+			if(beginnerMissionsDone)
+				Goto, EndOfRun
+				
 			SelectPack("HGPack")
+			if(cantOpenMorePacks)
+				Goto, EndOfRun
 			PackOpening() ;8
+			if(cantOpenMorePacks || (!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
+				Goto, EndOfRun
+				
 			HourglassOpening(true) ;9
+			if(cantOpenMorePacks || (!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
+				Goto, EndOfRun
 
 			HomeAndMission()
+			if(beginnerMissionsDone)
+				Goto, EndOfRun
+				
 			SelectPack("HGPack")
+			if(cantOpenMorePacks)
+				Goto, EndOfRun
 			PackOpening() ;10
+			if(cantOpenMorePacks || (!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
+				Goto, EndOfRun
+				
 			HourglassOpening(true) ;11
-
+			if(cantOpenMorePacks || (!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
+				Goto, EndOfRun
+				
 			if(injectMethod && loadedAccount && deleteMethod = "Inject long" ){				
 				HomeAndMission()
+				if(beginnerMissionsDone)
+					Goto, EndOfRun
+					
 				;TODO click on complete all missions and open packs until not nough items
 				;TODO return all missions done and open packs until not enough items
+				
 				SelectPack("HGPack")
+				if(cantOpenMorePacks)
+					Goto, EndOfRun
 				PackOpening() ;12?
+				if(cantOpenMorePacks || (!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
+					Goto, EndOfRun
+				
 				HourglassOpening(true) ;13?
+				if(cantOpenMorePacks || (!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
+					Goto, EndOfRun
 			}
 			
 			HomeAndMission(1)
 			SelectPack("HGPack")
+			if(cantOpenMorePacks)
+				Goto, EndOfRun
 			PackOpening() ;12
+			if(cantOpenMorePacks || (!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
+				Goto, EndOfRun
+			
 			HomeAndMission(1)
 			SelectPack("HGPack")
+			if(cantOpenMorePacks)
+				Goto, EndOfRun
 			PackOpening() ;13
+			if(cantOpenMorePacks || (!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
+				Goto, EndOfRun
+				
+			beginnerMissionsDone := 1
+			if(injectMethod && loadedAccount)
+				setMetaData()
 			
 		}
+
+		EndOfRun:
 
         if (nukeAccount && !keepAccount && !injectMethod) {
             CreateStatusMessage("Deleting account...",,,, false)
@@ -442,8 +520,14 @@ if(DeadCheck = 1 && !injectMethod){
             ; - not using menu delete account
             ; - or the current account opened a desirable pack and shouldn't be deleted
             saveAccount("All")
+			
+			beginnerMissionsDone := 0
+			soloBattleMissionDone := 0
+			intermediateMissionsDone := 0
+			specialMissionsDone := 0
 
-            restartGameInstance("New Run", false)
+			if(!injectMethod)
+				restartGameInstance("New Run", false)
         } else {
             ; Reached here because:
             ; - using the inject method
@@ -454,15 +538,21 @@ if(DeadCheck = 1 && !injectMethod){
 				;TODO force stop, remove account
                 ExitApp
             }
-
-            CreateStatusMessage("New Run",,,, false)
+			if(!injectMethod)
+				CreateStatusMessage("New Run",,,, false)
         }
-
 		
+		if (stopToggle) {
+			CreateStatusMessage("Stopping...",,,, false)
+			;TODO force stop, remove account
+			ExitApp
+		}
         if (injectMethod) ; try loading new account
             loadedAccount := loadAccount()
-		if (injectMethod && !loadedAccount)	; restartGameInstance if injection and no account loaded, switch to 13p
-			restartGameInstance("Finished injecting", false)
+		if (injectMethod && !loadedAccount) {	; restartGameInstance if injection and no account loaded, switch to 13p
+			DeadCheck := 0
+			restartGameInstance("Finished injecting. New Run", false)
+		}
     }
 }
 return
@@ -508,6 +598,12 @@ HomeAndMission(homeonly := 0, completeSecondMisson=false) {
 					break
 				
 				if(FindOrLoseImage(108, 180, 177, 208, , "1solobattlemission", 0, failSafeTime)) {
+					beginnerMissionsDone := 1
+					if(injectMethod && loadedAccount)
+						setMetaData()
+					
+					return
+					
 					restartGameInstance("begginer missions done except solo battle")
 					;return missions done instead
 				}  
@@ -554,6 +650,7 @@ HomeAndMission(homeonly := 0, completeSecondMisson=false) {
 clearMissionCache() {
     adbShell.StdIn.WriteLine("rm /data/data/jp.pokemon.pokemontcgp/files/UserPreferences/v1/MissionUserPrefs")
     waitadb()
+	Sleep, 500
 	;TODO delete all user preferences?
 }
 
@@ -1240,8 +1337,9 @@ FindImageAndClick(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT",
             pNeedle := GetNeedle(Path)
             vRet := Gdip_ImageSearch_wbb(pBitmap, pNeedle, vPosXY, 92, 299, 115, 317, 0)
 			if(vRet = 1) {
-				;TODO return not enough items, instead of restart
-				restartGameInstance("Not Enough Items")
+				cantOpenMorePacks := 1
+				return 0
+				;restartGameInstance("Not Enough Items")
 			}
 		}
 		if(imageName = "Mission_dino2") {
@@ -1368,23 +1466,27 @@ restartGameInstance(reason, RL := true) {
 
         Reload
     } else {
+		waitadb()
         adbShell.StdIn.WriteLine("am force-stop jp.pokemon.pokemontcgp")
         waitadb()
+		Sleep, 2000
+		;MsgBox, 1
 		clearMissionCache()
         if (!RL && DeadCheck = 0) {
-			waitadb()
-			Sleep, 500
+			;MsgBox, 2
             adbShell.StdIn.WriteLine("rm /data/data/jp.pokemon.pokemontcgp/shared_prefs/deviceAccount:.xml") ; delete account data
-						
+			;MsgBox, 3
 			;TODO improve friend list cluter with deadcheck/stuck at, for injection. need to check also loadAccount at the beggining
         }
         waitadb()
 		Sleep, 500
         adbShell.StdIn.WriteLine("am start -n jp.pokemon.pokemontcgp/com.unity3d.player.UnityPlayerActivity")
+		
         waitadb()
         Sleep, 5000
-
+		;MsgBox, 4
         if (RL) {
+			
 			AppendToJsonFile(packsThisRun)
 			;if(!injectMethod || !loadedAccount) 
 			if(!injectMethod) {
@@ -1560,8 +1662,8 @@ CheckPack() {
 	
     packsInPool += 1
     packsThisRun += 1
-	
-	if(!friendIDs && friend = "" && !s4tEnabled)
+		
+	if(!friendIDs && friend = "" && !s4tEnabled && !ImmersiveCheck && !CrownCheck && !ShinyCheck)
 		return false
 
     ; Wait for cards to render before checking.
@@ -2065,6 +2167,10 @@ GodPackFound(validity) {
 }
 
 loadAccount() {
+    beginnerMissionsDone := 0
+	soloBattleMissionDone := 0
+	intermediateMissionsDone := 0
+	specialMissionsDone := 0
 
 	if (stopToggle) {
 		CreateStatusMessage("Stopping...",,,, false)
@@ -2085,12 +2191,12 @@ loadAccount() {
 	accountHasPackInfo := 0
 	
     if FileExist(outputTxt) {
-        FileRead, fileContent, %outputTxt%  ; Read entire file
-        fileLines := StrSplit(fileContent, "`n", "`r")  ; Split into lines
-
-        if (fileLines.MaxIndex() >= 1) {
-            cycle := 0
-            Loop {
+		cycle := 0
+		Loop {
+			FileRead, fileContent, %outputTxt%  ; Read entire file
+			fileLines := StrSplit(fileContent, "`n", "`r")  ; Split into lines
+				
+			if (fileLines.MaxIndex() >= 1) {
                 CreateStatusMessage("Making sure XML is > 24 hours old: " . cycle . " attempts")
                 loadFile := saveDir . "\" . fileLines[1]  ; Store the first line
                 test := fileExist(loadFile)
@@ -2113,25 +2219,34 @@ loadAccount() {
 				}
                 cycle++
                 Delay(1)
-            }
-        } else return false
+				
+				if(cycle > 50) {
+					MsgBox, %accountFileTime% `n %accountModifiedTimeDiff% `n %loadFile%
+				}
+				
+            } else return false
+        }
     } else return false
 
+    waitadb()
     adbShell.StdIn.WriteLine("am force-stop jp.pokemon.pokemontcgp")
+    waitadb()
 
+    Sleep, 3000
     RunWait, % adbPath . " -s 127.0.0.1:" . adbPort . " push " . loadFile . " /sdcard/deviceAccount.xml",, Hide
 
-    Sleep, 500
-
+    Sleep, 3000
+	waitadb()
     adbShell.StdIn.WriteLine("cp /sdcard/deviceAccount.xml /data/data/jp.pokemon.pokemontcgp/shared_prefs/deviceAccount:.xml")
     waitadb()
     adbShell.StdIn.WriteLine("rm /sdcard/deviceAccount.xml")
     waitadb()
+    Sleep, 3000
     adbShell.StdIn.WriteLine("am start -n jp.pokemon.pokemontcgp/com.unity3d.player.UnityPlayerActivity")
     waitadb()
     Sleep, 1000
 
-    FileSetTime,, %loadFile%
+    ;FileSetTime,, %loadFile% ;don't need anymore because after every pack opened the modified time is updated
 
 	; check if metadata exists
     ;accountsDir := A_ScriptDir "\..\Accounts\"
@@ -2149,6 +2264,8 @@ loadAccount() {
 		accountFileNameOrig := accountFileName
 	}
 	
+	getMetaData()
+	
     return loadFile
 }
 
@@ -2157,8 +2274,18 @@ saveAccount(file := "Valid", ByRef filePath := "", packDetails := "") {
     filePath := ""
 
     if (file = "All") {
+		metadata := ""
+		if(beginnerMissionsDone)
+			metadata .= "B"
+		if(soloBattleMissionDone)
+			metadata .= "S"
+		if(intermediateMissionsDone)
+			metadata .= "I"
+		if(specialMissionsDone)
+			metadata .= "X"
+			
         saveDir := A_ScriptDir "\..\Accounts\Saved\" . winTitle
-        filePath := saveDir . "\" . accountOpenPacks . "P_" . A_Now . "_" . winTitle . ".xml"
+        filePath := saveDir . "\" . accountOpenPacks . "P_" . A_Now . "_" . winTitle . "(" . metadata . ").xml"
     } else if (file = "Valid" || file = "Invalid") {
         saveDir := A_ScriptDir "\..\Accounts\GodPacks\"
         xmlFile := A_Now . "_" . winTitle . "_" . file . "_" . packsInPool . "_packs.xml"
@@ -3416,8 +3543,10 @@ SelectPack(HG := false) {
             if(FindImageAndClick(233, 486, 272, 519, , "Skip2", 172, 430, , 2)) { ;click on open button until skip button appears
                 break
 			} else if(FindOrLoseImage(92, 299, 115, 317, , "notenoughitems", 0)) {
-				restartGameInstance("Not Enough Items")
+				cantOpenMorePacks := 1
 			}
+			if(cantOpenMorePacks)
+				return
             Delay(1)
             adbClick_wbb(200, 451) ;for hourglass???
             failSafeTime := (A_TickCount - failSafe) // 1000
@@ -3435,10 +3564,14 @@ PackOpening() {
         if(FindOrLoseImage(225, 273, 235, 290, , "Pack", 0, failSafeTime)) {
             break ;wait for pack to be ready to Trace and click skip
 		} else if(FindOrLoseImage(92, 299, 115, 317, , "notenoughitems", 0)) {
-			restartGameInstance("Not Enough Items")
+			cantOpenMorePacks := 1
 		} else {
             adbClick_wbb(239, 497)
 		}
+		
+		if(cantOpenMorePacks)
+			return
+		
         failSafeTime := (A_TickCount - failSafe) // 1000
         CreateStatusMessage("Waiting for Pack`n(" . failSafeTime . "/45 seconds)")
         if(failSafeTime > 45)
@@ -3473,6 +3606,9 @@ PackOpening() {
     FindImageAndClick(0, 98, 116, 125, 5, "Opening", 239, 497) ;skip through cards until results opening screen
 
     CheckPack()
+	
+	if(!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum) 
+		return
 
     ;FindImageAndClick(233, 486, 272, 519, , "Skip", 146, 494) ;click on next until skip button appears
 
@@ -3554,6 +3690,10 @@ HourglassOpening(HG := false) {
             break ;wait for pack to be ready to Trace and click skip
         else
             adbClick_wbb(239, 497)
+			
+		if(cantOpenMorePacks)
+			return
+		
         clickButton := FindOrLoseImage(145, 440, 258, 480, 80, "Button", 0, failSafeTime)
         if(clickButton) {
             StringSplit, pos, clickButton, `,  ; Split at ", "
@@ -3596,6 +3736,9 @@ HourglassOpening(HG := false) {
     FindImageAndClick(0, 98, 116, 125, 5, "Opening", 239, 497) ;skip through cards until results opening screen
 
     CheckPack()
+	
+	if(!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum) 
+		return
 
     ;FindImageAndClick(233, 486, 272, 519, , "Skip", 146, 494) ;click on next until skip button appears
 
@@ -3688,6 +3831,12 @@ createAccountList(instance) {
             fileModifiedTime := A_LoopFileTimeCreated
 
             if (fileModifiedTimeDiff >= 24) {  ; 24 hours old
+				if(InStr(A_LoopFileName, "P")) {
+					accountFileNameParts := StrSplit(A_LoopFileName, "P")
+					accountPackNum := accountFileNameParts[1] * 1
+					if(accountFileNameParts[1] >= maxAccountPackNum) 
+						continue
+				}
                 ; Store filename and actual modification time in parallel arrays
 				fileMap .= fileModifiedTime "`t" A_LoopFileName "`n"
             }
@@ -3995,3 +4144,80 @@ RegExEscape(str) {
 }
 
 
+
+
+getMetaData() {
+    beginnerMissionsDone := 0
+	soloBattleMissionDone := 0
+	intermediateMissionsDone := 0
+	specialMissionsDone := 0
+
+	; check if account file has metadata information
+	if(InStr(accountFileName, "(")) {
+		accountFileNameParts1 := StrSplit(accountFileName, "(")  ; Split at (
+		if(InStr(accountFileNameParts1[2], ")")) {
+			; has metadata information
+			accountFileNameParts2 := StrSplit(accountFileNameParts1[2], ")")  ; Split at )
+			metadata := accountFileNameParts2[1]
+			if(InStr(metadata, "B"))
+				beginnerMissionsDone := 1
+			if(InStr(metadata, "S"))
+				soloBattleMissionDone := 1
+			if(InStr(metadata, "I"))
+				intermediateMissionsDone := 1
+			if(InStr(metadata, "X"))
+				specialMissionsDone := 1
+		}
+	}
+	
+	if(resetSpecialMissionsDone)
+		specialMissionsDone := 0 ; when special mission event is over can be reset
+	
+}
+
+setMetaData() {
+	hasMetaData := 0
+	NamePartRightOfMeta := ""
+	NamePartLeftOfMeta := ""
+	
+	; check if account file has metadata information
+	if(InStr(accountFileName, "(")) {
+		accountFileNameParts1 := StrSplit(accountFileName, "(")  ; Split at (
+		NamePartLeftOfMeta := accountFileNameParts1[1]
+		if(InStr(accountFileNameParts1[2], ")")) {
+			; has metadata information
+			accountFileNameParts2 := StrSplit(accountFileNameParts1[2], ")")  ; Split at )
+			NamePartRightOfMeta := accountFileNameParts2[2]
+			;metadata := accountFileNameParts2[1]
+			
+			hasMetaData := 1
+		}
+	}
+	
+	metadata := ""
+	if(beginnerMissionsDone)
+		metadata .= "B"
+	if(soloBattleMissionDone)
+		metadata .= "S"
+	if(intermediateMissionsDone)
+		metadata .= "I"
+	if(specialMissionsDone)
+		metadata .= "X"
+	
+	if(hasMetaData) {
+		AccountNewName := NamePartLeftOfMeta . "(" . metadata . ")" . NamePartRightOfMeta
+	} else {
+		NameAndExtension := StrSplit(accountFileName, ".")  ; Split the extension
+		AccountNewName := NameAndExtension[1] . "(" . metadata . ").xml"
+	}
+	
+	;MsgBox, %AccountNewName%
+	
+	
+	saveDir := A_ScriptDir "\..\Accounts\Saved\" . winTitle
+	accountFile := saveDir . "\" . accountFileName
+	accountNewFile := saveDir . "\" . AccountNewName
+	FileMove, %accountFile% , %accountNewFile% 
+	accountFileName := AccountNewName
+
+}
