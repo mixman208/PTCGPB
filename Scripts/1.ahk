@@ -1672,7 +1672,7 @@ menuDeleteStart() {
         CreateStatusMessage("Waiting for Country/Menu`n(" . failSafeTime . "/45 seconds)")
     }
     if(loadedAccount) {
-        FileDelete, %loadedAccount%
+    ;    FileDelete, %loadedAccount%
     }
 }
 
@@ -1686,7 +1686,7 @@ CheckPack() {
     packsInPool += 1
     packsThisRun += 1
 		
-	if(!friendIDs && friend = "" && !s4tEnabled && !ImmersiveCheck && !CrownCheck && !ShinyCheck)
+	if(!friendIDs && friendID = "" && !s4tEnabled && !ImmersiveCheck && !CrownCheck && !ShinyCheck)
 		return false
 
     ; Wait for cards to render before checking.
@@ -1707,11 +1707,9 @@ CheckPack() {
 
     if (foundInvalid) {
         ; Pack is invalid...
-        if (!InvalidCheck) {
-            ; Check if the current pack could have been a god pack.
-            foundInvalidGP := FindGodPack(true)
-        } else {
-            ; If required, check what cards the current pack contains which make it invalid.
+		foundInvalidGP := FindGodPack(true) ; GP is never ignored
+        if (!foundInvalidGP && !InvalidCheck) {
+			; If not a GP and not "ignore invalid packs" , check what cards the current pack contains which make it invalid, and if user want to save them.
             if (ShinyCheck && foundShiny && !foundLabel)
                 foundLabel := "Shiny"
             if (ImmersiveCheck && foundImmersive && !foundLabel)
@@ -1731,12 +1729,12 @@ CheckPack() {
         return
     }
 
-    ; Check for god pack.
+    ; Check for god pack. if found we know its not invalid
     foundGP := FindGodPack()
 
     if (foundGP) {
         if (loadedAccount) {
-            FileDelete, %loadedAccount%
+			accountFoundGP()
             IniWrite, 0, %A_ScriptDir%\%scriptName%.ini, UserSettings, DeadCheck
         }
 
@@ -1744,37 +1742,43 @@ CheckPack() {
         return
     }
 
-    ; Check for 2-star cards.
+    ; if not invalid and no GP, Check for 2-star cards.
     if (!CheckShinyPackOnly || shinyPacks.HasKey(openPack)) {
         foundTrainer := false
         foundRainbow := false
         foundFullArt := false
         2starCount := false
 
-        if (TrainerCheck && !foundLabel) {
+        if (PseudoGodPack && !foundLabel) {
             foundTrainer := FindBorders("trainer")
+            foundRainbow := FindBorders("rainbow")
+            foundFullArt := FindBorders("fullart")
+            2starCount := foundTrainer + foundRainbow + foundFullArt
+            if (2starCount > 1)
+                foundLabel := "Double two star"
+        }
+        if (TrainerCheck && !foundLabel) {
+			if(!PseudoGodPack)
+				foundTrainer := FindBorders("trainer")
             if (foundTrainer)
                 foundLabel := "Trainer"
         }
         if (RainbowCheck && !foundLabel) {
-            foundRainbow := FindBorders("rainbow")
+            if(!PseudoGodPack)
+				foundRainbow := FindBorders("rainbow")
             if (foundRainbow)
                 foundLabel := "Rainbow"
         }
         if (FullArtCheck && !foundLabel) {
-            foundFullArt := FindBorders("fullart")
+            if(!PseudoGodPack)
+				foundFullArt := FindBorders("fullart")
             if (foundFullArt)
                 foundLabel := "Full Art"
-        }
-        if (PseudoGodPack && !foundLabel) {
-            2starCount := FindBorders("trainer") + FindBorders("rainbow") + FindBorders("fullart")
-            if (2starCount > 1)
-                foundLabel := "Double two star"
         }
 
         if (foundLabel) {
             if (loadedAccount) {
-                FileDelete, %loadedAccount% ;delete xml file from folder if using inject method
+                accountFoundGP()
                 IniWrite, 0, %A_ScriptDir%\%scriptName%.ini, UserSettings, DeadCheck
             }
 
@@ -1940,8 +1944,7 @@ FoundTradeable(found3Dmnd := 0, found4Dmnd := 0, found1Star := 0, foundGimmighou
         LogToDiscord(discordMessage, screenShot, true, (s4tSendAccountXml ? accountFullPath : ""), fcScreenshot, s4tDiscordWebhookURL, s4tDiscordUserId)
     }
 
-	; TODO don't restart game when save4trade
-    ;restartGameInstance("Tradeable cards found. Continuing...", "GodPack")
+    restartGameInstance("Tradeable cards found. Continuing...", "GodPack")
 }
 
 FoundStars(star) {
@@ -2360,6 +2363,16 @@ saveAccount(file := "Valid", ByRef filePath := "", packDetails := "") {
     }
 
     return xmlFile
+}
+
+accountFoundGP() {
+	saveDir := A_ScriptDir "\..\Accounts\Saved\" . winTitle
+	accountFile := saveDir . "\" . accountFileName
+	
+	FileGetTime, accountFileTime, %accountFile%, M
+	accountFileTime += 5, days
+	
+	FileSetTime, accountFileTime, %accountFile%
 }
 
 UpdateAccount() {
@@ -3452,7 +3465,7 @@ SelectPack(HG := false) {
 			CreateStatusMessage("Waiting for Points`n(" . failSafeTime . "/90 seconds)")
 		}
 		
-		if(!friendIDs && friend = "") {
+		if(!friendIDs && friendID = "") {
 			; if we don't need to add any friends we can select directly the latest packs, or go directly to select other booster screen, 
 				
 			if(PackIsLatest) {   ; if selected pack is the latest pack select directly from the pack select screen
