@@ -30,7 +30,7 @@ global avgtotalSeconds
 global accountOpenPacks, accountFileName, accountFileNameOrig, accountFileNameTmp, accountHasPackInfo, ocrSuccess, packsInPool, packsThisRun, aminutes, aseconds, rerolls, rerollStartTime, maxAccountPackNum, cantOpenMorePacks
 
 cantOpenMorePacks := 0
-maxAccountPackNum := 36
+maxAccountPackNum := 35
 aminutes := 0
 aseconds := 0
 
@@ -386,6 +386,7 @@ if(DeadCheck = 1 && !injectMethod){
 
 		MidOfRun:
 		
+		if(!(!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
 		if(!beginnerMissionsDone && (deleteMethod = "13 Pack" || (injectMethod && !loadedAccount) || (deleteMethod = "Inject long" && loadedAccount))) {
 			
 			;-----------------------------
@@ -481,6 +482,24 @@ if(DeadCheck = 1 && !injectMethod){
 		}
 
 		EndOfRun:
+		
+		
+		if(!(!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum)) {
+			;For Special Missions 2025
+			SpecialMissions2025 := true
+			if(SpecialMissions2025 && !specialMissionsDone)
+			{   
+				GoToMain()
+				HomeAndMission(1)
+				GetEventRewards(true) ;collects all the Speical mission hourglass
+				specialMissionsDone := 1
+				cantOpenMorePacks := 0
+				if(injectMethod && loadedAccount)
+					setMetaData()
+			}
+			
+			SpendAllHourglass()
+		}
 
         if (nukeAccount && !keepAccount && !injectMethod) {
             CreateStatusMessage("Deleting account...",,,, false)
@@ -604,7 +623,7 @@ HomeAndMission(homeonly := 0, completeSecondMisson=false) {
 					
 					return
 					
-					restartGameInstance("begginer missions done except solo battle")
+					restartGameInstance("beginner missions done except solo battle")
 					;return missions done instead
 				}  
 				
@@ -1332,7 +1351,7 @@ FindImageAndClick(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT",
                 Delay(1)
             }
         }
-		if(imageName = "Skip2" || imageName = "Pack") {
+		if(imageName = "Skip2" || imageName = "Pack" || imageName = "Hourglass2") {
 			Path = %imagePath%notenoughitems.png
             pNeedle := GetNeedle(Path)
             vRet := Gdip_ImageSearch_wbb(pBitmap, pNeedle, vPosXY, 92, 299, 115, 317, 0)
@@ -1347,7 +1366,11 @@ FindImageAndClick(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT",
             pNeedle := GetNeedle(Path)
             vRet := Gdip_ImageSearch_wbb(pBitmap, pNeedle, vPosXY, 108, 180, 177, 208, 0)
 			if(vRet = 1) {
-				restartGameInstance("begginer missions done except solo battle")
+				beginnerMissionsDone := 1
+				if(injectMethod && loadedAccount)
+					setMetaData()
+				return
+				;restartGameInstance("beginner missions done except solo battle")
 			}
 		}
 
@@ -2347,16 +2370,16 @@ UpdateAccount() {
 	; cap at 40. no need to go more than that
 	if(accountOpenPacks > 40)
 		accountOpenPacksStr := 40
-	if(accountOpenPacks <= 40 || !InStr(accountFile, "P")) {
-		;if there was pack info and accountFileNameTmp is not empty
-		if(accountFileNameTmp)
-			AccountNewName := accountOpenPacksStr . "P" . accountFileNameTmp
-		;if there was no pack info and ocr is successful
-		else if (ocrSuccess)
-			AccountNewName := accountOpenPacksStr . "P_" . accountFileNameOrig
-		else
-			return ; if OCR is not successful, don't modify account file
-		
+	if(InStr(accountFileName, "P")){
+		AccountName := StrSplit(accountFileName , "P")
+		accountFileNameParts := StrSplit(accountFileName, "P")  ; Split at P
+		AccountNewName := accountOpenPacksStr . "P" . accountFileNameParts[2]
+	} else if (ocrSuccess)
+		AccountNewName := accountOpenPacksStr . "P_" . accountFileNameOrig
+	else
+		return ; if OCR is not successful, don't modify account file
+	
+	if(accountOpenPacks <= 40 || !InStr(accountFileName, "P")) {		
 		saveDir := A_ScriptDir "\..\Accounts\Saved\" . winTitle
 		accountFile := saveDir . "\" . accountFileName
 		accountNewFile := saveDir . "\" . AccountNewName
@@ -3518,7 +3541,15 @@ SelectPack(HG := false) {
         Loop {
             if(FindOrLoseImage(60, 440, 90, 480, , "HourglassPack", 0, failSafeTime)) {
                 break
+            }else if(FindOrLoseImage(49, 449, 70, 474, , "HourGlassAndPokeGoldPack", 0, failSafeTime)) {
+                break
+            }else if(FindOrLoseImage(60, 440, 90, 480, , "PokeGoldPack", 0, failSafeTime)) {
+                break
+            }else if(FindOrLoseImage(92, 299, 115, 317, , "notenoughitems", 0)) {
+                cantOpenMorePacks := 1
             }
+			if(cantOpenMorePacks)
+				return
             adbClick_wbb(146, 439)
             Delay(1)
             failSafeTime := (A_TickCount - failSafe) // 1000
@@ -3636,7 +3667,7 @@ PackOpening() {
     }
 }
 
-HourglassOpening(HG := false) {
+HourglassOpening(HG := false, NEIRestart := true) {
     if(!HG) {
         Delay(3)
         adbClick_wbb(146, 441) ; 146 440
@@ -3657,6 +3688,9 @@ HourglassOpening(HG := false) {
         }
         else {
             FindImageAndClick(236, 198, 266, 226, , "Hourglass2", 180, 436, 500) ;stop at hourglasses tutorial 2 180 to 203?
+			
+			if(cantOpenMorePacks)
+				return
         }
     }
     if(!packMethod) {
@@ -3665,7 +3699,15 @@ HourglassOpening(HG := false) {
         Loop {
             if(FindOrLoseImage(60, 440, 90, 480, , "HourglassPack", 0, failSafeTime)) {
                 break
+            }else if(FindOrLoseImage(40, 440, 70, 474, , "HourGlassAndPokeGoldPack", 0, failSafeTime)) {
+                break
+            }else if(FindOrLoseImage(60, 440, 90, 480, , "PokeGoldPack", 0, failSafeTime)) {
+                break
+            }else if(FindOrLoseImage(92, 299, 115, 317, , "notenoughitems", 0)) {
+                cantOpenMorePacks := 1
             }
+			if(cantOpenMorePacks)
+				return
             adbClick_wbb(146, 439)
             Delay(1)
             failSafeTime := (A_TickCount - failSafe) // 1000
@@ -3977,6 +4019,206 @@ getChangeDateTime() {
 }
 
 
+
+
+getMetaData() {
+    beginnerMissionsDone := 0
+	soloBattleMissionDone := 0
+	intermediateMissionsDone := 0
+	specialMissionsDone := 0
+
+	; check if account file has metadata information
+	if(InStr(accountFileName, "(")) {
+		accountFileNameParts1 := StrSplit(accountFileName, "(")  ; Split at (
+		if(InStr(accountFileNameParts1[2], ")")) {
+			; has metadata information
+			accountFileNameParts2 := StrSplit(accountFileNameParts1[2], ")")  ; Split at )
+			metadata := accountFileNameParts2[1]
+			if(InStr(metadata, "B"))
+				beginnerMissionsDone := 1
+			if(InStr(metadata, "S"))
+				soloBattleMissionDone := 1
+			if(InStr(metadata, "I"))
+				intermediateMissionsDone := 1
+			if(InStr(metadata, "X"))
+				specialMissionsDone := 1
+		}
+	}
+	
+	if(resetSpecialMissionsDone)
+		specialMissionsDone := 0 ; when special mission event is over can be reset
+	
+}
+
+setMetaData() {
+	hasMetaData := 0
+	NamePartRightOfMeta := ""
+	NamePartLeftOfMeta := ""
+	
+	; check if account file has metadata information
+	if(InStr(accountFileName, "(")) {
+		accountFileNameParts1 := StrSplit(accountFileName, "(")  ; Split at (
+		NamePartLeftOfMeta := accountFileNameParts1[1]
+		if(InStr(accountFileNameParts1[2], ")")) {
+			; has metadata information
+			accountFileNameParts2 := StrSplit(accountFileNameParts1[2], ")")  ; Split at )
+			NamePartRightOfMeta := accountFileNameParts2[2]
+			;metadata := accountFileNameParts2[1]
+			
+			hasMetaData := 1
+		}
+	}
+	
+	metadata := ""
+	if(beginnerMissionsDone)
+		metadata .= "B"
+	if(soloBattleMissionDone)
+		metadata .= "S"
+	if(intermediateMissionsDone)
+		metadata .= "I"
+	if(specialMissionsDone)
+		metadata .= "X"
+	
+	if(hasMetaData) {
+		AccountNewName := NamePartLeftOfMeta . "(" . metadata . ")" . NamePartRightOfMeta
+	} else {
+		NameAndExtension := StrSplit(accountFileName, ".")  ; Split the extension
+		AccountNewName := NameAndExtension[1] . "(" . metadata . ").xml"
+	}
+	
+	;MsgBox, %AccountNewName%
+	
+	
+	saveDir := A_ScriptDir "\..\Accounts\Saved\" . winTitle
+	accountFile := saveDir . "\" . accountFileName
+	accountNewFile := saveDir . "\" . AccountNewName
+	FileMove, %accountFile% , %accountNewFile% 
+	accountFileName := AccountNewName
+
+}
+SpendAllHourglass() {
+    HomeAndMission(1)
+    
+	;if SelectPack("HGPack", false) != "Not Enough Items" ;don't restart game when not enough items and just continue
+	
+	SelectPack("HGPack")
+	if(cantOpenMorePacks)
+		return
+	
+	;PackOpening(false)
+	
+	PackOpening()
+	if(cantOpenMorePacks || (!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
+		return
+			
+	while true{ ;keep opening packs until not enough items
+		;if HourglassOpening(true, false) == "Not Enough Items"
+		;	break
+		;if accountOpenPacks > 35
+		;	break
+			
+		HourglassOpening()
+		if(cantOpenMorePacks || (!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
+			return
+			
+	}
+    
+}
+
+; For Special Missions 2025
+GetEventRewards(frommain := true){
+    swipeSpeed := 300
+    adbSwipeX3 := Round(211 / 277 * 535)
+    adbSwipeX4 := Round(11 / 277 * 535)
+    adbSwipeY2 := Round((453 - 44) / 489 * 960)
+    adbSwipeParams2 := adbSwipeX3 . " " . adbSwipeY2 . " " . adbSwipeX4 . " " . adbSwipeY2 . " " . swipeSpeed
+    if (frommain){
+        FindImageAndClick(2, 85, 34, 120, , "Missions", 261, 478, 500)
+    }
+    Delay(4)
+    if(setSpeed > 1) {
+    FindImageAndClick(65, 195, 100, 215, , "Platin", 18, 109, 2000) ; click mod settings
+    FindImageAndClick(9, 170, 25, 190, , "One", 26, 180) ; click mod settings
+        Delay(1)
+    }
+    failSafe := A_TickCount
+    failSafeTime := 0
+    Loop{
+        adbSwipe(adbSwipeParams2)
+        Sleep, 10
+        if (FindOrLoseImage(225, 444, 272, 470, , "Premium", 0, failSafeTime)){
+            if(setSpeed > 1) {
+                if(setSpeed = 3)
+                        FindImageAndClick(182, 170, 194, 190, , "Three", 187, 180) ; click mod settings
+                else
+                        FindImageAndClick(100, 170, 113, 190, , "Two", 107, 180) ; click mod settings
+            }
+                adbClick_wbb(41, 296)
+                break
+            }
+        failSafeTime := (A_TickCount - failSafe) // 1000
+        CreateStatusMessage("Waiting for Trace`n(" . failSafeTime . "/45 seconds)")
+        Delay(1)
+    }
+    adbClick_wbb(50, 465)
+    failSafe := A_TickCount
+    failSafeTime := 0
+    Loop{
+        Delay(2)
+        adbClick_wbb(172, 427) ;clicks complete all and ok
+        Delay(2)
+        adbClick_wbb(152, 464) ;when to many rewards ok button goes lower
+        if FindOrLoseImage(244, 406, 273, 449, , "GotAllMissions", 0, 0) {
+            break
+        }
+        else if (failSafeTime > 60){
+            GotRewards := false
+            break
+        }
+        failSafeTime := (A_TickCount - failSafe) // 1000
+    }
+    GoToMain()
+}
+
+GetAllRewards(tomain := true){
+    FindImageAndClick(2, 85, 34, 120, , "Missions", 261, 478, 500)
+    Delay(4)
+    failSafe := A_TickCount
+    failSafeTime := 0
+    GotRewards := true
+    Loop{
+        Delay(2)
+        adbClick(172, 427)
+        if FindOrLoseImage(244, 406, 273, 449, , "GotAllMissions", 0, 0) {
+            break
+        }
+        else if (failSafeTime > 20){
+            GotRewards := false
+            break
+        }
+        failSafeTime := (A_TickCount - failSafe) // 1000
+    }
+    if (tomain) {
+        GoToMain()
+    }
+}
+
+GoToMain(){
+    failSafe := A_TickCount
+    failSafeTime := 0
+    Delay(2)
+    Loop {
+        Delay(3) ;increase this delay if you see "close app" on home page
+        if(FindOrLoseImage(191, 393, 211, 411, , "Shop", 0, failSafeTime)) {
+            break
+        }
+        else
+            adbInputEvent("111") ;send ESC
+        failSafeTime := (A_TickCount - failSafe) // 1000
+        CreateStatusMessage("Waiting for Shop`n(" . failSafeTime . "/45 seconds)")
+    }
+}
+
 ;levelUp()
 ;FindOrLoseImage(118, 167, 167, 203, , "unlocked", 0, failSafeTime)
 ;FindImageAndClick(118, 167, 167, 203, , "unlocked", 144, 396, sleepTime)
@@ -4144,80 +4386,3 @@ RegExEscape(str) {
 }
 
 
-
-
-getMetaData() {
-    beginnerMissionsDone := 0
-	soloBattleMissionDone := 0
-	intermediateMissionsDone := 0
-	specialMissionsDone := 0
-
-	; check if account file has metadata information
-	if(InStr(accountFileName, "(")) {
-		accountFileNameParts1 := StrSplit(accountFileName, "(")  ; Split at (
-		if(InStr(accountFileNameParts1[2], ")")) {
-			; has metadata information
-			accountFileNameParts2 := StrSplit(accountFileNameParts1[2], ")")  ; Split at )
-			metadata := accountFileNameParts2[1]
-			if(InStr(metadata, "B"))
-				beginnerMissionsDone := 1
-			if(InStr(metadata, "S"))
-				soloBattleMissionDone := 1
-			if(InStr(metadata, "I"))
-				intermediateMissionsDone := 1
-			if(InStr(metadata, "X"))
-				specialMissionsDone := 1
-		}
-	}
-	
-	if(resetSpecialMissionsDone)
-		specialMissionsDone := 0 ; when special mission event is over can be reset
-	
-}
-
-setMetaData() {
-	hasMetaData := 0
-	NamePartRightOfMeta := ""
-	NamePartLeftOfMeta := ""
-	
-	; check if account file has metadata information
-	if(InStr(accountFileName, "(")) {
-		accountFileNameParts1 := StrSplit(accountFileName, "(")  ; Split at (
-		NamePartLeftOfMeta := accountFileNameParts1[1]
-		if(InStr(accountFileNameParts1[2], ")")) {
-			; has metadata information
-			accountFileNameParts2 := StrSplit(accountFileNameParts1[2], ")")  ; Split at )
-			NamePartRightOfMeta := accountFileNameParts2[2]
-			;metadata := accountFileNameParts2[1]
-			
-			hasMetaData := 1
-		}
-	}
-	
-	metadata := ""
-	if(beginnerMissionsDone)
-		metadata .= "B"
-	if(soloBattleMissionDone)
-		metadata .= "S"
-	if(intermediateMissionsDone)
-		metadata .= "I"
-	if(specialMissionsDone)
-		metadata .= "X"
-	
-	if(hasMetaData) {
-		AccountNewName := NamePartLeftOfMeta . "(" . metadata . ")" . NamePartRightOfMeta
-	} else {
-		NameAndExtension := StrSplit(accountFileName, ".")  ; Split the extension
-		AccountNewName := NameAndExtension[1] . "(" . metadata . ").xml"
-	}
-	
-	;MsgBox, %AccountNewName%
-	
-	
-	saveDir := A_ScriptDir "\..\Accounts\Saved\" . winTitle
-	accountFile := saveDir . "\" . accountFileName
-	accountNewFile := saveDir . "\" . AccountNewName
-	FileMove, %accountFile% , %accountNewFile% 
-	accountFileName := AccountNewName
-
-}
