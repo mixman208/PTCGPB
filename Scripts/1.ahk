@@ -27,7 +27,12 @@ global DeadCheck
 global s4tEnabled, s4tSilent, s4t3Dmnd, s4t4Dmnd, s4t1Star, s4tGholdengo, s4tWP, s4tWPMinCards, s4tDiscordWebhookURL, s4tDiscordUserId, s4tSendAccountXml
 global avgtotalSeconds
 
-global accountOpenPacks, accountFileName, accountFileNameOrig, accountFileNameTmp, accountHasPackInfo, ocrSuccess, packsInPool, packsThisRun, aminutes, aseconds, rerolls, rerollStartTime, maxAccountPackNum, cantOpenMorePacks
+avgtotalSeconds := 0
+
+global accountOpenPacks, accountFileName, accountFileNameOrig, accountFileNameTmp, accountHasPackInfo, ocrSuccess, packsInPool, packsThisRun, aminutes, aseconds, rerolls, rerollStartTime, maxAccountPackNum, cantOpenMorePacks, rerolls_local, rerollStartTime_local
+
+rerolls_local := 0
+rerollStartTime_local := A_TickCount
 
 cantOpenMorePacks := 0
 maxAccountPackNum := 35
@@ -513,10 +518,12 @@ if(DeadCheck = 1 && !injectMethod){
         IniWrite, %now%, %A_ScriptDir%\%scriptName%.ini, Metrics, LastEndEpoch
 
         rerolls++
+        rerolls_local++
         IniWrite, %rerolls%, %A_ScriptDir%\%scriptName%.ini, Metrics, rerolls
 
         totalSeconds := Round((A_TickCount - rerollStartTime) / 1000) ; Total time in seconds
-        avgtotalSeconds := Round(totalSeconds / rerolls) ; Total time in seconds
+        totalSeconds_local := Round((A_TickCount - rerollStartTime_local) / 1000) ; Total time in seconds
+        avgtotalSeconds := Round(totalSeconds_local / rerolls_local) ; Total time in seconds
         aminutes := Floor(avgtotalSeconds / 60) ; Total minutes
         aseconds := Mod(avgtotalSeconds, 60) ; Remaining seconds within the minute
         mminutes := Floor(totalSeconds / 60) ; Total minutes
