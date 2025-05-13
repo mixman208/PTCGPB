@@ -2310,8 +2310,11 @@ saveAccount(file := "Valid", ByRef filePath := "", packDetails := "") {
 		if(specialMissionsDone)
 			metadata .= "X"
 			
+		accountOpenPacksStr := accountOpenPacks
+		if(accountOpenPacks<10)
+			accountOpenPacksStr := "0" . accountOpenPacks ; add a trailing 0 for sorting
         saveDir := A_ScriptDir "\..\Accounts\Saved\" . winTitle
-        filePath := saveDir . "\" . accountOpenPacks . "P_" . A_Now . "_" . winTitle . "(" . metadata . ").xml"
+        filePath := saveDir . "\" . accountOpenPacksStr . "P_" . A_Now . "_" . winTitle . "(" . metadata . ").xml"
     } else if (file = "Valid" || file = "Invalid") {
         saveDir := A_ScriptDir "\..\Accounts\GodPacks\"
         xmlFile := A_Now . "_" . winTitle . "_" . file . "_" . packsInPool . "_packs.xml"
@@ -4130,7 +4133,7 @@ SpendAllHourglass() {
 		;if accountOpenPacks > 35
 		;	break
 			
-		HourglassOpening()
+		HourglassOpening(true)
 		if(cantOpenMorePacks || (!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
 			return
 			
