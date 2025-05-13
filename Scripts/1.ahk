@@ -389,11 +389,7 @@ if(DeadCheck = 1 && !injectMethod){
 		if(!(!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
 		if(!beginnerMissionsDone && (deleteMethod = "13 Pack" || (injectMethod && !loadedAccount) || (deleteMethod = "Inject long" && loadedAccount))) {
 			
-			;-----------------------------
-			;if error during mission collection, try commenting the first line and uncommenting the second
 			HomeAndMission()
-			;HomeAndMission(0,true)
-			;-----------------------------
 			if(beginnerMissionsDone)
 				Goto, EndOfRun
 
@@ -481,8 +477,7 @@ if(DeadCheck = 1 && !injectMethod){
 			
 		}
 
-		EndOfRun:
-		
+		EndOfRun:		
 		
 		if(!(!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum)) {
 			;For Special Missions 2025
