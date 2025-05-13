@@ -3680,7 +3680,7 @@ PackOpening() {
     }
 }
 
-HourglassOpening(HG := false, NEIRestart := true) {
+HourglassOpening(HG := false) {
     if(!HG) {
         Delay(3)
         adbClick_wbb(146, 441) ; 146 440
@@ -4129,8 +4129,8 @@ SpendAllHourglass() {
 		;	break
 		;if accountOpenPacks > 35
 		;	break
-			
-		HourglassOpening()
+		
+		HourglassOpening(true)
 		if(cantOpenMorePacks || (!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
 			return
 			
