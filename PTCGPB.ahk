@@ -2625,7 +2625,18 @@ if (!cardDetectionFound)
     ; Download a new Main ID file prior to running the rest of the below
     if (mainIdsURL != "") {
         DownloadFile(mainIdsURL, "ids.txt")
-    }
+		Loop, 10 {
+			if(FileExist("ids.txt"))
+				break
+			else if (A_Index > 10) {
+				MsgBox, Could not download ids.txt from ids API
+				break
+			}
+		}
+    } else {
+		if(FileExist("ids.txt"))
+			FileDelete, ids.txt
+	}
 
     ; Download showcase codes if enabled
     if (showcaseEnabled && showcaseURL != "") {

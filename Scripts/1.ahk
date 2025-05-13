@@ -234,6 +234,13 @@ if(InStr(deleteMethod, "Inject"))
 
 initializeAdbShell()
 
+listfile := A_ScriptDir . "\..\Accounts\Saved\" . scriptName . "\list.txt"
+listcurrentfile := A_ScriptDir . "\..\Accounts\Saved\" . scriptName . "\list_current.txt"
+FileDelete, %listfile%
+FileDelete, %listcurrentfile%
+
+friendIDs := ReadFile("ids")
+
 createAccountList(scriptName)
 
 if(injectMethod) {
