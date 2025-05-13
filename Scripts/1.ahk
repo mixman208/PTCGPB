@@ -389,11 +389,7 @@ if(DeadCheck = 1 && !injectMethod){
 		if(!(!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
 		if(!beginnerMissionsDone && (deleteMethod = "13 Pack" || (injectMethod && !loadedAccount) || (deleteMethod = "Inject long" && loadedAccount))) {
 			
-			;-----------------------------
-			;if error during mission collection, try commenting the first line and uncommenting the second
 			HomeAndMission()
-			;HomeAndMission(0,true)
-			;-----------------------------
 			if(beginnerMissionsDone)
 				Goto, EndOfRun
 
@@ -481,8 +477,7 @@ if(DeadCheck = 1 && !injectMethod){
 			
 		}
 
-		EndOfRun:
-		
+		EndOfRun:		
 		
 		if(!(!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum)) {
 			;For Special Missions 2025
@@ -1128,7 +1123,7 @@ FindOrLoseImage(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT", E
     if (vRet = 1) {
         restartGameInstance("Stuck at " . imageName . "...")
     }
-    if(imageName = "Social" || imageName = "Add") {
+    if(imageName = "Social" || imageName = "Add" || imageName = "Search") {
         TradeTutorial()
     }
     if(imageName = "Social" || imageName = "Country" || imageName = "Account2" || imageName = "Account" || imageName = "Points") { ;only look for deleted account on start up.
@@ -1378,7 +1373,7 @@ FindImageAndClick(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT",
         if(imageName = "Points" || imageName = "Home") { ;look for level up ok "button"
             LevelUp()
         }
-        if(imageName = "Social" || imageName = "Add") {
+        if(imageName = "Social" || imageName = "Add" || imageName = "Search") {
             TradeTutorial()
         }
         if(skip) {
@@ -3683,7 +3678,7 @@ PackOpening() {
     }
 }
 
-HourglassOpening(HG := false, NEIRestart := true) {
+HourglassOpening(HG := false) {
     if(!HG) {
         Delay(3)
         adbClick_wbb(146, 441) ; 146 440
@@ -4132,7 +4127,7 @@ SpendAllHourglass() {
 		;	break
 		;if accountOpenPacks > 35
 		;	break
-			
+    
 		HourglassOpening(true)
 		if(cantOpenMorePacks || (!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum))
 			return
