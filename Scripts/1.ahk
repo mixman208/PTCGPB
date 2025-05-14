@@ -492,6 +492,7 @@ if(DeadCheck = 1 && !injectMethod){
 
 		EndOfRun:		
 		
+		if(deleteMethod != "Inject")
 		if(!(!friendIDs && friendID = "" && accountOpenPacks >= maxAccountPackNum)) {
 			;For Special Missions 2025
 			SpecialMissions2025 := true
