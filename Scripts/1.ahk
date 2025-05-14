@@ -2404,12 +2404,13 @@ UpdateAccount() {
 	else
 		return ; if OCR is not successful, don't modify account file
 	
-	if(accountOpenPacks <= 40 || !InStr(accountFileName, "P")) {		
-		saveDir := A_ScriptDir "\..\Accounts\Saved\" . winTitle
-		accountFile := saveDir . "\" . accountFileName
+	saveDir := A_ScriptDir "\..\Accounts\Saved\" . winTitle
+	accountFile := saveDir . "\" . accountFileName
+	FileSetTime,, %accountFile%
+	
+	if(accountOpenPacks <= 40 || !InStr(accountFileName, "P")) {			
 		accountNewFile := saveDir . "\" . AccountNewName
 		FileMove, %accountFile% , %accountNewFile% ;TODO enable
-		FileSetTime,, %accountNewFile%
 		accountFileName := AccountNewName
 	}
 	
