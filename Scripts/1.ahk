@@ -39,13 +39,14 @@ maxAccountPackNum := 35
 aminutes := 0
 aseconds := 0
 
-global beginnerMissionsDone, soloBattleMissionDone, intermediateMissionsDone, specialMissionsDone, resetSpecialMissionsDone
+global beginnerMissionsDone, soloBattleMissionDone, intermediateMissionsDone, specialMissionsDone, resetSpecialMissionsDone, accountHasPackInTesting
 
 beginnerMissionsDone := 0
 soloBattleMissionDone := 0
 intermediateMissionsDone := 0
 specialMissionsDone := 0
 resetSpecialMissionsDone := 0
+accountHasPackInTesting :=0
 
 global dbg_bbox, dbg_bboxNpause, dbg_bbox_click
 
@@ -553,6 +554,7 @@ if(DeadCheck = 1 && !injectMethod){
 			soloBattleMissionDone := 0
 			intermediateMissionsDone := 0
 			specialMissionsDone := 0
+			accountHasPackInTesting := 0
 
 			if(!injectMethod)
 				restartGameInstance("New Run", false)
@@ -1743,7 +1745,9 @@ CheckPack() {
 
     if (foundGP) {
         if (loadedAccount) {
-			accountFoundGP()
+			;accountFoundGP()
+			accountHasPackInTesting := 1
+			setMetaData()
             IniWrite, 0, %A_ScriptDir%\%scriptName%.ini, UserSettings, DeadCheck
         }
 
@@ -1787,7 +1791,9 @@ CheckPack() {
 
         if (foundLabel) {
             if (loadedAccount) {
-                accountFoundGP()
+                ;accountFoundGP()
+				accountHasPackInTesting := 1
+				setMetaData()
                 IniWrite, 0, %A_ScriptDir%\%scriptName%.ini, UserSettings, DeadCheck
             }
 
@@ -2206,6 +2212,7 @@ loadAccount() {
 	soloBattleMissionDone := 0
 	intermediateMissionsDone := 0
 	specialMissionsDone := 0
+	accountHasPackInTesting := 0
 
 	if (stopToggle) {
 		CreateStatusMessage("Stopping...",,,, false)
@@ -2248,9 +2255,17 @@ loadAccount() {
                 FileGetTime, accountFileTime, %loadFile%, M  ; Get last modified time of account file
                 accountModifiedTimeDiff := A_Now
 				EnvSub, accountModifiedTimeDiff, %accountFileTime%, Hours
+				
+				if(InStr(fileLines[1], "T")) {
+					; account has a pack under test
+					
+				}
 				if (accountModifiedTimeDiff >= 24){
-					accountFileName := fileLines[1]
-                    break
+					if(!InStr(fileLines[1], "T") || accountModifiedTimeDiff >= 5*24) {
+						; otherwise account has a pack under test
+						accountFileName := fileLines[1]
+						break
+					}
 				}
                 cycle++
                 Delay(1)
@@ -2318,6 +2333,8 @@ saveAccount(file := "Valid", ByRef filePath := "", packDetails := "") {
 			metadata .= "I"
 		if(specialMissionsDone)
 			metadata .= "X"
+		if(accountHasPackInTesting)
+			metadata .= "T"
 			
 		accountOpenPacksStr := accountOpenPacks
 		if(accountOpenPacks<10)
@@ -4052,6 +4069,7 @@ getMetaData() {
 	soloBattleMissionDone := 0
 	intermediateMissionsDone := 0
 	specialMissionsDone := 0
+	accountHasPackInTesting := 0
 
 	; check if account file has metadata information
 	if(InStr(accountFileName, "(")) {
@@ -4068,6 +4086,8 @@ getMetaData() {
 				intermediateMissionsDone := 1
 			if(InStr(metadata, "X"))
 				specialMissionsDone := 1
+			;if(InStr(metadata, "T"))
+			;	accountHasPackInTesting := 1
 		}
 	}
 	
@@ -4104,6 +4124,8 @@ setMetaData() {
 		metadata .= "I"
 	if(specialMissionsDone)
 		metadata .= "X"
+	if(accountHasPackInTesting)
+		metadata .= "T"
 	
 	if(hasMetaData) {
 		AccountNewName := NamePartLeftOfMeta . "(" . metadata . ")" . NamePartRightOfMeta
