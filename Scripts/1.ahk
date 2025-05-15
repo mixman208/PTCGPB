@@ -818,9 +818,9 @@ RemoveFriends() {
 
 TradeTutorial() {
     if(FindOrLoseImage(100, 120, 175, 145, , "Trade", 0)) {
-        FindImageAndClick(15, 455, 40, 475, , "Add2", 188, 449)
+        FindImageAndClick(15, 455, 40, 475, , "Add2", 188, 449,,2)
         Sleep, 1000
-        FindImageAndClick(226, 100, 270, 135, , "Add", 38, 460, 500)
+        FindImageAndClick(226, 100, 270, 135, , "Add", 38, 460, 500,,2)
     }
     Delay(1)
 }
@@ -2261,7 +2261,7 @@ loadAccount() {
 					; account has a pack under test
 					
 				}
-				if (accountModifiedTimeDiff >= 24){
+				if (accountModifiedTimeDiff >= 25){
 					if(!InStr(fileLines[1], "T") || accountModifiedTimeDiff >= 5*24) {
 						; otherwise account has a pack under test
 						accountFileName := fileLines[1]
