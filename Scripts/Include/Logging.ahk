@@ -8,15 +8,15 @@ settingsPath := ScriptDir . "\..\..\Settings.ini"
 IniRead, discordWebhookURL, %settingsPath%, UserSettings, discordWebhookURL
 IniRead, discordUserId, %settingsPath%, UserSettings, discordUserId
 IniRead, sendAccountXml, %settingsPath%, UserSettings, sendAccountXml, 0
+IniRead, Debug, %settingsPath%, UserSettings, statusMessage
 
 ; Enable debugging to get more status messages and logging.
-Debug := false
 
 ResetStatusMessage() {
     CreateStatusMessage(DEFAULT_STATUS_MESSAGE,,,, false, true)
 }
 
-CreateStatusMessage(Message, GuiName := "StatusMessage", X := 0, Y := 80, debugOnly := true, Persist := false) {
+CreateStatusMessage(Message, GuiName := "StatusMessage", X := 0, Y := 565, debugOnly := true, Persist := false) {
     static hwnds := {}
     static resetStatusFunc := Func("ResetStatusMessage")
 
@@ -26,9 +26,15 @@ CreateStatusMessage(Message, GuiName := "StatusMessage", X := 0, Y := 80, debugO
     if (Debug && Message != DEFAULT_STATUS_MESSAGE)
         LogToFile(GuiName . ": " . Message)
 
+	if(GuiName = "AvgRuns")
+		guiheight := 20
+	else
+		guiheight := 40
+		
     try {
         ; Check if GUI with this name already exists.
         GuiName := GuiName . scriptName
+		
         if !hwnds.HasKey(GuiName) {
             WinGetPos, xpos, ypos, Width, Height, %winTitle%
             X := X + xpos + 5
@@ -39,7 +45,7 @@ CreateStatusMessage(Message, GuiName := "StatusMessage", X := 0, Y := 80, debugO
                 Y := 0
 
             ; Create a new GUI with the given name, position, and message
-            Gui, %GuiName%:New, -AlwaysOnTop +ToolWindow -Caption
+            Gui, %GuiName%:New, -AlwaysOnTop +ToolWindow -Caption -DPIScale
             Gui, %GuiName%:Margin, 2, 2  ; Set margin for the GUI
             Gui, %GuiName%:Font, s8  ; Set the font size to 8 (adjust as needed)
             Gui, %GuiName%:Add, Text, hwndhCtrl vStatusText,
@@ -48,10 +54,11 @@ CreateStatusMessage(Message, GuiName := "StatusMessage", X := 0, Y := 80, debugO
             Gui, %GuiName%:+Owner%OwnerWND% +LastFound
             DllCall("SetWindowPos", "Ptr", WinExist(), "Ptr", 1  ; HWND_BOTTOM
                 , "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)  ; SWP_NOSIZE, SWP_NOMOVE, SWP_NOACTIVATE
-            Gui, %GuiName%:Show, NoActivate x%X% y%Y% AutoSize
+
+            Gui, %GuiName%:Show, NoActivate x%X% y%Y% w275 h%guiheight%
         }
         SetTextAndResize(hwnds[GuiName], Message)
-        Gui, %GuiName%:Show, NoActivate AutoSize
+        Gui, %GuiName%:Show, NoActivate  w275 h%guiheight%
 
         ; Clear any previous timers.
         SetTimer, % resetStatusFunc, Off
@@ -85,7 +92,7 @@ SetTextAndResize(controlHwnd, newText) {
     DllCall("ReleaseDC", "Ptr", controlHwnd, "Ptr", dc)
 
     GuiControl,, %controlHwnd%, %newText%
-    GuiControl MoveDraw, %controlHwnd%, % "h" h*96/A_ScreenDPI + 2 " w" w*96/A_ScreenDPI + 2
+    GuiControl MoveDraw, %controlHwnd%, % "h" h " w" w
 }
 
 LogToFile(message, logFile := "") {
