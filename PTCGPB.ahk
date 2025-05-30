@@ -12,12 +12,13 @@ OnError("ErrorHandler")  ; Add this line here
 
 global STATIC_BRUSH := 0
 
-githubUser := "Arturo-1212"
+githubUser := "mixman208"
 repoName := "PTCGPB"
-localVersion := "v6.4.6Beta"
+localVersion := "v6.4.7"
 scriptFolder := A_ScriptDir
 zipPath := A_Temp . "\update.zip"
 extractPath := A_Temp . "\update"
+intro := "ADD INTRO" ; ; Added for the main title at line 2490
 
 ; GUI dimensions constants
 global GUI_WIDTH := 377 ; Adjusted from 510 to 480
@@ -49,7 +50,7 @@ global SortByText, SortByDropdown
 global showcaseLikes, showcaseURL, skipMissionsInjectMissions
 global minStarsA1Mewtwo, minStarsA1Charizard, minStarsA1Pikachu, minStarsA1a
 global minStarsA2Dialga, minStarsA2Palkia, minStarsA2a, minStarsA2b
-global minStarsA3Solgaleo, minStarsA3Lunala, minStarsA3a
+global minStarsA3Solgaleo, minStarsA3Lunala, minStarsA3aBuzzwole
 global waitForEligibleAccounts, maxWaitHours
 global finishSignalFile := A_ScriptDir "\Scripts\Include\finish.signal"
 
@@ -429,7 +430,7 @@ NextStep:
         ; === MISSING ADVANCED SETTINGS VARIABLES ===
         global minStarsA1Mewtwo, minStarsA1Charizard, minStarsA1Pikachu, minStarsA1a
         global minStarsA2Dialga, minStarsA2Palkia, minStarsA2a, minStarsA2b
-        global minStarsA3Solgaleo, minStarsA3Lunala, minStarsA3a
+        global minStarsA3Solgaleo, minStarsA3Lunala, minStarsA3aBuzzwole
         
         ; FIXED: Make sure all values are properly synced from GUI before saving
         Gui, Submit, NoHide
@@ -546,7 +547,7 @@ NextStep:
         IniWrite, %minStarsA2b%, Settings.ini, UserSettings, minStarsA2b
         IniWrite, %minStarsA3Solgaleo%, Settings.ini, UserSettings, minStarsA3Solgaleo
         IniWrite, %minStarsA3Lunala%, Settings.ini, UserSettings, minStarsA3Lunala
-        IniWrite, %minStarsA3a%, Settings.ini, UserSettings, minStarsA3a
+        IniWrite, %minStarsA3aBuzzwole%, Settings.ini, UserSettings, minStarsA3aBuzzwole
         
         IniWrite, %sendAccountXml%, Settings.ini, UserSettings, sendAccountXml
         
@@ -789,17 +790,21 @@ NextStep:
     }
     
     ;; Hover Class
+    ; Fix the flickering when the mouse is over the text controls
     class ToggleImageOnHover {
         static Pairs := []
-        static TextToPicture := {} ; Maps text controls to picture controls
+        static TextToPicture := {}
+        static LastHoverTime := {}
+        static DEBOUNCE_DELAY := 20 ; milliseconds to prevent rapid switching
         
         RegisterTextControl(hText, hPicture) {
             this.TextToPicture[hText] := hPicture
         }
         
         CreateImagePair(hPic1, hPic2) {
-            Pair := {1: hPic1, 2: hPic2, hover: false}
+            Pair := {1: hPic1, 2: hPic2, hover: false, debouncing: false}
             this.Pairs[hPic1] := Pair
+            this.LastHoverTime[hPic1] := 0
             this.Api.PreparePair(Pair)
             
             if this.Pairs.Count() = 1 {
@@ -810,6 +815,7 @@ NextStep:
         
         RemovePair(hPic1) {
             this.Pairs.Delete(hPic1)
+            this.LastHoverTime.Delete(hPic1)
             if !this.Pairs.Count()
                 this.Api.RemoveOnHover()
         }
@@ -872,40 +878,94 @@ NextStep:
             }
             
             CheckIfHover(hwnd) {
-                if (this.Pairs.base.TextToPicture.HasKey(hwnd)) {
-                    hwnd := this.Pairs.base.TextToPicture[hwnd]
+                ; Map text control to picture control
+                if (ToggleImageOnHover.TextToPicture.HasKey(hwnd)) {
+                    hwnd := ToggleImageOnHover.TextToPicture[hwnd]
                 }
                 
+                currentTime := A_TickCount
+                
                 for k, Pair in this.Pairs {
-                    if !Pair.hover && (hwnd = Pair[1] || hwnd = Pair[2]) {
-                        Pair.hover := true
-                        this.Switch(Pair, true)
-                        Timer := ObjBindMethod(this, "OnMouseLeavePair", Pair)
-                        SetTimer, % Timer, 100
-                        break
+                    ; Check if mouse is over this pair
+                    isOverPair := (hwnd = Pair[1] || hwnd = Pair[2])
+                    
+                    ; Also check if mouse is over associated text
+                    isOverText := false
+                    for textHandle, pictureHandle in ToggleImageOnHover.TextToPicture {
+                        if (hwnd = textHandle && (pictureHandle = Pair[1] || pictureHandle = Pair[2])) {
+                            isOverText := true
+                            isOverPair := true
+                            break
+                        }
+                    }
+                    
+                    if isOverPair {
+                        ; Debounce rapid hover changes
+                        if (currentTime - ToggleImageOnHover.LastHoverTime[k] < ToggleImageOnHover.DEBOUNCE_DELAY) {
+                            continue
+                        }
+                        
+                        if !Pair.hover && !Pair.debouncing {
+                            Pair.hover := true
+                            Pair.debouncing := true
+                            ToggleImageOnHover.LastHoverTime[k] := currentTime
+                            this.Switch(Pair, true)
+                            
+                            ; Clear debouncing after a short delay
+                            DebounceTimer := ObjBindMethod(this, "ClearDebouncing", Pair)
+                            SetTimer, % DebounceTimer, -20
+                            
+                            ; Set up leave detection
+                            Timer := ObjBindMethod(this, "OnMouseLeavePair", Pair)
+                            SetTimer, % Timer, 50 ; Reduced frequency for smoother detection
+                            break
+                        }
                     }
                 }
+            }
+            
+            ClearDebouncing(Pair) {
+                Pair.debouncing := false
             }
             
             OnMouseLeavePair(Pair) {
                 MouseGetPos,,,, hCtrl, 2
                 
+                ; Check if mouse is still over the picture pair
+                isOnPicture := (hCtrl = Pair[1] || hCtrl = Pair[2])
+                
+                ; Check if mouse is over associated text
                 isOnText := false
-                for textHandle, pictureHandle in this.Pairs.base.TextToPicture {
+                for textHandle, pictureHandle in ToggleImageOnHover.TextToPicture {
                     if (hCtrl = textHandle && (pictureHandle = Pair[1] || pictureHandle = Pair[2])) {
                         isOnText := true
                         break
                     }
                 }
                 
-                if !(hCtrl = Pair[1] || hCtrl = Pair[2] || isOnText) {
+                ; Also check mouse position to prevent edge cases
+                MouseGetPos, mx, my
+                isInBounds := this.IsMouseInControlBounds(Pair, mx, my)
+                
+                if !(isOnPicture || isOnText || isInBounds) {
                     Pair.hover := false
+                    Pair.debouncing := false
                     SetTimer,, Delete
                     this.Switch(Pair)
                 }
             }
             
+            IsMouseInControlBounds(Pair, mx, my) {
+                ; Get bounds of the first picture control
+                ControlGetPos, x, y, w, h,, % "ahk_id " . Pair[1]
+                
+                ; Add small tolerance to prevent edge flickering
+                tolerance := 2
+                return (mx >= x - tolerance && mx <= x + w + tolerance && my >= y - tolerance && my <= y + h + tolerance)
+            }
+            
             Switch(Pair, mode := false) {
+                ; Simple switch without redraw control to avoid errors
                 for k, v in ["Show", "Hide"]
                     GuiControl, % v, % Pair[mode ? 3 - k : k]
             }
@@ -2065,7 +2125,7 @@ NextStep:
             IniRead, minStarsA2a, Settings.ini, UserSettings, minStarsA2a, 0
             IniRead, minStarsA3Solgaleo, Settings.ini, UserSettings, minStarsA3Solgaleo, 0
             IniRead, minStarsA3Lunala, Settings.ini, UserSettings, minStarsA3Lunala, 0
-            IniRead, minStarsA3a, Settings.ini, UserSettings, minStarA3aBuzzwole, 0
+            IniRead, minStarsA3aBuzzwole, Settings.ini, UserSettings, minStarA3aBuzzwole, 0
             
             IniRead, heartBeatDelay, Settings.ini, UserSettings, heartBeatDelay, 30
             IniRead, sendAccountXml, Settings.ini, UserSettings, sendAccountXml, 0
@@ -2873,38 +2933,40 @@ NextStep:
     ;Gui, Add, Text, x45 y275 backgroundtrans Hidden vTxt_ShowcaseURL, Showcase.txt API:
     ;Gui, Add, Edit, vshowcaseURL w280 x45 y300 h20 -E0x200 Center backgroundtrans Hidden, %showcaseURL%
     
-    ToggleImageOnHover.RegisterTextControl(ArrangeBtn.hwnd, ArrangeHover.textHwnd)
-    ToggleImageOnHover.RegisterTextControl(CoffeeBtn.hwnd, CoffeeHover.textHwnd)
-    ToggleImageOnHover.RegisterTextControl(JoinBtn.hwnd, JoinHover.textHwnd)
-    ToggleImageOnHover.RegisterTextControl(MumuBtn.hwnd, MumuHover.textHwnd)
-    ToggleImageOnHover.RegisterTextControl(BalanceXMLsBtn.hwnd, BalanceXMLsHover.textHwnd)
-    ToggleImageOnHover.RegisterTextControl(StartBtn.hwnd, StartHover.textHwnd)
-    ToggleImageOnHover.RegisterTextControl(UpdateBtn.hwnd, UpdateHover.textHwnd)
+    HoverSystem := new ToggleImageOnHover()
     
-    ToggleImageOnHover.RegisterTextControl(RerollSettingsBtn.hwnd, RerollSettingsHover.textHwnd)
-    ToggleImageOnHover.RegisterTextControl(SystemSettingsBtn.hwnd, SystemSettingsHover.textHwnd)
-    ToggleImageOnHover.RegisterTextControl(PackSettingsBtn.hwnd, PackSettingsHover.textHwnd)
-    ToggleImageOnHover.RegisterTextControl(SaveForTradeBtn.hwnd, SaveForTradeHover.textHwnd)
-    ToggleImageOnHover.RegisterTextControl(DiscordSettingsBtn.hwnd, DiscordSettingsHover.textHwnd)
-    ToggleImageOnHover.RegisterTextControl(DownloadSettingsBtn.hwnd, DownloadSettingsHover.textHwnd)
+    HoverSystem.RegisterTextControl(ArrangeHover.textHwnd, ArrangeBtn.hwnd)
+    HoverSystem.RegisterTextControl(CoffeeHover.textHwnd, CoffeeBtn.hwnd)
+    HoverSystem.RegisterTextControl(JoinHover.textHwnd, JoinBtn.hwnd)
+    HoverSystem.RegisterTextControl(MumuHover.textHwnd, MumuBtn.hwnd)
+    HoverSystem.RegisterTextControl(BalanceXMLsHover.textHwnd, BalanceXMLsBtn.hwnd)
+    HoverSystem.RegisterTextControl(StartHover.textHwnd, StartBtn.hwnd)
+    HoverSystem.RegisterTextControl(UpdateHover.textHwnd, UpdateBtn.hwnd)
     
-    ToggleImageOnHover.CreateImagePair(ArrangeBtn.hwnd, ArrangeHover.hwnd)
-    ToggleImageOnHover.CreateImagePair(CoffeeBtn.hwnd, CoffeeHover.hwnd)
-    ToggleImageOnHover.CreateImagePair(JoinBtn.hwnd, JoinHover.hwnd)
-    ToggleImageOnHover.CreateImagePair(MumuBtn.hwnd, MumuHover.hwnd)
-    ToggleImageOnHover.CreateImagePair(BalanceXMLsBtn.hwnd, BalanceXMLsHover.hwnd)
-    ToggleImageOnHover.CreateImagePair(StartBtn.hwnd, StartHover.hwnd)
-    ToggleImageOnHover.CreateImagePair(UpdateBtn.hwnd, UpdateHover.hwnd)
+    HoverSystem.RegisterTextControl(RerollSettingsHover.textHwnd, RerollSettingsBtn.hwnd)
+    HoverSystem.RegisterTextControl(SystemSettingsHover.textHwnd, SystemSettingsBtn.hwnd)
+    HoverSystem.RegisterTextControl(PackSettingsHover.textHwnd, PackSettingsBtn.hwnd)
+    HoverSystem.RegisterTextControl(SaveForTradeHover.textHwnd, SaveForTradeBtn.hwnd)
+    HoverSystem.RegisterTextControl(DiscordSettingsHover.textHwnd, DiscordSettingsBtn.hwnd)
+    HoverSystem.RegisterTextControl(DownloadSettingsHover.textHwnd, DownloadSettingsBtn.hwnd)
     
-    ToggleImageOnHover.CreateImagePair(RerollSettingsBtn.hwnd, RerollSettingsHover.hwnd)
-    ToggleImageOnHover.CreateImagePair(SystemSettingsBtn.hwnd, SystemSettingsHover.hwnd)
-    ToggleImageOnHover.CreateImagePair(PackSettingsBtn.hwnd, PackSettingsHover.hwnd)
-    ToggleImageOnHover.CreateImagePair(SaveForTradeBtn.hwnd, SaveForTradeHover.hwnd)
-    ToggleImageOnHover.CreateImagePair(DiscordSettingsBtn.hwnd, DiscordSettingsHover.hwnd)
-    ToggleImageOnHover.CreateImagePair(DownloadSettingsBtn.hwnd, DownloadSettingsHover.hwnd)
+    HoverSystem.CreateImagePair(ArrangeBtn.hwnd, ArrangeHover.hwnd)
+    HoverSystem.CreateImagePair(CoffeeBtn.hwnd, CoffeeHover.hwnd)
+    HoverSystem.CreateImagePair(JoinBtn.hwnd, JoinHover.hwnd)
+    HoverSystem.CreateImagePair(MumuBtn.hwnd, MumuHover.hwnd)
+    HoverSystem.CreateImagePair(BalanceXMLsBtn.hwnd, BalanceXMLsHover.hwnd)
+    HoverSystem.CreateImagePair(StartBtn.hwnd, StartHover.hwnd)
+    HoverSystem.CreateImagePair(UpdateBtn.hwnd, UpdateHover.hwnd)
     
-    ToggleImageOnHover.CreateImagePair(previousBtn.hwnd, previousHover.hwnd)
-    ToggleImageOnHover.CreateImagePair(nextBtn.hwnd, nextHover.hwnd)
+    HoverSystem.CreateImagePair(RerollSettingsBtn.hwnd, RerollSettingsHover.hwnd)
+    HoverSystem.CreateImagePair(SystemSettingsBtn.hwnd, SystemSettingsHover.hwnd)
+    HoverSystem.CreateImagePair(PackSettingsBtn.hwnd, PackSettingsHover.hwnd)
+    HoverSystem.CreateImagePair(SaveForTradeBtn.hwnd, SaveForTradeHover.hwnd)
+    HoverSystem.CreateImagePair(DiscordSettingsBtn.hwnd, DiscordSettingsHover.hwnd)
+    HoverSystem.CreateImagePair(DownloadSettingsBtn.hwnd, DownloadSettingsHover.hwnd)
+    
+    HoverSystem.CreateImagePair(previousBtn.hwnd, previousHover.hwnd)
+    HoverSystem.CreateImagePair(nextBtn.hwnd, nextHover.hwnd)
     ; Initialize GUI with no section selected
     HideAllSections()
     Gui, Show, w%GUI_WIDTH% h%GUI_HEIGHT%, PTCGPB Bot Setup [Non-Commercial 4.0 International License]
