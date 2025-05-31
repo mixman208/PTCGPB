@@ -3,7 +3,7 @@
 
 ; Define the primary paths more efficiently
 scriptDir := A_ScriptDir
-saveDir := scriptDir . "\..\Accounts\Saved"
+saveDir := scriptDir . "\..\..\Accounts\Saved"
 
 ; Clean up path efficiently
 saveDir := StrReplace(saveDir, "\\", "\")
@@ -11,7 +11,7 @@ saveDir := StrReplace(saveDir, "\\", "\")
 ; Quick directory existence check with fallback
 if (!FileExist(saveDir)) {
     ; Try alternative path directly
-    saveDir := scriptDir . "\Accounts\Saved"
+    saveDir := scriptDir . "\..\Accounts\Saved" 
     saveDir := StrReplace(saveDir, "\\", "\")
     
     ; Exit immediately if neither path exists

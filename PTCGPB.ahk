@@ -1,4 +1,4 @@
-#Include %A_ScriptDir%\Scripts\Include\
+﻿#Include %A_ScriptDir%\Scripts\Include\
 #Include Logging.ahk
 #Include ADB.ahk
 #Include Dictionary.ahk
@@ -8,7 +8,7 @@ version = Arturos PTCGP Bot
 CoordMode, Mouse, Screen
 SetTitleMatchMode, 3
 
-OnError("ErrorHandler")  ; Add this line here
+OnError("ErrorHandler") ; Add this line here
 
 global STATIC_BRUSH := 0
 
@@ -1054,7 +1054,7 @@ NextStep:
         newValue := !%varName%
         %varName% := newValue
         
-        GuiControl,, %varName%, % newValue ? "Gui_checked.png" : "Gui_unchecked.png"
+        GuiControl,, %varName%, % newValue ? checkedPath : uncheckedPath
         IniWrite, %newValue%, Settings.ini, UserSettings, %varName% ; Added to fix Gholdengo not displaying correctly
     }
     
@@ -2082,9 +2082,9 @@ NextStep:
             IniRead, Pikachu, Settings.ini, UserSettings, Pikachu, 0
             IniRead, Charizard, Settings.ini, UserSettings, Charizard, 0
             IniRead, Mewtwo, Settings.ini, UserSettings, Mewtwo, 0
-            IniRead, Solgaleo, Settings.ini, UserSettings, Solgaleo, 1
+            IniRead, Solgaleo, Settings.ini, UserSettings, Solgaleo, 0
             IniRead, Lunala, Settings.ini, UserSettings, Lunala, 0
-            IniRead, Buzzwole, Settings,ini, UserSettings, Buzzwole, 0
+            IniRead, Buzzwole, Settings.ini, UserSettings, Buzzwole, 1
             IniRead, slowMotion, Settings.ini, UserSettings, slowMotion, 0
             IniRead, ocrLanguage, Settings.ini, UserSettings, ocrLanguage, en
             IniRead, clientLanguage, Settings.ini, UserSettings, clientLanguage, en
@@ -2257,7 +2257,7 @@ NextStep:
         IniRead, isDarkTheme, Settings.ini, UserSettings, isDarkTheme, 0
         IniRead, useBackgroundImage, Settings.ini, UserSettings, useBackgroundImage, 0
         
-        frontpath := A_ScriptDir . "\Scripts\GuiImage\"
+        frontpath := A_ScriptDir . "\GUI\GuiImage\"
         
         if (isDarkTheme) {
             mode := "darkmod\"
@@ -2308,7 +2308,7 @@ NextStep:
         IniRead, useBackgroundImage, Settings.ini, UserSettings, useBackgroundImage
         IniRead, isDarkTheme, Settings.ini, UserSettings, isDarkTheme
         
-        frontpath := A_ScriptDir . "\Scripts\GuiImage\"
+        frontpath := A_ScriptDir . "\GUI\GuiImage\"
         
         if (isDarkTheme) {
             mode := "darkmod\"
@@ -2559,6 +2559,9 @@ NextStep:
     global Txt_s4t3Dmnd, Txt_s4t4Dmnd, Txt_s4t1Star, s4tGholdengoArrow, Txt_s4tWP, Txt_s4tSendAccountXml
     global Txt_sendAccountXml, Txt_heartBeat
     global Txt_showcaseEnabled
+    global checkedPath, uncheckedPath
+    checkedPath := A_ScriptDir . "\GUI\Gui_checked.png"
+    uncheckedPath := A_ScriptDir . "\GUI\Gui_unchecked.png"
     ;; Friend ID Section
     SetInputFont()
     Gui, Add, Text, x45 y150 vFriendIDLabel backgroundtrans Hidden, % currentDictionary.FriendIDLabel
@@ -2582,7 +2585,7 @@ NextStep:
     Gui, Add, Text, x45 y255 backgroundtrans Hidden vTxt_Columns, % currentDictionary.Txt_Columns
     Gui, Add, Edit, vColumns cFDFDFD w30 x220 y255 h20 -E0x200 Center backgroundtrans Hidden, %Columns%
     
-    AddCheckBox(45, 282, 28, 13, "runMain", "mainSettings", "Gui_checked.png", "Gui_unchecked.png", runMain, "Txt_runMain", currentDictionary.Txt_runMain, 80, 280)
+    AddCheckBox(45, 282, 28, 13, "runMain", "mainSettings", checkedPath, uncheckedPath, runMain, "Txt_runMain", currentDictionary.Txt_runMain, 80, 280)
     Gui, Add, Edit, % "vMains cFDFDFD w30 x220 y280 h20 -E0x200 Center Hidden " . (runMain ? "" : " backgroundtrans Hidden"), %Mains%
     Gui, Add, Text, x45 y305 backgroundtrans Hidden vTxt_AccountName, % currentDictionary.Txt_AccountName
     Gui, Add, Edit, vAccountName cFDFDFD w130 x45 y330 h20 -E0x200 Center backgroundtrans Hidden, %AccountName%
@@ -2600,7 +2603,7 @@ NextStep:
     Gui, Add, Text, x45 y410 backgroundtrans Hidden vTxt_SwipeSpeed, % currentDictionary.Txt_SwipeSpeed
     Gui, Add, Edit, vswipeSpeed cFDFDFD w35 x220 y410 h20 -E0x200 Center backgroundtrans Hidden, %swipeSpeed%
     
-    AddCheckBox(45, 436, 28, 13, "slowMotion", "", "Gui_checked.png", "Gui_unchecked.png", slowMotion, "Txt_slowMotion", currentDictionary.Txt_slowMotion, 80, 435)
+    AddCheckBox(45, 436, 28, 13, "slowMotion", "", checkedPath, uncheckedPath, slowMotion, "Txt_slowMotion", currentDictionary.Txt_slowMotion, 80, 435)
     
     ;; System Settings Section
     SetNormalFont()
@@ -2673,23 +2676,23 @@ NextStep:
     Gui, Add, Text, x45 y300 backgroundtrans Hidden vTxt_InstanceLaunchDelay, % currentDictionary.Txt_InstanceLaunchDelay
     Gui, Add, Edit, vinstanceLaunchDelay cFDFDFD w40 x190 y300 h20 -E0x200 Center backgroundtrans Hidden, %instanceLaunchDelay%
     
-    AddCheckBox(45, 326, 28, 13, "autoLaunchMonitor", "", "Gui_checked.png", "Gui_unchecked.png", autoLaunchMonitor, "Txt_autoLaunchMonitor", currentDictionary.Txt_autoLaunchMonitor, 80, 325)
+    AddCheckBox(45, 326, 28, 13, "autoLaunchMonitor", "", checkedPath, uncheckedPath, autoLaunchMonitor, "Txt_autoLaunchMonitor", currentDictionary.Txt_autoLaunchMonitor, 80, 325)
     
     SetHeaderFont()
     Gui, Add, Text, x45 y350 backgroundtrans Hidden vExtraSettingsHeading, % currentDictionary.ExtraSettingsHeading
     SetNormalFont()
     
     ; First add Role-Based Filters
-    AddCheckBox(45, 376, 28, 13, "applyRoleFilters", "", "Gui_checked.png", "Gui_unchecked.png", applyRoleFilters, "Txt_applyRoleFilters", currentDictionary.Txt_applyRoleFilters, 80, 375)
+    AddCheckBox(45, 376, 28, 13, "applyRoleFilters", "", checkedPath, uncheckedPath, applyRoleFilters, "Txt_applyRoleFilters", currentDictionary.Txt_applyRoleFilters, 80, 375)
     
     ; Then add Debug Mode
-    AddCheckBox(45, 401, 28, 13, "debugMode", "", "Gui_checked.png", "Gui_unchecked.png", debugMode, "Txt_debugMode", currentDictionary.Txt_debugMode, 80, 400)
+    AddCheckBox(45, 401, 28, 13, "debugMode", "", checkedPath, uncheckedPath, debugMode, "Txt_debugMode", currentDictionary.Txt_debugMode, 80, 400)
     
     ; Then add the Use Tesseract checkbox
-    AddCheckBox(45, 426, 28, 13, "tesseractOption", "TesseractOptionSettings", "Gui_checked.png", "Gui_unchecked.png", tesseractOption, "Txt_tesseractOption", currentDictionary.Txt_tesseractOption, 80, 425)
+    AddCheckBox(45, 426, 28, 13, "tesseractOption", "TesseractOptionSettings", checkedPath, uncheckedPath, tesseractOption, "Txt_tesseractOption", currentDictionary.Txt_tesseractOption, 80, 425)
     
     ; Then add status messages
-    AddCheckBox(45, 451, 28, 13, "statusMessage", "", "Gui_checked.png", "Gui_unchecked.png", statusMessage, "Txt_statusMessage", currentDictionary.Txt_statusMessage, 80, 450)
+    AddCheckBox(45, 451, 28, 13, "statusMessage", "", checkedPath, uncheckedPath, statusMessage, "Txt_statusMessage", currentDictionary.Txt_statusMessage, 80, 450)
     
     ; Keep Tesseract Path at the end
     Gui, Add, Text, x45 y475 backgroundtrans Hidden vTxt_TesseractPath, % currentDictionary.Txt_TesseractPath
@@ -2724,10 +2727,10 @@ NextStep:
     ; Apply the correct selection
     GuiControl, Choose, deleteMethod, %defaultDelete%
     
-    AddCheckBox(45, 201, 28, 13, "packMethod", "", "Gui_checked.png", "Gui_unchecked.png", packMethod, "Txt_packMethod", currentDictionary.Txt_packMethod, 80, 200)
-    AddCheckBox(185, 201, 28, 13, "nukeAccount", "", "Gui_checked.png", "Gui_unchecked.png", nukeAccount, "Txt_nukeAccount", currentDictionary.Txt_nukeAccount, 220, 200)
-    AddCheckBox(45, 226, 28, 13, "spendHourGlass", "", "Gui_checked.png", "Gui_unchecked.png", spendHourGlass, "Txt_spendHourGlass", currentDictionary.Txt_spendHourGlass, 80, 225)
-    ;AddCheckBox((185+xs_SpecialCheck), 226, 28, 13, "claimSpecialMissions", "", "Gui_checked.png", "Gui_unchecked.png", claimSpecialMissions, "Txt_claimSpecialMissions", currentDictionary.Txt_claimSpecialMissions, (220+xs_SpecialCheck), 225)
+    AddCheckBox(45, 201, 28, 13, "packMethod", "", checkedPath, uncheckedPath, packMethod, "Txt_packMethod", currentDictionary.Txt_packMethod, 80, 200)
+    AddCheckBox(185, 201, 28, 13, "nukeAccount", "", checkedPath, uncheckedPath, nukeAccount, "Txt_nukeAccount", currentDictionary.Txt_nukeAccount, 220, 200)
+    AddCheckBox(45, 226, 28, 13, "spendHourGlass", "", checkedPath, uncheckedPath, spendHourGlass, "Txt_spendHourGlass", currentDictionary.Txt_spendHourGlass, 80, 225)
+    ;AddCheckBox((185+xs_SpecialCheck), 226, 28, 13, "claimSpecialMissions", "", checkedPath, uncheckedPath, claimSpecialMissions, "Txt_claimSpecialMissions", currentDictionary.Txt_claimSpecialMissions, (220+xs_SpecialCheck), 225)
     
     ; Create Sort By label and dropdown
     SetNormalFont()
@@ -2752,10 +2755,10 @@ NextStep:
     ; === Pack Selection Subsection ===
     SetNormalFont()
     ; Latest 4 Packs
-    AddCheckBox(45, 301, 28, 13, "Buzzwole", "", "Gui_checked.png", "Gui_unchecked.png", Buzzwole, "Txt_Buzzwole", currentDictionary.Txt_Buzzwole, 80, 300)
-    AddCheckBox(190, 301, 28, 13, "Solgaleo", "", "Gui_checked.png", "Gui_unchecked.png", Solgaleo, "Txt_Solgaleo", currentDictionary.Txt_Solgaleo, 225, 300)
-    AddCheckBox(45, 326, 28, 13, "Lunala", "", "Gui_checked.png", "Gui_unchecked.png", Lunala, "Txt_Lunala", currentDictionary.Txt_Lunala, 80, 325)
-    AddCheckBox(190, 326, 28, 13, "Shining", "", "Gui_checked.png", "Gui_unchecked.png", Shining, "Txt_Shining", currentDictionary.Txt_Shining, 225, 325)
+    AddCheckBox(45, 301, 28, 13, "Buzzwole", "", checkedPath, uncheckedPath, Buzzwole, "Txt_Buzzwole", currentDictionary.Txt_Buzzwole, 80, 300)
+    AddCheckBox(190, 301, 28, 13, "Solgaleo", "", checkedPath, uncheckedPath, Solgaleo, "Txt_Solgaleo", currentDictionary.Txt_Solgaleo, 225, 300)
+    AddCheckBox(45, 326, 28, 13, "Lunala", "", checkedPath, uncheckedPath, Lunala, "Txt_Lunala", currentDictionary.Txt_Lunala, 80, 325)
+    AddCheckBox(190, 326, 28, 13, "Shining", "", checkedPath, uncheckedPath, Shining, "Txt_Shining", currentDictionary.Txt_Shining, 225, 325)
     ; Page for all pack settings
     global AllPackSelection, Btn_returnPack, Txt_Btn_returnPack
     global Page_Buzzwole, Page_Solgaleo, Page_Lunala, Page_Shining
@@ -2769,32 +2772,32 @@ NextStep:
     SetNormalFont()
     Yline := 185
     Xline := 55
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Page_Buzzwole", "PackCheck", "Gui_checked.png", "Gui_unchecked.png", Buzzwole, "Txt_PageBuzzwole", currentDictionary.Txt_Buzzwole, (Xline+35), Yline)
+    AddCheckBox(Xline, (Yline+1), 28, 13, "Page_Buzzwole", "PackCheck", checkedPath, uncheckedPath, Buzzwole, "Txt_PageBuzzwole", currentDictionary.Txt_Buzzwole, (Xline+35), Yline)
     Xline += 155
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Page_Solgaleo", "PackCheck", "Gui_checked.png", "Gui_unchecked.png", Solgaleo, "Txt_PageSolgaleo", currentDictionary.Txt_Solgaleo, (Xline+35), Yline)
+    AddCheckBox(Xline, (Yline+1), 28, 13, "Page_Solgaleo", "PackCheck", checkedPath, uncheckedPath, Solgaleo, "Txt_PageSolgaleo", currentDictionary.Txt_Solgaleo, (Xline+35), Yline)
     Xline -= 155
     Yline += 25
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Page_Lunala", "PackCheck", "Gui_checked.png", "Gui_unchecked.png", Lunala, "Txt_PageLunala", currentDictionary.Txt_Lunala, (Xline+35), Yline)
+    AddCheckBox(Xline, (Yline+1), 28, 13, "Page_Lunala", "PackCheck", checkedPath, uncheckedPath, Lunala, "Txt_PageLunala", currentDictionary.Txt_Lunala, (Xline+35), Yline)
     Xline += 155
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Page_Shining", "PackCheck", "Gui_checked.png", "Gui_unchecked.png", Shining, "Txt_PageShining", currentDictionary.Txt_Shining, (Xline+35), Yline)
+    AddCheckBox(Xline, (Yline+1), 28, 13, "Page_Shining", "PackCheck", checkedPath, uncheckedPath, Shining, "Txt_PageShining", currentDictionary.Txt_Shining, (Xline+35), Yline)
     Xline -= 155
     Yline += 25
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Arceus", "", "Gui_checked.png", "Gui_unchecked.png", Arceus, "Txt_Arceus", currentDictionary.Txt_Arceus, (Xline+35), Yline)
+    AddCheckBox(Xline, (Yline+1), 28, 13, "Arceus", "", checkedPath, uncheckedPath, Arceus, "Txt_Arceus", currentDictionary.Txt_Arceus, (Xline+35), Yline)
     Xline += 155
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Palkia", "", "Gui_checked.png", "Gui_unchecked.png", Palkia, "Txt_Palkia", currentDictionary.Txt_Palkia, (Xline+35), Yline)
+    AddCheckBox(Xline, (Yline+1), 28, 13, "Palkia", "", checkedPath, uncheckedPath, Palkia, "Txt_Palkia", currentDictionary.Txt_Palkia, (Xline+35), Yline)
     Xline -= 155
     Yline += 25
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Dialga", "", "Gui_checked.png", "Gui_unchecked.png", Dialga, "Txt_Dialga", currentDictionary.Txt_Dialga, (Xline+35), Yline)
+    AddCheckBox(Xline, (Yline+1), 28, 13, "Dialga", "", checkedPath, uncheckedPath, Dialga, "Txt_Dialga", currentDictionary.Txt_Dialga, (Xline+35), Yline)
     Xline += 155
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Pikachu", "", "Gui_checked.png", "Gui_unchecked.png", Pikachu, "Txt_Pikachu", currentDictionary.Txt_Pikachu, (Xline+35), Yline)
+    AddCheckBox(Xline, (Yline+1), 28, 13, "Pikachu", "", checkedPath, uncheckedPath, Pikachu, "Txt_Pikachu", currentDictionary.Txt_Pikachu, (Xline+35), Yline)
     Xline -= 155
     Yline += 25
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Charizard", "", "Gui_checked.png", "Gui_unchecked.png", Charizard, "Txt_Charizard", currentDictionary.Txt_Charizard, (Xline+35), Yline)
+    AddCheckBox(Xline, (Yline+1), 28, 13, "Charizard", "", checkedPath, uncheckedPath, Charizard, "Txt_Charizard", currentDictionary.Txt_Charizard, (Xline+35), Yline)
     Xline += 155
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Mewtwo", "", "Gui_checked.png", "Gui_unchecked.png", Mewtwo, "Txt_Mewtwo", currentDictionary.Txt_Mewtwo, (Xline+35), Yline)
+    AddCheckBox(Xline, (Yline+1), 28, 13, "Mewtwo", "", checkedPath, uncheckedPath, Mewtwo, "Txt_Mewtwo", currentDictionary.Txt_Mewtwo, (Xline+35), Yline)
     Xline -= 155
     Yline += 25
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Mew", "", "Gui_checked.png", "Gui_unchecked.png", Mew, "Txt_Mew", currentDictionary.Txt_Mew, (Xline+35), Yline)
+    AddCheckBox(Xline, (Yline+1), 28, 13, "Mew", "", checkedPath, uncheckedPath, Mew, "Txt_Mew", currentDictionary.Txt_Mew, (Xline+35), Yline)
     
     SetPageBtnFont()
     ReturnPackBtn := AddBtn("Picture", 85, 590, 204, 68, "Btn_returnPack", "ReturnPackSettingsSection", currentDictionary.btn_return, btn_inset, "Txt_Btn_returnPack", (137+xs_Return), (604+ys_Return))
@@ -2804,36 +2807,36 @@ NextStep:
     ; === Card Detection Subsection ===
     SetNormalFont()
     ; 2-Column Layout for Card Detection Subsection
-    AddCheckBox(45, 386, 28, 13, "FullArtCheck", "", "Gui_checked.png", "Gui_unchecked.png", FullArtCheck, "Txt_FullArtCheck", currentDictionary.Txt_FullArtCheck, 80, 385)
-    AddCheckBox(45, 411, 28, 13, "TrainerCheck", "", "Gui_checked.png", "Gui_unchecked.png", TrainerCheck, "Txt_TrainerCheck", currentDictionary.Txt_TrainerCheck, 80, 410)
-    AddCheckBox(45, 436, 28, 13, "RainbowCheck", "", "Gui_checked.png", "Gui_unchecked.png", RainbowCheck, "Txt_RainbowCheck", currentDictionary.Txt_RainbowCheck, 80, 435)
-    AddCheckBox(45, 461, 28, 13, "PseudoGodPack", "", "Gui_checked.png", "Gui_unchecked.png", PseudoGodPack, "Txt_PseudoGodPack", currentDictionary.Txt_PseudoGodPack, 80, 460)
-    AddCheckBox(45, 486, 28, 13, "CheckShiningPackOnly", "", "Gui_checked.png", "Gui_unchecked.png", CheckShiningPackOnly, "Txt_CheckShiningPackOnly", currentDictionary.Txt_CheckShiningPackOnly, 80, 485)
+    AddCheckBox(45, 386, 28, 13, "FullArtCheck", "", checkedPath, uncheckedPath, FullArtCheck, "Txt_FullArtCheck", currentDictionary.Txt_FullArtCheck, 80, 385)
+    AddCheckBox(45, 411, 28, 13, "TrainerCheck", "", checkedPath, uncheckedPath, TrainerCheck, "Txt_TrainerCheck", currentDictionary.Txt_TrainerCheck, 80, 410)
+    AddCheckBox(45, 436, 28, 13, "RainbowCheck", "", checkedPath, uncheckedPath, RainbowCheck, "Txt_RainbowCheck", currentDictionary.Txt_RainbowCheck, 80, 435)
+    AddCheckBox(45, 461, 28, 13, "PseudoGodPack", "", checkedPath, uncheckedPath, PseudoGodPack, "Txt_PseudoGodPack", currentDictionary.Txt_PseudoGodPack, 80, 460)
+    AddCheckBox(45, 486, 28, 13, "CheckShiningPackOnly", "", checkedPath, uncheckedPath, CheckShiningPackOnly, "Txt_CheckShiningPackOnly", currentDictionary.Txt_CheckShiningPackOnly, 80, 485)
     
-    AddCheckBox((190+xs_SaveCrown), 386, 28, 13, "CrownCheck", "", "Gui_checked.png", "Gui_unchecked.png", CrownCheck, "Txt_CrownCheck", currentDictionary.Txt_CrownCheck, (225+xs_SaveCrown), 385)
-    AddCheckBox((190+xs_SaveShing), 411, 28, 13, "ShinyCheck", "", "Gui_checked.png", "Gui_unchecked.png", ShinyCheck, "Txt_ShinyCheck", currentDictionary.Txt_ShinyCheck, (225+xs_SaveShing), 410)
-    AddCheckBox((190+xs_SaveImmer), 436, 28, 13, "ImmersiveCheck", "", "Gui_checked.png", "Gui_unchecked.png", ImmersiveCheck, "Txt_ImmersiveCheck", currentDictionary.Txt_ImmersiveCheck, (225+xs_SaveImmer), 435)
-    AddCheckBox((190+xs_invalid), 461, 28, 13, "InvalidCheck", "", "Gui_checked.png", "Gui_unchecked.png", InvalidCheck, "Txt_InvalidCheck", currentDictionary.Txt_InvalidCheck, (225+xs_invalid), 460)
+    AddCheckBox((190+xs_SaveCrown), 386, 28, 13, "CrownCheck", "", checkedPath, uncheckedPath, CrownCheck, "Txt_CrownCheck", currentDictionary.Txt_CrownCheck, (225+xs_SaveCrown), 385)
+    AddCheckBox((190+xs_SaveShing), 411, 28, 13, "ShinyCheck", "", checkedPath, uncheckedPath, ShinyCheck, "Txt_ShinyCheck", currentDictionary.Txt_ShinyCheck, (225+xs_SaveShing), 410)
+    AddCheckBox((190+xs_SaveImmer), 436, 28, 13, "ImmersiveCheck", "", checkedPath, uncheckedPath, ImmersiveCheck, "Txt_ImmersiveCheck", currentDictionary.Txt_ImmersiveCheck, (225+xs_SaveImmer), 435)
+    AddCheckBox((190+xs_invalid), 461, 28, 13, "InvalidCheck", "", checkedPath, uncheckedPath, InvalidCheck, "Txt_InvalidCheck", currentDictionary.Txt_InvalidCheck, (225+xs_invalid), 460)
     
     ; Add divider for Card Detection section
     AddSectionDivider(45, 510, 285, "Pack_Divider3")
     
     ;; Save For Trade Section
     SetNormalFont()
-    AddCheckBox(45, 151, 28, 13, "s4tEnabled", "s4tSettings", "Gui_checked.png", "Gui_unchecked.png", s4tEnabled, "Txt_s4tEnabled", currentDictionary.Txt_s4tEnabled, 80, 150)
+    AddCheckBox(45, 151, 28, 13, "s4tEnabled", "s4tSettings", checkedPath, uncheckedPath, s4tEnabled, "Txt_s4tEnabled", currentDictionary.Txt_s4tEnabled, 80, 150)
     
-    AddCheckBox(45, 181, 28, 13, "s4tSilent", "", "Gui_checked.png", "Gui_unchecked.png", s4tSilent, "Txt_s4tSilent", currentDictionary.Txt_s4tSilent, 80, 180)
+    AddCheckBox(45, 181, 28, 13, "s4tSilent", "", checkedPath, uncheckedPath, s4tSilent, "Txt_s4tSilent", currentDictionary.Txt_s4tSilent, 80, 180)
     
-    AddCheckBox(45, 206, 28, 13, "s4t3Dmnd", "", "Gui_checked.png", "Gui_unchecked.png", s4t3Dmnd, "Txt_s4t3Dmnd", "3 ◆◆◆", 80, 205)
-    AddCheckBox(45, 231, 28, 13, "s4t4Dmnd", "", "Gui_checked.png", "Gui_unchecked.png", s4t4Dmnd, "Txt_s4t4Dmnd", "4 ◆◆◆◆", 80, 230)
-    AddCheckBox(45, 256, 28, 13, "s4t1Star", "", "Gui_checked.png", "Gui_unchecked.png", s4t1Star, "Txt_s4t1Star", "1 ★", 80, 255)
+    AddCheckBox(45, 206, 28, 13, "s4t3Dmnd", "", checkedPath, uncheckedPath, s4t3Dmnd, "Txt_s4t3Dmnd", "3 ◆◆◆", 80, 205)
+    AddCheckBox(45, 231, 28, 13, "s4t4Dmnd", "", checkedPath, uncheckedPath, s4t4Dmnd, "Txt_s4t4Dmnd", "4 ◆◆◆◆", 80, 230)
+    AddCheckBox(45, 256, 28, 13, "s4t1Star", "", checkedPath, uncheckedPath, s4t1Star, "Txt_s4t1Star", "1 ★", 80, 255)
     
     AddSectionDivider(45, 280, 285, "SaveForTradeDivider_1")
     
-    AddCheckBox(185, 206, 28, 13, "s4tGholdengo", "", "Gui_checked.png", "Gui_unchecked.png", s4tGholdengo, "s4tGholdengoArrow", "➤", 220, 205)
+    AddCheckBox(185, 206, 28, 13, "s4tGholdengo", "", checkedPath, uncheckedPath, s4tGholdengo, "s4tGholdengoArrow", "➤", 220, 205)
     Gui, Add, Picture, % ((!s4tEnabled || !Shining) ? "backgroundtrans backgroundtrans Hidden " : "") . "vs4tGholdengoEmblem w25 h25 x240 y201 backgroundtrans Hidden", % A_ScriptDir . "\Scripts\GuiImage\other\GholdengoEmblem.png"
     
-    AddCheckBox(45, 286, 28, 13, "s4tWP", "s4tWPSettings", "Gui_checked.png", "Gui_unchecked.png", s4tWP, "Txt_s4tWP", currentDictionary.Txt_s4tWP, 80, 285)
+    AddCheckBox(45, 286, 28, 13, "s4tWP", "s4tWPSettings", checkedPath, uncheckedPath, s4tWP, "Txt_s4tWP", currentDictionary.Txt_s4tWP, 80, 285)
     
     Gui, Add, Text, % "vs4tWPMinCardsLabel x45 y310 backgroundtrans Hidden " . (!s4tEnabled || !s4tWP ? "backgroundtrans Hidden " : ""), % currentDictionary.Txt_s4tWPMinCards
     Gui, Add, Edit, % "vs4tWPMinCards cFDFDFD w40 x165 y310 h20 -E0x200 Center backgroundtrans Hidden " . (!s4tEnabled || !s4tWP ? "Center backgroundtrans Hidden" : ""), %s4tWPMinCards%
@@ -2853,7 +2856,7 @@ NextStep:
     Gui, Add, Edit, vs4tDiscordUserId w220 x45 y390 h20 -E0x200 Center backgroundtrans Hidden, %s4tDiscordUserId%
     Gui, Add, Text, x45 y415 backgroundtrans Hidden vTxt_S4T_DiscordWebhook, Webhook URL:
     Gui, Add, Edit, vs4tDiscordWebhookURL w220 x45 y440 h20 -E0x200 Center backgroundtrans Hidden, %s4tDiscordWebhookURL%
-    AddCheckBox(45, 466, 28, 13, "s4tSendAccountXml", "", "Gui_checked.png", "Gui_unchecked.png", s4tSendAccountXml, "Txt_s4tSendAccountXml", currentDictionary.Txt_s4tSendAccountXml, 80, 465)
+    AddCheckBox(45, 466, 28, 13, "s4tSendAccountXml", "", checkedPath, uncheckedPath, s4tSendAccountXml, "Txt_s4tSendAccountXml", currentDictionary.Txt_s4tSendAccountXml, 80, 465)
     
     ;; Discord Settings Section
     SetSectionFont()
@@ -2878,7 +2881,7 @@ NextStep:
     else
         Gui, Add, Edit, vdiscordWebhookURL cFDFDFD w280 x45 y250 h20 -E0x200 Center backgroundtrans Hidden, %discordWebhookURL%
     
-    AddCheckBox(45, 276, 28, 13, "sendAccountXml", "", "Gui_checked.png", "Gui_unchecked.png", sendAccountXml, "Txt_sendAccountXml", currentDictionary.Txt_sendAccountXml, 80, 275)
+    AddCheckBox(45, 276, 28, 13, "sendAccountXml", "", checkedPath, uncheckedPath, sendAccountXml, "Txt_sendAccountXml", currentDictionary.Txt_sendAccountXml, 80, 275)
     
     ; Add divider after heading
     AddSectionDivider(45, 300, 285, "Discord_Divider3")
@@ -2887,7 +2890,7 @@ NextStep:
     Gui, Add, Text, x45 y305 backgroundtrans Hidden vHeartbeatSettingsSubHeading, % currentDictionary.HeartbeatSettingsSubHeading
     
     SetNormalFont()
-    AddCheckBox(45, 331, 28, 13, "heartBeat", "discordSettings", "Gui_checked.png", "Gui_unchecked.png", heartBeat, "Txt_heartBeat", currentDictionary.Txt_heartBeat, 80, 330)
+    AddCheckBox(45, 331, 28, 13, "heartBeat", "discordSettings", checkedPath, uncheckedPath, heartBeat, "Txt_heartBeat", currentDictionary.Txt_heartBeat, 80, 330)
     
     if(StrLen(heartBeatName) < 3)
         heartBeatName =
@@ -2915,7 +2918,7 @@ NextStep:
     Gui, Add, Edit, vvipIdsURL cFDFDFD w280 x45 y225 h20 -E0x200 Center backgroundtrans Hidden, %vipIdsURL%
     
     ; Add Showcase options to Download Settings Section
-    AddCheckBox(45, 251, 28, 13, "showcaseEnabled", "showcaseSettings", "Gui_checked.png", "Gui_unchecked.png", showcaseEnabled, "Txt_showcaseEnabled", currentDictionary.Txt_showcaseEnabled, 80, 250)
+    AddCheckBox(45, 251, 28, 13, "showcaseEnabled", "showcaseSettings", checkedPath, uncheckedPath, showcaseEnabled, "Txt_showcaseEnabled", currentDictionary.Txt_showcaseEnabled, 80, 250)
     
     ;Gui, Add, Text, x45 y275 backgroundtrans Hidden vTxt_ShowcaseURL, Showcase.txt API:
     ;Gui, Add, Edit, vshowcaseURL w280 x45 y300 h20 -E0x200 Center backgroundtrans Hidden, %showcaseURL%
@@ -3199,7 +3202,7 @@ PackCheck:
     
     ToggleCheckbox(CheckBoxName)
     
-    GuiControl,, %ClickedButton%, % newValue ? "Gui_checked.png" : "Gui_unchecked.png"
+    GuiControl,, %ClickedButton%, % newValue ? checkedPath : uncheckedPath
 return
 
 ReturnPackSettingsSection:
@@ -3221,7 +3224,7 @@ CheckBoxToggle:
     if (varName = "Buzzwole" || varName = "Solgaleo" || varName = "Lunala" || varName = "Shining") {
         PageVarName := "Page_" . varName
         newValue := %varName%
-        GuiControl,, %PageVarName%, % newValue ? "Gui_checked.png" : "Gui_unchecked.png"
+        GuiControl,, %PageVarName%, % newValue ? checkedPath : uncheckedPath
     }
 return
 
@@ -3230,8 +3233,8 @@ mainSettings:
     global isDarkTheme, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
     
     runMain := !runMain
-    ifEqual, runMain, 1, GuiControl,, runMain, Gui_checked.png
-    else GuiControl,, runMain, Gui_unchecked.png
+    ifEqual, runMain, 1, GuiControl,, runMain, %checkedPath%
+    else GuiControl,, runMain, %uncheckedPath%
         
         IniWrite, %runMain%, Settings.ini, UserSettings, runMain
     
@@ -3255,8 +3258,8 @@ discordSettings:
     global isDarkTheme, DARK_TEXT, LIGHT_TEXT, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
     
     heartBeat := !heartBeat
-    ifEqual, heartBeat, 1, GuiControl,, heartBeat, Gui_checked.png
-    else GuiControl,, heartBeat, Gui_unchecked.png
+    ifEqual, heartBeat, 1, GuiControl,, heartBeat, %checkedPath%
+    else GuiControl,, heartBeat, %uncheckedPath%
         
         IniWrite, %heartBeat%, Settings.ini, UserSettings, heartBeat
     
@@ -3282,10 +3285,10 @@ s4tSettings:
     global isDarkTheme, DARK_TEXT, LIGHT_TEXT, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
     global SaveForTradeDivider_1, SaveForTradeDivider_2
     s4tEnabled := !s4tEnabled
-    ifEqual, s4tEnabled, 1, GuiControl,, s4tEnabled, Gui_checked.png
-    else GuiControl,, s4tEnabled, Gui_unchecked.png
+    ifEqual, s4tEnabled, 1, GuiControl,, s4tEnabled, %checkedPath%
+    else GuiControl,, s4tEnabled, %uncheckedPath%
         
-    IniWrite, %s4tEnabled%, Settings.ini, UserSettings, s4tEnabled
+        IniWrite, %s4tEnabled%, Settings.ini, UserSettings, s4tEnabled
     
     if (s4tEnabled) {
         ; Show main S4T controls
@@ -3358,8 +3361,8 @@ s4tWPSettings:
     global isDarkTheme, DARK_TEXT, LIGHT_TEXT, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
     
     s4tWP := !s4tWP
-    ifEqual, s4tWP, 1, GuiControl,, s4tWP, Gui_checked.png
-    else GuiControl,, s4tWP, Gui_unchecked.png
+    ifEqual, s4tWP, 1, GuiControl,, s4tWP, %checkedPath%
+    else GuiControl,, s4tWP, %uncheckedPath%
         
         IniWrite, %s4tWP%, settings.ini, UserSettings, s4tWP
     
@@ -3381,8 +3384,8 @@ TesseractOptionSettings:
     global isDarkTheme, DARK_TEXT, LIGHT_TEXT, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
     
     tesseractOption := !tesseractOption
-    ifEqual, tesseractOption, 1, GuiControl,, tesseractOption, Gui_checked.png
-    else GuiControl,, tesseractOption, Gui_unchecked.png
+    ifEqual, tesseractOption, 1, GuiControl,, tesseractOption, %checkedPath%
+    else GuiControl,, tesseractOption, %uncheckedPath%
         
         IniWrite, %tesseractOption%, settings.ini, UserSettings, tesseractOption
     
@@ -3422,8 +3425,8 @@ deleteSettings:
         nukeAccount := 0
         IniWrite, %nukeAccount%, settings.ini, UserSettings, nukeAccount
         
-        ifEqual, spendHourGlass, 1, GuiControl,, spendHourGlass, Gui_checked.png
-        else GuiControl,, spendHourGlass, Gui_unchecked.png
+        ifEqual, spendHourGlass, 1, GuiControl,, spendHourGlass, %checkedPath%
+        else GuiControl,, spendHourGlass, %uncheckedPath%
             GuiControl, Show, spendHourGlass
         GuiControl, Show, Txt_spendHourGlass
         ApplyTextColor("Txt_spendHourGlass")
@@ -3434,8 +3437,8 @@ deleteSettings:
         ApplyTextColor("SortByText")
     }
     else {
-        ifEqual, nukeAccount, 1, GuiControl,, nukeAccount, Gui_checked.png
-        else GuiControl,, nukeAccount, Gui_unchecked.png
+        ifEqual, nukeAccount, 1, GuiControl,, nukeAccount, %checkedPath%
+        else GuiControl,, nukeAccount, %uncheckedPath%
             GuiControl, Show, nukeAccount
         GuiControl, Show, Txt_nukeAccount
         ApplyTextColor("Txt_nukeAccount")
@@ -3472,8 +3475,8 @@ showcaseSettings:
     global isDarkTheme, DARK_TEXT, LIGHT_TEXT, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
     
     showcaseEnabled := !showcaseEnabled
-    ifEqual, showcaseEnabled, 1, GuiControl,, showcaseEnabled, Gui_checked.png
-    else GuiControl,, showcaseEnabled, Gui_unchecked.png
+    ifEqual, showcaseEnabled, 1, GuiControl,, showcaseEnabled, %checkedPath%
+    else GuiControl,, showcaseEnabled, %uncheckedPath%
         
         IniWrite, %showcaseEnabled%, settings.ini, UserSettings, showcaseEnabled
     
@@ -3528,6 +3531,8 @@ ArrangeWindows:
     if (runMain && Mains > 0) {
         Loop %Mains% {
             mainInstanceName := "Main" . (A_Index > 1 ? A_Index : "")
+            ; Use exact matching for Main windows
+            SetTitleMatchMode, 3  ; Exact match
             if (WinExist(mainInstanceName)) {
                 WinActivate, %mainInstanceName%
                 WinGetPos, curX, curY, curW, curH, %mainInstanceName%
@@ -3554,9 +3559,13 @@ ArrangeWindows:
     
     if (Instances > 0) {
         Loop %Instances% {
-            if (WinExist(A_Index)) {
-                WinActivate, %A_Index%
-                WinGetPos, curX, curY, curW, curH, %A_Index%
+            ; Use exact window title matching with SetTitleMatchMode
+            SetTitleMatchMode, 3  ; Exact match
+            windowTitle := A_Index
+            
+            if (WinExist(windowTitle)) {
+                WinActivate, %windowTitle%
+                WinGetPos, curX, curY, curW, curH, %windowTitle%
                 
                 ; Calculate position
                 SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
@@ -3574,8 +3583,8 @@ ArrangeWindows:
                 x := MonitorLeft + (Mod((instanceIndex - 1), Columns) * scaleParam)
                 
                 ; Move window
-                WinMove, %A_Index%,, %x%, %y%, %scaleParam%, 537
-                WinSet, Redraw, , %A_Index%
+                WinMove, %windowTitle%,, %x%, %y%, %scaleParam%, 537
+                WinSet, Redraw, , %windowTitle%
                 
                 windowsPositioned++
                 sleep, 100
@@ -3629,7 +3638,7 @@ LaunchAllMumu:
         return
     }
     
-    launchAllFile := "LaunchAllMumu.ahk"
+    launchAllFile := A_ScriptDir . "\Scripts\Include\LaunchAllMumu.ahk"
     if(FileExist(launchAllFile)) {
         Run, %launchAllFile%
     }
@@ -3637,7 +3646,7 @@ return
 
 ; ToolTip
 OpenToolTip:
-    Tool := "GUI ToolTip.html"
+    Tool := "Help Guide.html"
     Run, %Tool%
 return
 
@@ -4043,7 +4052,7 @@ StartBot:
     }
     
     if(autoLaunchMonitor) {
-        monitorFile := "Monitor.ahk"
+        monitorFile := A_ScriptDir . "\Scripts\Include\Monitor.ahk"
         if(FileExist(monitorFile)) {
             Run, %monitorFile%
         }

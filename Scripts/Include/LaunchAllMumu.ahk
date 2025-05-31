@@ -1,20 +1,16 @@
-#Include %A_ScriptDir%\Scripts\Include\Logging.ahk
-
 #SingleInstance, force
 CoordMode, Mouse, Screen
 SetTitleMatchMode, 3
 
-if not A_IsAdmin
-{
-    ; Relaunch script with admin rights
-    Run *RunAs "%A_ScriptFullPath%"
-    ExitApp
-}
+settingsPath := A_ScriptDir "\..\..\Settings.ini"
 
-IniRead, instanceLaunchDelay, Settings.ini, UserSettings, instanceLaunchDelay, 5
-IniRead, waitAfterBulkLaunch, Settings.ini, UserSettings, waitAfterBulkLaunch, 40000
-IniRead, Instances, Settings.ini, UserSettings, Instances, 1
-IniRead, folderPath, Settings.ini, UserSettings, folderPath, C:\Program Files\Netease
+IniRead, instanceLaunchDelay, %settingsPath%, UserSettings, instanceLaunchDelay, 5
+IniRead, waitAfterBulkLaunch, %settingsPath%, UserSettings, waitAfterBulkLaunch, 40000
+IniRead, Instances, %settingsPath%, UserSettings, Instances, 1
+IniRead, folderPath, %settingsPath%, UserSettings, folderPath, C:\Program Files\Netease
+IniRead, runMain, %settingsPath%, UserSettings, runMain, 1
+IniRead, Mains, %settingsPath%, UserSettings, Mains, 1
+
 mumuFolder = %folderPath%\MuMuPlayerGlobal-12.0
 if !FileExist(mumuFolder)
     mumuFolder = %folderPath%\MuMu Player 12
@@ -22,110 +18,50 @@ if !FileExist(mumuFolder){
     MsgBox, 16, , Double check your folder path! It should be the one that contains the MuMuPlayer 12 folder! `nDefault is just C:\Program Files\Netease
     ExitApp
 }
-Loop {
-    ; Loop through each instance, check if it's started, and start it if it's not
-    launched := 0
 
-    nowEpoch := A_NowUTC
-    EnvSub, nowEpoch, 1970, seconds
+; Loop through each instance, check if it's started, and start it if it's not
+launched := 0
 
-    Loop %Instances% {
-        instanceNum := Format("{:u}", A_Index)
-
-        IniRead, LastEndEpoch, %A_ScriptDir%\Scripts\%instanceNum%.ini, Metrics, LastEndEpoch, 0
-        secondsSinceLastEnd := nowEpoch - LastEndEpoch
-        if(LastEndEpoch > 0 && secondsSinceLastEnd > (10 * 60))
-        {
-            ; msgbox, Killing Instance %instanceNum%! Last Run Completed %secondsSinceLastEnd% Seconds Ago
-            msg := "Killing Instance " . instanceNum . "! Last Run Completed " . secondsSinceLastEnd . " Seconds Ago"
-            LogToFile(msg, "Monitor.txt")
-
-            scriptName := instanceNum . ".ahk"
-
-            killedAHK := killAHK(scriptName)
-            killedInstance := killInstance(instanceNum)
-            Sleep, 3000
-
-            cntAHK := checkAHK(scriptName)
-            pID := checkInstance(instanceNum)
-            if not pID && not cntAHK {
-                ; Change the last end date to now so that we don't keep trying to restart this beast
-                IniWrite, %nowEpoch%, %A_ScriptDir%\Scripts\%instanceNum%.ini, Metrics, LastEndEpoch
-
-                launchInstance(instanceNum)
-
-                sleepTime := instanceLaunchDelay * 1000
-                Sleep, % sleepTime
-                launched := launched + 1
-
-                Sleep, %waitAfterBulkLaunch%
-
-                ;Command := "Scripts\" . scriptName
-                ;Run, %Command%
-                scriptPath = %A_ScriptDir%\Scripts\%scriptName%
-                Run "%A_AhkPath%" /restart "%scriptPath%"
-            }
-        }
-    }
-
-    ; Check for dead instances every 30 seconds
-    Sleep, 30000
-}
-
-killAHK(scriptName := "")
+; Allows launching Main2, Main3, etc.
+if(runMain && Mains > 0)
 {
-    killed := 0
+    Loop %Mains% {
+        instanceNum := "Main" . (A_Index > 1 ? A_Index : "")
+        pID := checkInstance(instanceNum)
+        if not pID {
+            launchInstance(instanceNum)
 
-    if(scriptName != "") {
-        DetectHiddenWindows, On
-        WinGet, IDList, List, ahk_class AutoHotkey
-        Loop %IDList%
-        {
-            ID:=IDList%A_Index%
-            WinGetTitle, ATitle, ahk_id %ID%
-            if InStr(ATitle, "\" . scriptName) {
-                ; MsgBox, Killing: %ATitle%
-                WinKill, ahk_id %ID% ;kill
-                ; WinClose, %fullScriptPath% ahk_class AutoHotkey
-                killed := killed + 1
-            }
+            sleepTime := instanceLaunchDelay * 1000
+            Sleep, % sleepTime
+            launched := launched + 1
         }
     }
-
-    return killed
 }
 
-checkAHK(scriptName := "")
-{
-    cnt := 0
+Loop %Instances% {
+    instanceNum := Format("{:u}", A_Index)
+    pID := checkInstance(instanceNum)
+    if not pID {
+        launchInstance(instanceNum)
 
-    if(scriptName != "") {
-        DetectHiddenWindows, On
-        WinGet, IDList, List, ahk_class AutoHotkey
-        Loop %IDList%
-        {
-            ID:=IDList%A_Index%
-            WinGetTitle, ATitle, ahk_id %ID%
-            if InStr(ATitle, "\" . scriptName) {
-                cnt := cnt + 1
-            }
-        }
+        sleepTime := instanceLaunchDelay * 1000
+        Sleep, % sleepTime
+        launched := launched + 1
     }
-
-    return cnt
 }
+
+ExitApp
+
+
+
+
 
 killInstance(instanceNum := "")
 {
-    killed := 0
-
     pID := checkInstance(instanceNum)
     if pID {
         Process, Close, %pID%
-        killed := killed + 1
     }
-
-    return killed
 }
 
 checkInstance(instanceNum := "")
@@ -187,11 +123,6 @@ getMumuInstanceNumFromPlayerName(scriptName := "") {
     }
 }
 
-; Temporary function to avoid an error in Logging.ahk
-ReadFile(filename) {
-    return false
-}
-
 ; Function to run as a NON-adminstrator, since MuMu has issues if run as Administrator
 ; See: https://www.reddit.com/r/AutoHotkey/comments/bfd6o1/how_to_run_without_administrator_privileges/
 /*
@@ -244,5 +175,3 @@ ShellRun(prms*)
         ObjRelease(ptlb)
     }
 }
-
-~+F7::ExitApp
