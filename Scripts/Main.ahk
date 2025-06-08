@@ -23,6 +23,7 @@ WinHide % "ahk_id " DllCall("GetConsoleWindow", "ptr")
 
 global winTitle, changeDate, failSafe, openPack, Delay, failSafeTime, StartSkipTime, Columns, failSafe, scriptName, GPTest, StatusText, defaultLanguage, setSpeed, jsonFileName, pauseToggle, SelectedMonitorIndex, swipeSpeed, godPack, scaleParam, skipInvalidGP, deleteXML, packs, FriendID, AddFriend, Instances, showStatus
 global triggerTestNeeded, testStartTime, firstRun, minStars, minStarsA2b, vipIdsURL
+global autoUseGPTest, autotest, autotest_time, A_gptest, TestTime
 
 deleteAccount := false
 scriptName := StrReplace(A_ScriptName, ".ahk")
@@ -54,6 +55,8 @@ IniRead, clientLanguage, %A_ScriptDir%\..\Settings.ini, UserSettings, clientLang
 IniRead, minStars, %A_ScriptDir%\..\Settings.ini, UserSettings, minStars, 0
 IniRead, minStarsA2b, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA2b, 0
 
+IniRead, autoUseGPTest, %A_ScriptDir%\..\Settings.ini, UserSettings, autoUseGPTest, 0
+IniRead, TestTime, %A_ScriptDir%\..\Settings.ini, UserSettings, TestTime, 3600
 ; connect adb
 instanceSleep := scriptName * 1000
 Sleep, %instanceSleep%
@@ -77,24 +80,24 @@ Loop {
         ;Winset, Alwaysontop, On, %winTitle%
         OwnerWND := WinExist(winTitle)
         x4 := x + 5
-        y4 := y + 44
-        buttonWidth := 35
+        y4 := y + 536
+        buttonWidth := 45
         if (scaleParam = 287)
-            buttonWidth := buttonWidth + 6
+            buttonWidth := buttonWidth + 5
 
-        Gui, Toolbar: New, +Owner%OwnerWND% -AlwaysOnTop +ToolWindow -Caption +LastFound
-        Gui, Toolbar: Default
-        Gui, Toolbar: Margin, 4, 4  ; Set margin for the GUI
-        Gui, Toolbar: Font, s5 cGray Norm Bold, Segoe UI  ; Normal font for input labels
-        Gui, Toolbar: Add, Button, % "x" . (buttonWidth * 0) . " y0 w" . buttonWidth . " h25 gReloadScript", Reload  (Shift+F5)
-        Gui, Toolbar: Add, Button, % "x" . (buttonWidth * 1) . " y0 w" . buttonWidth . " h25 gPauseScript", Pause (Shift+F6)
-        Gui, Toolbar: Add, Button, % "x" . (buttonWidth * 2) . " y0 w" . buttonWidth . " h25 gResumeScript", Resume (Shift+F6)
-        Gui, Toolbar: Add, Button, % "x" . (buttonWidth * 3) . " y0 w" . buttonWidth . " h25 gStopScript", Stop (Shift+F7)
-        Gui, Toolbar: Add, Button, % "x" . (buttonWidth * 4) . " y0 w" . buttonWidth . " h25 gShowStatusMessages", Status (Shift+F8)
-        Gui, Toolbar: Add, Button, % "x" . (buttonWidth * 5) . " y0 w" . buttonWidth . " h25 gTestScript", GP Test (Shift+F9)
+        Gui, ToolBar:New, +Owner%OwnerWND% -AlwaysOnTop +ToolWindow -Caption +LastFound -DPIScale 
+        Gui, ToolBar:Default
+        Gui, ToolBar:Margin, 4, 4  ; Set margin for the GUI
+        Gui, ToolBar:Font, s5 cGray Norm Bold, Segoe UI  ; Normal font for input labels
+        Gui, ToolBar:Add, Button, % "x" . (buttonWidth * 0) . " y0 w" . buttonWidth . " h25 gReloadScript", Reload  (Shift+F5)
+        Gui, ToolBar:Add, Button, % "x" . (buttonWidth * 1) . " y0 w" . buttonWidth . " h25 gPauseScript", Pause (Shift+F6)
+        Gui, ToolBar:Add, Button, % "x" . (buttonWidth * 2) . " y0 w" . buttonWidth . " h25 gResumeScript", Resume (Shift+F6)
+        Gui, ToolBar:Add, Button, % "x" . (buttonWidth * 3) . " y0 w" . buttonWidth . " h25 gStopScript", Stop (Shift+F7)
+        Gui, ToolBar:Add, Button, % "x" . (buttonWidth * 4) . " y0 w" . buttonWidth . " h25 gShowStatusMessages", Status (Shift+F8)
+        Gui, ToolBar:Add, Button, % "x" . (buttonWidth * 5) . " y0 w" . buttonWidth . " h25 gTestScript", GP Test (Shift+F9)
         DllCall("SetWindowPos", "Ptr", WinExist(), "Ptr", 1  ; HWND_BOTTOM
                 , "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)  ; SWP_NOSIZE, SWP_NOMOVE, SWP_NOACTIVATE
-        Gui, Toolbar: Show, NoActivate x%x4% y%y4% AutoSize
+        Gui, ToolBar:Show, NoActivate x%x4% y%y4%  w275 h30
         break
     }
     catch {
@@ -110,6 +113,8 @@ Loop {
 }
 
 rerollTime := A_TickCount
+autotest := A_TickCount
+A_gptest := 0
 
 initializeAdbShell()
 CreateStatusMessage("Initializing bot...",,,, false)
@@ -148,6 +153,15 @@ if (scaleParam = 287) {
 99Rightx := 99Configs[clientLanguage].rightx
 
 Loop {
+    if (autoUseGPTest) {
+        autotest_time := (A_TickCount - autotest) // 1000
+        CreateStatusMessage("Auto GP Test Timer : " . autotest_time .  "/ " . TestTime . " seconds", "AutoGPTest", 0, 605, false, true)
+        if (autotest_time >= TestTime) {
+            A_gptest := 1
+            ToggleTestScript()
+        }        
+    }
+
     if (GPTest) {
         if (triggerTestNeeded)
             GPTestScript()
@@ -163,6 +177,7 @@ Loop {
     FindImageAndClick(120, 500, 155, 530, , "Social", 143, 518, 1000, 30)
     FindImageAndClick(226, 100, 270, 135, , "Add", 38, 460, 500)
     FindImageAndClick(170, 450, 195, 480, , "Approve", 228, 464)
+    /* ; Deny all option
     if(firstRun) {
         Sleep, 1000
         adbClick(205, 510)
@@ -170,6 +185,7 @@ Loop {
         adbClick(210, 372)
         firstRun := false
     }
+    */
     done := false
     Loop 3 {
         Sleep, %Delay%
@@ -365,7 +381,7 @@ FindImageAndClick(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT",
         }
 
         pBitmap := from_window(WinExist(winTitle))
-        Path = %imagePath%Error1.png
+        Path = %imagePath%Error.png
         pNeedle := GetNeedle(Path)
         ; ImageSearch within the region
         vRet := Gdip_ImageSearch(pBitmap, pNeedle, vPosXY, 15, 155, 270, 420, searchVariation)
@@ -801,8 +817,18 @@ RemoveNonVipFriends() {
 
     friendIndex := 0
     repeatFriendAccounts := 0
+	scrolledWithoutFriend := 0
     recentFriendAccounts := []
     Loop {
+        if (scrolledWithoutFriend > 5){
+            CreateStatusMessage("End of list - scrolled without friend codes multiple times.`nReady to test.")
+            if(A_gptest && autoUseGPTest) {
+                A_gptest := 0
+                autotest := A_TickCount
+                ToggleTestScript()
+			}
+            return
+        }
         friendClickY := 195 + (95 * friendIndex)
         if (FindImageAndClick(75, 400, 105, 420, , "Friend", 138, friendClickY, 500, 3)) {
             Delay(1)
@@ -824,6 +850,11 @@ RemoveNonVipFriends() {
                 else
                     CreateStatusMessage("Ready to test.",,,, false)
                 adbClick(143, 507)
+                if(A_gptest && autoUseGPTest) {
+					A_gptest := 0
+					autotest := A_TickCount
+					ToggleTestScript()
+				}
                 return
             }
             matchedFriend := ""
@@ -835,8 +866,10 @@ RemoveNonVipFriends() {
                     LogToFile("Friend skipped: " . friendAccount.ToString() . ". Couldn't parse identifiers.", "GPTestLog.txt")
                 }
                 ; If it's a VIP friend, skip removal
-                if (isVipResult)
+                if (isVipResult) {
                     CreateStatusMessage("Parsed friend: " . friendAccount.ToString() . "`nMatched VIP: " . matchedFriend.ToString() . "`nSkipping VIP...",,,, false)
+					scrolledWithoutFriend := 0
+				}
                 Sleep, 1500 ; Time to read
                 FindImageAndClick(226, 100, 270, 135, , "Add", 143, 507, 500)
                 Delay(2)
@@ -863,9 +896,10 @@ RemoveNonVipFriends() {
                 Sleep, 1500 ; Time to read
                 FindImageAndClick(135, 355, 160, 385, , "Remove", 145, 407, 500)
                 FindImageAndClick(70, 395, 100, 420, , "Send2", 200, 372, 500)
-                Delay(1)
-                FindImageAndClick(226, 100, 270, 135, , "Add", 143, 507, 500)
                 Delay(3)
+                FindImageAndClick(226, 100, 270, 135, , "Add", 143, 507, 500)
+                Delay(4)
+				scrolledWithoutFriend := 0
             }
         }
         else {
@@ -887,6 +921,7 @@ RemoveNonVipFriends() {
                 FindImageAndClick(226, 100, 270, 135, , "Add", 143, 508, 500)
                 Delay(3)
             }
+			scrolledWithoutFriend++
         }
         if (!GPTest) {
             Return
