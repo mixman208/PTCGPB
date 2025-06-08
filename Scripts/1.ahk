@@ -2103,6 +2103,9 @@ FoundTradeable(found3Dmnd := 0, found4Dmnd := 0, found1Star := 0, foundGimmighou
     statusMessage := "Tradeable cards found"
     if (username)
         statusMessage .= " by " . username
+    if (friendCode)
+        statusMessage .= " (" . friendCode . ")"
+
 
     if (!s4tWP || (s4tWP && foundTradeable < s4tWPMinCards)) {
         CreateStatusMessage("Tradeable cards found! Continuing...",,,, false)
@@ -2120,7 +2123,7 @@ FoundTradeable(found3Dmnd := 0, found4Dmnd := 0, found1Star := 0, foundGimmighou
 
     friendCode := getFriendCode()
 
-    Sleep, 8000
+    Sleep, 5000
     fcScreenshot := Screenshot("FRIENDCODE", "Trades")
 
     ; If we're doing the inject method, try to OCR our Username
@@ -2139,6 +2142,8 @@ FoundTradeable(found3Dmnd := 0, found4Dmnd := 0, found1Star := 0, foundGimmighou
     statusMessage := "Tradeable cards found"
     if (username)
         statusMessage .= " by " . username
+    if (friendCode)
+        statusMessage .= " (" . friendCode . ")"
 
     logMessage := statusMessage . " in instance: " . scriptName . " (" . packsInPool . " packs, " . openPack . ")\nFile name: " . accountFile . "\nScreenshot file: " . screenShotFileName . "\nBacking up to the Accounts\\Trades folder and continuing..."
     LogToFile(StrReplace(logMessage, "\n", " "), "S4T.txt")
@@ -2165,7 +2170,7 @@ FoundStars(star) {
     friendCode := getFriendCode()
 
     ; Pull back screenshot of the friend code/name (good for inject method)
-    Sleep, 8000
+    Sleep, 5000
     fcScreenshot := Screenshot("FRIENDCODE")
 
     if(star = "Crown" || star = "Immersive" || star = "Shiny")
@@ -2190,6 +2195,9 @@ FoundStars(star) {
     statusMessage := star . " found"
     if (username)
         statusMessage .= " by " . username
+    if (friendCode)
+        statusMessage .= " (" . friendCode . ")"
+
 
     logMessage := statusMessage . " in instance: " . scriptName . " (" . packsInPool . " packs, " . openPack . ")\nFile name: " . accountFile . "\nBacking up to the Accounts\\SpecificCards folder and continuing..."
     LogToDiscord(logMessage, screenShot, true, (sendAccountXml ? accountFullPath : ""), fcScreenshot)
@@ -2358,7 +2366,7 @@ GodPackFound(validity) {
     friendCode := getFriendCode()
 
     ; Pull screenshot of the Friend code page; wait so we don't get the clipboard pop up; good for the inject method
-    Sleep, 8000
+    Sleep, 5000
     fcScreenshot := Screenshot("FRIENDCODE")
 
     ; If we're doing the inject method, try to OCR our Username
