@@ -2080,7 +2080,7 @@ FoundTradeable(found3Dmnd := 0, found4Dmnd := 0, found1Star := 0, foundGimmighou
         if (injectMethod && IsFunc("ocr")) {
             ; Region: x32, y120, 175x26
             playerName := ""
-            if(RefinedOCRText(fcScreenshot, 32, 120, 175, 26, "", "", playerName, ".\•")) {
+            if(RefinedOCRText(fcScreenshot, 32, 120, 175, 26, "", "", playerName)) {
             username := playerName
             }
         }
@@ -2131,7 +2131,7 @@ FoundStars(star) {
             if (injectMethod && IsFunc("ocr")) {
                 ; Region: x32, y120, 175x26
                 playerName := ""
-               if(RefinedOCRText(fcScreenshot, 32, 120, 175, 26, "", "", playerName, ".\•")) {
+               if(RefinedOCRText(fcScreenshot, 32, 120, 175, 26, "", "", playerName)) {
                 username := playerName
                 }
             }
@@ -2306,7 +2306,7 @@ GodPackFound(validity) {
         if (injectMethod && IsFunc("ocr")) {
             ; Region: x32, y120, 175x26
             playerName := ""
-            if(RefinedOCRText(fcScreenshot, 32, 120, 175, 26, "", "", playerName, ".\•")) {
+            if(RefinedOCRText(fcScreenshot, 32, 120, 175, 26, "", "", playerName)) {
             username := playerName
             }
         }
@@ -5038,8 +5038,12 @@ FindPackStats() {
     }
 }
 
+; Use Unicode to handle bullet point because of GBK encoding issues
+BULLET_CHAR := Chr(0x2022)
+PERIOD_CHAR := "."
+
 ; Attempts to extract and validate text from a specified region of a screenshot using OCR.
-RefinedOCRText(screenshotFile, x, y, w, h, allowedChars, validPattern, ByRef output, disallowedChars := "") {
+RefinedOCRText(screenshotFile, x, y, w, h, allowedChars, validPattern, ByRef output) {
     success := False
     ; Pack count gets bigger blowup
     if(output = "trophyOCR"){
@@ -5066,7 +5070,7 @@ CropAndFormatForOcr(inputFile, x := 0, y := 0, width := 200, height := 200, scal
     ; Get bitmap from file
     pBitmapOrignal := Gdip_CreateBitmapFromFile(inputFile)
     ; Crop to region, Scale up the image, Convert to greyscale, Increase contrast
-    pBitmapFormatted := Gdip_CropResizeGreyscaleContrast(pBitmapOrignal, x, y, width, height, scaleUpPercent, 75)
+    pBitmapFormatted := Gdip_CropResizeGreyscaleContrast(pBitmapOrignal, x, y, width, height, scaleUpPercent, 25)
     
 	filePath := A_ScriptDir . "\temp\" .  winTitle . "_AccountPacks_crop.png"
     Gdip_SaveBitmapToFile(pBitmap, filePath)
@@ -5076,26 +5080,28 @@ CropAndFormatForOcr(inputFile, x := 0, y := 0, width := 200, height := 200, scal
 }
 
 ; Extracts text from a bitmap using OCR. Converts the bitmap to a format usable by Windows OCR, performs OCR, and optionally removes characters not in the allowed character list.
-GetTextFromBitmap(pBitmap, charAllowList := "", charDisallowList := "") {
-    global ocrLanguage
+GetTextFromBitmap(pBitmap, charAllowList := "") {
+    global ocrLanguage, BULLET_CHAR, PERIOD_CHAR
     ocrText := ""
+    
     ; OCR the bitmap directly
     hBitmap := Gdip_CreateHBITMAPFromBitmap(pBitmap)
     pIRandomAccessStream := HBitmapToRandomAccessStream(hBitmap)
     ocrText := ocr(pIRandomAccessStream, ocrLanguage)
+    
     ; Cleanup references
-    DeleteObject(hBitmapFriendCode)
-    ; Remove disallowed characters
-    if (charDisallowList != "") {
-        disallowedPattern := "[" RegExEscape(charDisallowList) "]"
-        ocrText := RegExReplace(ocrText, disallowedPattern, "")
-    }
-
+    DeleteObject(hBitmap)
+    
+    ; Replace periods and bullet points with dashes
+    ocrText := StrReplace(ocrText, PERIOD_CHAR, "-")
+    ocrText := StrReplace(ocrText, BULLET_CHAR, "-")
+    
+    ; Remove characters not in allow list (if specified)
     if (charAllowList != "") {
-        allowedPattern := "[^" RegExEscape(charAllowList) "]"
-        ocrText := RegExReplace(ocrText, allowedPattern)
+        allowedPattern := "[^" . RegExEscape(charAllowList) . "]"
+        ocrText := RegExReplace(ocrText, allowedPattern, "")
     }
-
+    
     return Trim(ocrText, " `t`r`n")
 }
 
