@@ -5055,7 +5055,7 @@ RefinedOCRText(screenshotFile, x, y, w, h, allowedChars, validPattern, ByRef out
         ; Get the formatted pBitmap
         pBitmap := CropAndFormatForOcr(screenshotFile, x, y, w, h, blowUp[A_Index])
         ; Run OCR
-        output := GetTextFromBitmap(pBitmap, allowedChars, disallowedChars)
+        output := GetTextFromBitmap(pBitmap, allowedChars)
         ; Validate result
         if (RegExMatch(output, validPattern)) {
             success := True
