@@ -1146,14 +1146,17 @@ showcaseLikes() {
     FindImageAndClick(174, 464, 189, 479, , "CommunityShowcase", 75, 410, 200)
 	Loop, Read, %A_ScriptDir%\..\showcase_ids.txt
 		{
-			showcaseID := Trim(A_LoopReadLine)        
+			showcaseID := Trim(A_LoopReadLine)
+            Delay(2)        
 			FindImageAndClick(215, 252, 240, 277, , "FriendIDSearch", 224, 472, 200)
+            Delay(2)
 			FindImageAndClick(193, 495, 218, 521, , "ShowcaseInput", 143, 273, 200)
 			Delay(3)
 			adbInput(showcaseID)					; Pasting ID
 			Delay(1)
 			adbClick(212, 384)						; Pressing OK
 			FindImageAndClick(98, 187, 125, 214, ,"ShowcaseLiked", 175, 200, 200)
+            Delay(2)
 			FindImageAndClick(174, 464, 189, 479, , "CommunityShowcase", 140, 495, 200)
 		}
 }
