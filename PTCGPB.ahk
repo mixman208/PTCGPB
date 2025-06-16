@@ -1,4 +1,88 @@
-﻿;OPTIMIZATIONS START
+﻿; Improved status display function
+DisplayPackStatus(Message, X := 0, Y := 625) {
+   global SelectedMonitorIndex
+   static GuiName := "ScreenPackStatus"
+   
+   ; Fixed light theme colors
+   bgColor := "F0F5F9" ; Light background
+   textColor := "2E3440" ; Dark text for contrast
+   
+   MaxRetries := 10
+   RetryCount := 0
+   
+   try {
+      ; Get monitor origin from index
+      SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
+      SysGet, Monitor, Monitor, %SelectedMonitorIndex%
+      X := MonitorLeft + X
+      
+      ;Adjust Y position to be just above buttons
+      Y := MonitorTop + 503 ; This is approximately where the buttons start - 30 (status height)
+      
+      ; Check if GUI already exists
+      Gui %GuiName%:+LastFoundExist
+      if (PackGuiBuild) {
+         GuiControl, %GuiName%:, PackStatus, %Message%
+      }
+      else {
+         PackGuiBuild := 1
+         ; Create a new GUI with light theme styling
+         OwnerWND := WinExist(1)
+         Gui, %GuiName%:Destroy
+         if(!OwnerWND)
+            Gui, %GuiName%:New, +ToolWindow -Caption +LastFound -DPIScale +AlwaysOnTop
+         else
+            Gui, %GuiName%:New, +Owner%OwnerWND% +ToolWindow -Caption +LastFound -DPIScale
+         Gui, %GuiName%:Color, %bgColor% ; Light background
+         Gui, %GuiName%:Margin, 2, 2
+         Gui, %GuiName%:Font, s8 c%textColor% ; Dark text
+         Gui, %GuiName%:Add, Text, vPackStatus c%textColor%, %Message%
+         ; Show the GUI without activating it
+         Gui, %GuiName%:Show, NoActivate x%X% y%Y%, %GuiName%
+      }
+   } catch e {
+      ; Silent error handling
+   }
+}
+
+; Function to sum all variable values in the JSON file
+SumVariablesInJsonFile() {
+   global jsonFileName
+   if (jsonFileName = "") {
+      return 0 ; Return 0 instead of nothing if jsonFileName is empty
+   }
+   
+   ; Read the file content
+   FileRead, jsonContent, %jsonFileName%
+   if (jsonContent = "") {
+      return 0
+   }
+   
+   ; Parse the JSON and calculate the sum
+   sum := 0
+   ; Clean and parse JSON content
+   jsonContent := StrReplace(jsonContent, "[", "") ; Remove starting bracket
+   jsonContent := StrReplace(jsonContent, "]", "") ; Remove ending bracket
+   Loop, Parse, jsonContent, {, }
+   {
+      ; Match each variable value
+      if (RegExMatch(A_LoopField, """variable"":\s*(-?\d+)", match)) {
+         sum += match1
+      }
+   }
+   
+   ; Write the total sum to a file called "total.json"
+   if(sum > 0) {
+      totalFile := A_ScriptDir . "\json\total.json"
+      totalContent := "{""total_sum"": " sum "}"
+      FileDelete, %totalFile%
+      FileAppend, %totalContent%, %totalFile%
+   }
+   
+   return sum
+}
+
+;OPTIMIZATIONS START
 #NoEnv
 #MaxHotkeysPerInterval 99000000
 #HotkeyInterval 99000000
@@ -35,48 +119,13 @@ OnError("ErrorHandler")
 
 ;OnError("ErrorHandler") ; Add this line here
 
-githubUser := "mixman"
+githubUser := "pikachu758"
    ,repoName := "PTCGPB"
-   ,localVersion := "v6.4.19"
+   ,localVersion := "v6.4.20-alpha"
    ,scriptFolder := A_ScriptDir
    ,zipPath := A_Temp . "\update.zip"
    ,extractPath := A_Temp . "\update"
    ,intro := "Reroll 1 Extra Pack!"
-
-; GUI dimensions
-global GUI_WIDTH := 377 
-global GUI_HEIGHT := 677
-
-; Image scaling and ratio constants for 1280x720
-global IMG_SCALE_RATIO := 0.5625
-global UI_ELEMENT_SCALE := 0.85
-
-; Added new global variable for background image toggle
-global useBackgroundImage := true
-
-global scriptName, winTitle, FriendID, Instances, instanceStartDelay, jsonFileName, PacksText, runMain, Mains, AccountName, scaleParam
-global autoUseGPTest, TestTime
-global CurrentVisibleSection
-global FriendID_Divider, Instance_Divider3
-global System_Divider1, System_Divider2, System_Divider3, System_Divider4
-global Pack_Divider1, Pack_Divider2, Pack_Divider3
-global SaveForTradeDivider_1, SaveForTradeDivider_2
-global Discord_Divider3
-global tesseractPath, applyRoleFilters, debugMode, statusMessage
-global tesseractOption
-global spendHourGlass
-global rowGap
-global injectSortMethodCreated := false
-global injectSortMethod := "ModifiedAsc" ; Default sort method
-global SortMethodLabel, InjectSortMethodDropdown
-global sortByCreated := false
-global SortByText, SortByDropdown
-global showcaseLikes, showcaseURL, skipMissionsInjectMissions
-global minStarsA1Mewtwo, minStarsA1Charizard, minStarsA1Pikachu, minStarsA1a
-global minStarsA2Dialga, minStarsA2Palkia, minStarsA2a, minStarsA2b
-global minStarsA3Solgaleo, minStarsA3Lunala, minStarsA3a
-global waitForEligibleAccounts, maxWaitHours
-global finishSignalFile := A_ScriptDir "\Scripts\Include\finish.signal"
 
 if not A_IsAdmin
 {
@@ -171,7 +220,7 @@ NextStep:
    }
    
    ; ========== GUI Setup ==========
-   global GuiName
+   global MainGuiName
    global checkedPath, uncheckedPath
    checkedPath := A_ScriptDir . "\GUI\Gui_checked.png"
    uncheckedPath := A_ScriptDir . "\GUI\Gui_unchecked.png"
@@ -1126,7 +1175,7 @@ NextStep:
    menuY := mainY
    xPos := 18
    Gui, Menu:New
-   ;Gui, Menu:+Owner%GuiName%
+   ;Gui, Menu:+Owner%MainGuiName%
    Gui, Menu:-Caption
    Gui, Menu:+HWNDmenuHwnd
    Gui, Menu:Add, Picture, x0 y0 w%menuW% h%menuH%, %MenuBackground%
@@ -1287,7 +1336,7 @@ NextStep:
    global topBarW := 340
    global topBarH := 440
    Gui, TopBar:New
-   Gui, TopBar:+Owner%GuiName%
+   Gui, TopBar:+Owner%MainGuiName%
    Gui, TopBar:-Caption
    Gui, TopBar:+HWNDtopBarHwnd
    if (CurrentTheme = "Dark") {
@@ -1392,7 +1441,7 @@ NextStep:
    }
    ; ColorBlock
    Gui, TopBarColor:New
-   Gui, TopBarColor:+Owner%GuiName%
+   Gui, TopBarColor:+Owner%MainGuiName%
    Gui, TopBarColor:-Caption -Border
    Gui, TopBarColor:+HWNDtopBarColorHwnd
    Gui, TopBarColor:Color, 0xeeeeee
@@ -1401,7 +1450,7 @@ NextStep:
    WinSet, TransColor, 0xeeeeee
    ; TopBarSwitch
    Gui, TopBarSwitch:New
-   Gui, TopBarSwitch:+Owner%GuiName%
+   Gui, TopBarSwitch:+Owner%MainGuiName%
    Gui, TopBarSwitch:-Caption -Border
    Gui, TopBarSwitch:+HWNDtopBarSwitchHwnd
    Gui, TopBarSwitch:Color, 0xeeeeee
@@ -1561,7 +1610,7 @@ Class ScrollGUI {
       H := This.Height
       Gui, % This.HWND . ":Show",NA %ShowOptions% w%W% h%H%, %Title%
       if (Title == "Arturo's PTCGP BOT")
-         GuiName := % This.HGUI
+         MainGuiName := % This.HGUI
       Return True
    }
    hide(Title := "") {
@@ -2326,7 +2375,7 @@ SaveAllSettings() {
    
    iniContent .= "menuExpanded=" menuExpanded "`n"
    
-   Gui, % GuiName . ":Submit", NoHide
+   Gui, % MainGuiName . ":Submit", NoHide
    if (deleteMethod = "" || deleteMethod = "ERROR") {
       deleteMethod := "13 Pack"
    }
@@ -2334,7 +2383,7 @@ SaveAllSettings() {
    if (!InStr(validMethods, deleteMethod)) {
       deleteMethod := "13 Pack"
    }
-
+   
    if (SortByDropdown = "Oldest First")
       injectSortMethod := "ModifiedAsc"
    else if (SortByDropdown = "Newest First")
@@ -3356,6 +3405,7 @@ ResetAccountLists() {
 }
 
 StartBot:
+   global PackGuiBuild := 0
    SaveAllSettings()
    LoadSettingsFromIni()
    CallOthers := 1
@@ -3689,7 +3739,7 @@ StartBot:
    ; === MAIN HEARTBEAT LOOP ===
    Loop {
       Sleep, 30000
-      
+      ;ToolTip, Enter Loop, 100, 800
       ; Check if Main toggled GP Test Mode and send notification if needed
       IniRead, mainTestMode, HeartBeat.ini, TestMode, Main, -1
       if (mainTestMode != -1) {
@@ -3788,7 +3838,9 @@ StartBot:
       
       packStatus := "Time: " . mminutes . "m Packs: " . total
       packStatus .= " | Avg: " . Round(total / mminutes, 2) . " packs/min"
-      
+      ;wtf := ((runMain ? Mains * scaleParam : 0) + 5)
+      ;MsgBox, %wtf%
+      ;MsgBox, %packStatus%
       ; Display pack status at the bottom of the first reroll instance
       DisplayPackStatus(packStatus, ((runMain ? Mains * scaleParam : 0) + 5), 625)
       
@@ -3935,53 +3987,6 @@ SendAllInstancesOfflineStatus() {
    DisplayPackStatus("Discord notification sent: All instances marked as OFFLINE", ((runMain ? Mains * scaleParam : 0) + 5), 625)
 }
 
-; Improved status display function
-DisplayPackStatus(Message, X := 0, Y := 625) {
-   global SelectedMonitorIndex
-   static GuiName := "PackStatusGUI"
-   
-   ; Fixed light theme colors
-   bgColor := "F0F5F9" ; Light background
-   textColor := "2E3440" ; Dark text for contrast
-   
-   MaxRetries := 10
-   RetryCount := 0
-   
-   try {
-      ; Get monitor origin from index
-      SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
-      SysGet, Monitor, Monitor, %SelectedMonitorIndex%
-      X := MonitorLeft + X
-      
-      ;Adjust Y position to be just above buttons
-      Y := MonitorTop + 503 ; This is approximately where the buttons start - 30 (status height)
-      
-      ; Check if GUI already exists
-      Gui %GuiName%:+LastFoundExist
-      if WinExist() {
-         GuiControl, %GuiName%:, PacksText, %Message%
-      }
-      else {
-         ; Create a new GUI with light theme styling
-         OwnerWND := WinExist(1)
-         if(!OwnerWND)
-            Gui, %GuiName%:New, +ToolWindow -Caption +LastFound -DPIScale
-         else
-            Gui, %GuiName%:New, +Owner%OwnerWND% +ToolWindow -Caption +LastFound -DPIScale
-         
-         Gui, %GuiName%:Color, %bgColor% ; Light background
-         Gui, %GuiName%:Margin, 2, 2
-         Gui, %GuiName%:Font, s8 c%textColor% ; Dark text
-         Gui, %GuiName%:Add, Text, vPacksText c%textColor%, %Message%
-         
-         ; Show the GUI without activating it
-         Gui, %GuiName%:Show, NoActivate x%X% y%Y%, %GuiName%
-      }
-   } catch e {
-      ; Silent error handling
-   }
-}
-
 ; Global variable to track the current JSON file
 global jsonFileName := ""
 
@@ -4026,43 +4031,6 @@ AppendToJsonFile(variableValue) {
    ; Write the updated JSON back to the file
    FileDelete, %jsonFileName%
    FileAppend, %jsonContent%, %jsonFileName%
-}
-
-; Function to sum all variable values in the JSON file
-SumVariablesInJsonFile() {
-   global jsonFileName
-   if (jsonFileName = "") {
-      return 0 ; Return 0 instead of nothing if jsonFileName is empty
-   }
-   
-   ; Read the file content
-   FileRead, jsonContent, %jsonFileName%
-   if (jsonContent = "") {
-      return 0
-   }
-   
-   ; Parse the JSON and calculate the sum
-   sum := 0
-   ; Clean and parse JSON content
-   jsonContent := StrReplace(jsonContent, "[", "") ; Remove starting bracket
-   jsonContent := StrReplace(jsonContent, "]", "") ; Remove ending bracket
-   Loop, Parse, jsonContent, {, }
-   {
-      ; Match each variable value
-      if (RegExMatch(A_LoopField, """variable"":\s*(-?\d+)", match)) {
-         sum += match1
-      }
-   }
-   
-   ; Write the total sum to a file called "total.json"
-   if(sum > 0) {
-      totalFile := A_ScriptDir . "\json\total.json"
-      totalContent := "{""total_sum"": " sum "}"
-      FileDelete, %totalFile%
-      FileAppend, %totalContent%, %totalFile%
-   }
-   
-   return sum
 }
 
 CheckForUpdate() {
