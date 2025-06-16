@@ -45,43 +45,6 @@ DisplayPackStatus(Message, X := 0, Y := 625) {
    }
 }
 
-; Function to sum all variable values in the JSON file
-SumVariablesInJsonFile() {
-   global jsonFileName
-   if (jsonFileName = "") {
-      return 0 ; Return 0 instead of nothing if jsonFileName is empty
-   }
-   
-   ; Read the file content
-   FileRead, jsonContent, %jsonFileName%
-   if (jsonContent = "") {
-      return 0
-   }
-   
-   ; Parse the JSON and calculate the sum
-   sum := 0
-   ; Clean and parse JSON content
-   jsonContent := StrReplace(jsonContent, "[", "") ; Remove starting bracket
-   jsonContent := StrReplace(jsonContent, "]", "") ; Remove ending bracket
-   Loop, Parse, jsonContent, {, }
-   {
-      ; Match each variable value
-      if (RegExMatch(A_LoopField, """variable"":\s*(-?\d+)", match)) {
-         sum += match1
-      }
-   }
-   
-   ; Write the total sum to a file called "total.json"
-   if(sum > 0) {
-      totalFile := A_ScriptDir . "\json\total.json"
-      totalContent := "{""total_sum"": " sum "}"
-      FileDelete, %totalFile%
-      FileAppend, %totalContent%, %totalFile%
-   }
-   
-   return sum
-}
-
 ;OPTIMIZATIONS START
 #NoEnv
 #MaxHotkeysPerInterval 99000000
@@ -218,7 +181,7 @@ NextStep:
       if (ErrorLevel)
          MsgBox, Failed to create %backupFile%. Ensure permissions and paths are correct.
    }
-   
+   InitializeJsonFile() ; Create or open the JSON file
    ; ========== GUI Setup ==========
    global MainGuiName
    global checkedPath, uncheckedPath
@@ -4031,6 +3994,43 @@ AppendToJsonFile(variableValue) {
    ; Write the updated JSON back to the file
    FileDelete, %jsonFileName%
    FileAppend, %jsonContent%, %jsonFileName%
+}
+
+; Function to sum all variable values in the JSON file
+SumVariablesInJsonFile() {
+   global jsonFileName
+   ; MsgBox, %jsonFileName%
+   if (jsonFileName = "") {
+      return 0 ; Return 0 instead of nothing if jsonFileName is empty
+   }
+   ; Read the file content
+   FileRead, jsonContent, %jsonFileName%
+   if (jsonContent = "") {
+      return 0
+   }
+   
+   ; Parse the JSON and calculate the sum
+   sum := 0
+   ; Clean and parse JSON content
+   jsonContent := StrReplace(jsonContent, "[", "") ; Remove starting bracket
+   jsonContent := StrReplace(jsonContent, "]", "") ; Remove ending bracket
+   Loop, Parse, jsonContent, {, }
+   {
+      ; Match each variable value
+      if (RegExMatch(A_LoopField, """variable"":\s*(-?\d+)", match)) {
+         sum += match1
+      }
+   }
+   
+   ; Write the total sum to a file called "total.json"
+   if(sum > 0) {
+      totalFile := A_ScriptDir . "\json\total.json"
+      totalContent := "{""total_sum"": " sum "}"
+      FileDelete, %totalFile%
+      FileAppend, %totalContent%, %totalFile%
+   }
+   
+   return sum
 }
 
 CheckForUpdate() {
