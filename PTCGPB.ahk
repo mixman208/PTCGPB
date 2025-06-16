@@ -41,6 +41,41 @@ githubUser := "mixman208"
    ,extractPath := A_Temp . "\update"
    ,intro := "Reroll 1 Extra Pack!"
 
+; GUI dimensions
+global GUI_WIDTH := 377 
+global GUI_HEIGHT := 677
+
+; Image scaling and ratio constants for 1280x720
+global IMG_SCALE_RATIO := 0.5625
+global UI_ELEMENT_SCALE := 0.85
+
+; Added new global variable for background image toggle
+global useBackgroundImage := true
+
+global scriptName, winTitle, FriendID, Instances, instanceStartDelay, jsonFileName, PacksText, runMain, Mains, AccountName, scaleParam
+global autoUseGPTest, TestTime
+global CurrentVisibleSection
+global FriendID_Divider, Instance_Divider3
+global System_Divider1, System_Divider2, System_Divider3, System_Divider4
+global Pack_Divider1, Pack_Divider2, Pack_Divider3
+global SaveForTradeDivider_1, SaveForTradeDivider_2
+global Discord_Divider3
+global tesseractPath, applyRoleFilters, debugMode, statusMessage
+global tesseractOption
+global spendHourGlass
+global rowGap
+global injectSortMethodCreated := false
+global injectSortMethod := "ModifiedAsc" ; Default sort method
+global SortMethodLabel, InjectSortMethodDropdown
+global sortByCreated := false
+global SortByText, SortByDropdown
+global showcaseLikes, showcaseURL, skipMissionsInjectMissions
+global minStarsA1Mewtwo, minStarsA1Charizard, minStarsA1Pikachu, minStarsA1a
+global minStarsA2Dialga, minStarsA2Palkia, minStarsA2a, minStarsA2b
+global minStarsA3Solgaleo, minStarsA3Lunala, minStarsA3a
+global waitForEligibleAccounts, maxWaitHours
+global finishSignalFile := A_ScriptDir "\Scripts\Include\finish.signal"
+
 if not A_IsAdmin
 {
    ; Relaunch script with admin rights
