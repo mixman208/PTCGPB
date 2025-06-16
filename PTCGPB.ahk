@@ -31,11 +31,13 @@ version = Arturos PTCGP Bot
 CoordMode, Mouse, Screen
 SetTitleMatchMode, 3
 
+OnError("ErrorHandler")
+
 ;OnError("ErrorHandler") ; Add this line here
 
-githubUser := "mixman208"
+githubUser := "mixman"
    ,repoName := "PTCGPB"
-   ,localVersion := "v6.4.19e"
+   ,localVersion := "v6.4.19"
    ,scriptFolder := A_ScriptDir
    ,zipPath := A_Temp . "\update.zip"
    ,extractPath := A_Temp . "\update"
@@ -1951,7 +1953,6 @@ GuiRemoveAlwaysOnTop() {
 ; Function to load settings from INI file
 LoadSettingsFromIni() {
    global
-   ;MsgBox, Huh
    ; Check if Settings.ini exists
    if (FileExist("Settings.ini")) {
       IniRead, IsLanguageSet, Settings.ini, UserSettings, IsLanguageSet, 1
@@ -2124,7 +2125,6 @@ LoadSettingsFromIni() {
 
 ; Function to create the default settings file if it doesn't exist
 CreateDefaultSettingsFile() {
-   ;MsgBox, Huh
    if (!FileExist("Settings.ini")) {
       defaultBg := A_ScriptDir . "\\GUI\\Images\background2.png"
       defaultPage := A_ScriptDir . "\\GUI\\Images\Page2.png"
@@ -2292,27 +2292,22 @@ SaveAllSettings() {
    iniContent .= "menuExpanded=" menuExpanded "`n"
    
    Gui, % GuiName . ":Submit", NoHide
-   GuiControlGet, currentDeleteMethod,, deleteMethod
-   if (currentDeleteMethod != "" && currentDeleteMethod != "ERROR") {
-      deleteMethod := currentDeleteMethod
-   } else if (deleteMethod = "" || deleteMethod = "ERROR") {
+   if (deleteMethod = "" || deleteMethod = "ERROR") {
       deleteMethod := "13 Pack"
    }
    validMethods := "13 Pack|Inject|Inject Missions|Inject for Reroll"
    if (!InStr(validMethods, deleteMethod)) {
       deleteMethod := "13 Pack"
    }
-   if (sortByCreated) {
-      GuiControlGet, selectedOption,, SortByDropdown
-      if (selectedOption = "Oldest First")
-         injectSortMethod := "ModifiedAsc"
-      else if (selectedOption = "Newest First")
-         injectSortMethod := "ModifiedDesc"
-      else if (selectedOption = "Fewest Packs First")
-         injectSortMethod := "PacksAsc"
-      else if (selectedOption = "Most Packs First")
-         injectSortMethod := "PacksDesc"
-   }
+
+   if (SortByDropdown = "Oldest First")
+      injectSortMethod := "ModifiedAsc"
+   else if (SortByDropdown = "Newest First")
+      injectSortMethod := "ModifiedDesc"
+   else if (SortByDropdown = "Fewest Packs First")
+      injectSortMethod := "PacksAsc"
+   else if (SortByDropdown = "Most Packs First")
+      injectSortMethod := "PacksDesc"
    iniContent_Second := "deleteMethod=" deleteMethod "`n"
    if (deleteMethod = "Inject for Reroll" || deleteMethod = "13 Pack") {
       iniContent_Second .= "FriendID=" FriendID "`n"
@@ -2373,7 +2368,6 @@ SaveAllSettings() {
    iniContent_Second .= "tesseractPath=" tesseractPath "`n"
    
    Gui, TopBar:Submit, NoHide
-   ;MsgBox, %BackgroundImage%
    iniContent_third := "currentfont=" currentfont "`n"
    iniContent_third .= "BackgroundImage=" BackgroundImage "`n"
    iniContent_third .= "PageImage=" PageImage "`n"
@@ -2600,7 +2594,6 @@ MenuSwitchHandler:
          
          Sleep, 15
       }
-      ;MsgBox, %MenuClose%
       GuiControl, Menu:, MenuSwitch, %MenuClose%
       menuExpanded := true
    } else {
@@ -2614,7 +2607,6 @@ MenuSwitchHandler:
          
          Sleep, 15
       }
-      ;MsgBox, MenuOpen
       GuiControl, Menu:, MenuSwitch, %MenuOpen%
       menuExpanded := false
    }
@@ -2708,7 +2700,6 @@ return
 
 defaultLangSetting:
    global scaleParam
-   GuiControlGet, defaultLanguage,, defaultLanguage
    if (defaultLanguage = "Scale125") {
       scaleParam := 277
       MsgBox, Scale set to 125`% with scaleParam = %scaleParam%
@@ -2753,12 +2744,11 @@ minStarsEnabledSettings:
 return
 
 deleteSettings:
-   global scaleParam, defaultLanguage, sortByCreated
+   global scaleParam, defaultLanguage
    
    currentScaleParam := scaleParam
    GuiControlGet, currentMethod,, deleteMethod
    deleteMethod := currentMethod
-   
    ShowCheck(name, checked := "") {
       if (checked != "")
          GuiControl,, %name%, % checked ? checkedPath : uncheckedPath
@@ -3077,7 +3067,6 @@ ChooseFont:
    GuiRemoveAlwaysOnTop()
    selectedFont := ""
    ShowFontListGui("selectedFont")
-   ;MsgBox, The Font You Choose：%selectedFont%
    if (selectedFont = "")
       selectedFont := "Segoe UI"
    GuiControl,TopBar:, currentfont, %selectedFont%
@@ -3141,7 +3130,6 @@ ChooseFontColor:
    if (FontColor = "") {
       FontColor := temp
    }
-   ;MsgBox, %FontColor%
    GuiControl, TopBar:, FontColor, %FontColor%
    ApplyInputStyle()
    GuiControl, TopBar:Show, saveTopBar
@@ -3394,9 +3382,9 @@ StartBot:
       confirmMsg .= "`n" . SetUpDictionary.Confirm_ClaimMissions
       additionalSettingsFound := true
    }
-   if (InStr(deleteMethod, "Inject") && sortByCreated) {
-      GuiControlGet, selectedSortOption,, SortByDropdown
-      confirmMsg .= "`n" . SetUpDictionary.Confirm_SortBy . selectedSortOption
+   if (InStr(deleteMethod, "Inject")) {
+      ;GuiControlGet, selectedSortOption,, SortByDropdown
+      confirmMsg .= "`n" . SetUpDictionary.Confirm_SortBy . SortByDropdown
       additionalSettingsFound := true
    }
    if (!additionalSettingsFound)
@@ -3488,18 +3476,20 @@ StartBot:
    
    ResetAccountLists()
    
+   /*
    ; Update dropdown settings if needed
-   if (InStr(deleteMethod, "Inject") && sortByCreated) {
-      GuiControlGet, selectedSortOption,, SortByDropdown
-      if (selectedSortOption = "Oldest First")
+   if (InStr(deleteMethod, "Inject")) {
+      ;MsgBox, SortByDropDown := %SortByDropdown%
+      if (SortByDropdown = "Oldest First")
          injectSortMethod := "ModifiedAsc"
-      else if (selectedSortOption = "Newest First")
+      else if (SortByDropdown = "Newest First")
          injectSortMethod := "ModifiedDesc"
-      else if (selectedSortOption = "Fewest Packs First")
+      else if (SortByDropdown = "Fewest Packs First")
          injectSortMethod := "PacksAsc"
-      else if (selectedSortOption = "Most Packs First")
+      else if (SortByDropdown = "Most Packs First")
          injectSortMethod := "PacksDesc"
    }
+   */
    
    ; Re-validate scaleParam based on current language
    if (defaultLanguage = "Scale125") {
@@ -4248,25 +4238,10 @@ VersionCompare(v1, v2) {
 }
 
 DownloadFile(url, filename) {
-   RegRead, proxyEnabled, HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings, ProxyEnable
-   RegRead, proxyServer, HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings, ProxyServer
-   localPath := A_ScriptDir . "\" . filename
-   errored := false
-   try {
-      whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-      if (proxyEnabled)
-         whr.SetProxy(2, proxyServer)
-      whr.Open("GET", url, true)
-      whr.Send()
-      whr.WaitForResponse()
-      fileContent := whr.ResponseText
-   } catch {
-      errored := true
-   }
-   if (!errored && fileContent != "") {
-      FileDelete, %localPath%
-      FileAppend, %fileContent%, %localPath%
-   }
+   url := url
+   localPath = %A_ScriptDir%\%filename%
+   
+   URLDownloadToFile, %url%, %localPath%
 }
 
 ReadFile(filename, numbers := false) {
