@@ -82,7 +82,7 @@ OnError("ErrorHandler")
 
 ;OnError("ErrorHandler") ; Add this line here
 
-githubUser := "mixman"
+githubUser := "mixman208"
    ,repoName := "PTCGPB"
    ,localVersion := "v6.4.20"
    ,scriptFolder := A_ScriptDir
@@ -169,7 +169,7 @@ NextStep:
    if FileExist(totalFile) {
       FileCopy, %totalFile%, %backupFile%, 1
       if (ErrorLevel)
-         MsgBox, Failed to create %backupFile%. Ensure permissions and paths are correct.
+         MsgBox, 0x40000,, Failed to create %backupFile%. Ensure permissions and paths are correct.
       FileDelete, %totalFile%
    }
    
@@ -179,7 +179,7 @@ NextStep:
    if FileExist(packsFile) {
       FileCopy, %packsFile%, %backupFile%, 1
       if (ErrorLevel)
-         MsgBox, Failed to create %backupFile%. Ensure permissions and paths are correct.
+         MsgBox, 0x40000,, Failed to create %backupFile%. Ensure permissions and paths are correct.
    }
    InitializeJsonFile() ; Create or open the JSON file
    ; ========== GUI Setup ==========
@@ -1292,6 +1292,7 @@ NextStep:
       ,ButtonOptions["textY"] := (611 + ys)
    AddBtn(ButtonOptions)
    setMenuNormalFont()
+   Gui, Menu:Add, Text, x8 y660 w220 Center BackgroundTrans, ● CC BY-NC 4.0 international license
    Gui, Menu:Show, w%menuW% h%menuH% x%menuX% y%menuY% NoActivate
    WinSet, AlwaysOnTop, On, ahk_id %mainHwnd%
    WinSet, AlwaysOnTop, Off, ahk_id %mainHwnd%
@@ -1356,44 +1357,90 @@ NextStep:
          }
    }
    Gui, TopBar:Add, DropDownList, x150 y58 w80 vTopBotLanguage gLanguageControl hwndBotLan +0x0210 Choose%defaultChooseLang% BackgroundTrans Center, English|中文|日本語|Deutsch
-   
-   Gui, TopBar:Add, Button, x35 y95 w100 h25 gChooseFont, Choose Font
+   global Btn_Font, Btn_FontColor, Btn_BackgroundToggle, Btn_PageToggle, Btn_MenuToggle, Btn_Theme, SaveTopBar
+   global Txt_Btn_Font, Txt_Btn_FontColor, Txt_Btn_BackgroundToggle, Txt_Btn_PageToggle, Txt_Btn_MenuToggle, Txt_Btn_Theme, Txt_saveTopBar
+   SetTopBarBtnFont()
+   TopBarBtnOptions := {}
+      ,TopBarBtnOptions["type"] := "Picture"
+      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 95 ,TopBarBtnOptions["w"] := 100,TopBarBtnOptions["h"] := 22
+      ,TopBarBtnOptions["vName"] := "Btn_Font" ,TopBarBtnOptions["gName"] := "ChooseFont"
+      ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_topbar2.png" : A_ScriptDir . "\GUI\Images\panel_topbar1.png")
+      ,TopBarBtnOptions["text"] := "Choose Font" ,TopBarBtnOptions["vTextName"] := "Txt_Btn_Font"
+      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 96
+   AddBtnforTop(TopBarBtnOptions)
+   SetTopBarNormalFont()
    Gui, TopBar:Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "x150 y97 w147 h20 vcurrentfont -E0x200 Center backgroundtrans", %currentfont%
    
    Gui, TopBar:Add, Text, X35 y130 BackgroundTrans, Set Font Color << current：
    Gui, TopBar:Add, Text, X238 y130 BackgroundTrans, >>
-   Gui, TopBar:Add, Button, x35 y155 w100 h25 gChooseFontColor, Choose Color
+   SetTopBarBtnFont()
+   TopBarBtnOptions := {}
+      ,TopBarBtnOptions["type"] := "Picture"
+      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 155 ,TopBarBtnOptions["w"] := 100,TopBarBtnOptions["h"] := 22
+      ,TopBarBtnOptions["vName"] := "Btn_FontColor" ,TopBarBtnOptions["gName"] := "ChooseFontColor"
+      ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_topbar2.png" : A_ScriptDir . "\GUI\Images\panel_topbar1.png")
+      ,TopBarBtnOptions["text"] := "Choose Color" ,TopBarBtnOptions["vTextName"] := "Txt_Btn_FontColor"
+      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 156
+   AddBtnforTop(TopBarBtnOptions)
+   SetTopBarNormalFont()
    Gui, TopBar:Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "x150 y157 w147 h20 vFontColor BackgroundTrans -E0x200 Center backgroundtrans", %FontColor%
    
    Gui, TopBar:Add, Text, x35 y190 BackgroundTrans, Choose Background Image（9：16）：
-   Gui, TopBar:Add, Button, x35 y215 w50 h25 gChooseBackground, Search
+   SetTopBarBtnFont()
+   TopBarBtnOptions := {}
+      ,TopBarBtnOptions["type"] := "Picture"
+      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 215 ,TopBarBtnOptions["w"] := 60,TopBarBtnOptions["h"] := 22
+      ,TopBarBtnOptions["vName"] := "Btn_BackgroundToggle" ,TopBarBtnOptions["gName"] := "ChooseBackground"
+      ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_small2.png" : A_ScriptDir . "\GUI\Images\panel_small1.png")
+      ,TopBarBtnOptions["text"] := "Search" ,TopBarBtnOptions["vTextName"] := "Txt_Btn_BackgroundToggle"
+      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 216
+   AddBtnforTop(TopBarBtnOptions)
+   SetTopBarNormalFont()
    Gui, TopBar:Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "x100 y217 w200 h20 vBackgroundImage -E0x200 Center backgroundtrans", %BackgroundImage%
    
    Gui, TopBar:Add, Text, x35 y250 BackgroundTrans, Choose Page Image（8：11）：
-   Gui, TopBar:Add, Button, x35 y275 w50 h25 gChoosePage, Search
+   SetTopBarBtnFont()
+   TopBarBtnOptions := {}
+      ,TopBarBtnOptions["type"] := "Picture"
+      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 275 ,TopBarBtnOptions["w"] := 60,TopBarBtnOptions["h"] := 22
+      ,TopBarBtnOptions["vName"] := "Btn_PageToggle" ,TopBarBtnOptions["gName"] := "ChoosePage"
+      ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_small2.png" : A_ScriptDir . "\GUI\Images\panel_small1.png")
+      ,TopBarBtnOptions["text"] := "Search" ,TopBarBtnOptions["vTextName"] := "Txt_Btn_PageToggle"
+      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 276
+   AddBtnforTop(TopBarBtnOptions)
+   SetTopBarNormalFont()
    Gui, TopBar:Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "x100 y277 w200 h20 vPageImage -E0x200 Center backgroundtrans", %PageImage%
    
    Gui, TopBar:Add, Text, x35 y310 BackgroundTrans, Choose Menu Image（2：5）：
-   Gui, TopBar:Add, Button, x35 y335 w50 h25 gChooseMenu, Search
-   Gui, TopBar:Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "x100 y337 w200 h20 vMenuBackground -E0x200 Center backgroundtrans", %MenuBackground%
    SetTopBarBtnFont()
-   global Btn_Theme, Txt_Btn_Theme
    TopBarBtnOptions := {}
       ,TopBarBtnOptions["type"] := "Picture"
-      ,TopBarBtnOptions["x"] := 35
-      ,TopBarBtnOptions["y"] := 370
-      ,TopBarBtnOptions["w"] := 121
-      ,TopBarBtnOptions["h"] := 22
-      ,TopBarBtnOptions["vName"] := "Btn_Theme"
-      ,TopBarBtnOptions["gName"] := "ToggleTheme"
-      ,TopBarBtnOptions["imagePath"] := btn_mainPage
-      ,TopBarBtnOptions["text"] := "Toggle Theme"
-      ,TopBarBtnOptions["vTextName"] := "Txt_Btn_Theme"
-      ,TopBarBtnOptions["textX"] := 35
-      ,TopBarBtnOptions["textY"] := 371
+      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 335 ,TopBarBtnOptions["w"] := 60,TopBarBtnOptions["h"] := 22
+      ,TopBarBtnOptions["vName"] := "Btn_MenuToggle" ,TopBarBtnOptions["gName"] := "ChooseMenu"
+      ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_small2.png" : A_ScriptDir . "\GUI\Images\panel_small1.png")
+      ,TopBarBtnOptions["text"] := "Search" ,TopBarBtnOptions["vTextName"] := "Txt_Btn_MenuToggle"
+      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 336
    AddBtnforTop(TopBarBtnOptions)
-   setTopBarNormalFont()
-   Gui, TopBar:Add, Button, x146 y390 w45 h25 vsaveTopBar gSaveTopBarSettings BackgroundTrans Hidden, Save
+   SetTopBarNormalFont()
+   Gui, TopBar:Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "x100 y337 w200 h20 vMenuBackground -E0x200 Center backgroundtrans", %MenuBackground%
+   SetTopBarBtnFont()
+   TopBarBtnOptions := {}
+      ,TopBarBtnOptions["type"] := "Picture"
+      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 370 ,TopBarBtnOptions["w"] := 100,TopBarBtnOptions["h"] := 22
+      ,TopBarBtnOptions["vName"] := "Btn_Theme" ,TopBarBtnOptions["gName"] := "ToggleTheme"
+      ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_topbar2.png" : A_ScriptDir . "\GUI\Images\panel_topbar1.png")
+      ,TopBarBtnOptions["text"] := "Toggle Theme" ,TopBarBtnOptions["vTextName"] := "Txt_Btn_Theme"
+      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 371
+   AddBtnforTop(TopBarBtnOptions)
+   TopBarBtnOptions := {}
+      ,TopBarBtnOptions["type"] := "Picture"
+      ,TopBarBtnOptions["x"] := 140 ,TopBarBtnOptions["y"] := 400 ,TopBarBtnOptions["w"] := 60,TopBarBtnOptions["h"] := 22
+      ,TopBarBtnOptions["vName"] := "saveTopBar" ,TopBarBtnOptions["gName"] := "SaveTopBarSettings"
+      ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_small2.png" : A_ScriptDir . "\GUI\Images\panel_small1.png")
+      ,TopBarBtnOptions["text"] := "Save" ,TopBarBtnOptions["vTextName"] := "Txt_saveTopBar"
+      ,TopBarBtnOptions["textX"] := 140 ,TopBarBtnOptions["textY"] := 401
+   AddBtnforTop(TopBarBtnOptions)
+   SetTopBarNormalFont()
    Gui, Font, norm
    SetTopBarNormalFont()
    Gui, TopBar:Show, % "x" . mainX+15 . " y" . mainY+32 . " w" . topBarW . " h36 NoActivate"
@@ -2464,7 +2511,7 @@ SetSectionFont() {
 
 setMenuNormalFont() {
    global currentfont
-   Gui, Menu:Font, norm s10 c000000, %currentfont%
+   Gui, Menu:Font, norm s8 c%btn_fontColor%, %currentfont%
 }
 
 SetTopBarSmallBtnFont() { ;For toolbar e.g. background,theme
@@ -2749,10 +2796,10 @@ defaultLangSetting:
    global scaleParam
    if (defaultLanguage = "Scale125") {
       scaleParam := 277
-      MsgBox, Scale set to 125`% with scaleParam = %scaleParam%
+      MsgBox, 0x40000,, Scale set to 125`% with scaleParam = %scaleParam%
    } else if (defaultLanguage = "Scale100") {
       scaleParam := 287
-      MsgBox, Scale set to 100`% with scaleParam = %scaleParam%
+      MsgBox, 0x40000,, Scale set to 100`% with scaleParam = %scaleParam%
    }
 return
 
@@ -2842,7 +2889,7 @@ deleteSettings:
       scaleParam := 287
    
    if (debugMode && scaleParam != currentScaleParam)
-      MsgBox, Scale parameter updated: %scaleParam% (Was: %currentScaleParam%)
+      MsgBox, 0x40000,, Scale parameter updated: %scaleParam% (Was: %currentScaleParam%)
 return
 
 spendHourGlassSettings:
@@ -3019,9 +3066,9 @@ ArrangeWindows:
    }
    
    if (debugMode && windowsPositioned == 0) {
-      MsgBox, No windows found to arrange
+      MsgBox, 0x40000,, No windows found to arrange
    } else {
-      MsgBox, Arranged %windowsPositioned% windows
+      MsgBox, 0x40000,, Arranged %windowsPositioned% windows
    }
    
    ; Save settings after arranging windows
@@ -3036,7 +3083,7 @@ LaunchAllMumu:
    SaveAllSettings()
    
    if(StrLen(A_ScriptDir) > 200 || InStr(A_ScriptDir, " ")) {
-      MsgBox, the path to the bot folder is too long or contain white spaces. move it to a shorter path without spaces
+      MsgBox, 0x40000,, the path to the bot folder is too long or contain white spaces. move it to a shorter path without spaces
       return
    }
    
@@ -3332,7 +3379,7 @@ BalanceXMLs:
       }
       
       Tooltip ;clear tooltip
-      MsgBox, Done balancing XMLs between %Instances% instances`n%counter% XMLs past 24 hours per instance
+      MsgBox, 0x40000,XML Balance,Done balancing XMLs between %Instances% instances`n%counter% XMLs past 24 hours per instance
    }
 return
 
@@ -3362,7 +3409,7 @@ ResetAccountLists() {
       LogToFile("ERROR: ResetLists.ahk not found at: " . resetListsPath)
       
       if (debugMode) {
-         MsgBox, ResetLists.ahk not found at:`n%resetListsPath%
+         MsgBox, 0x40000, Reset list issue, ResetLists.ahk not found at:`n%resetListsPath%
       }
    }
 }
@@ -3376,7 +3423,7 @@ StartBot:
    WinMinimize, ahk_id %menuHwnd%
    ; Quick path validation (no file I/O)
    if(StrLen(A_ScriptDir) > 200 || InStr(A_ScriptDir, " ")) {
-      MsgBox, % SetUpDictionary.Error_BotPathTooLong
+      MsgBox, 0x40000,, % SetUpDictionary.Error_BotPathTooLong
       return
    }
    
@@ -3548,7 +3595,7 @@ StartBot:
    
    ; Handle deprecated FriendID field
    if (inStr(FriendID, "http")) {
-      MsgBox, To provide a URL for friend IDs, please use the ids.txt API field and leave the Friend ID field empty.
+      MsgBox,To provide a URL for friend IDs, please use the ids.txt API field and leave the Friend ID field empty.
       
       if (mainIdsURL = "") {
          IniWrite, "", Settings.ini, UserSettings, FriendID
@@ -3801,9 +3848,6 @@ StartBot:
       
       packStatus := "Time: " . mminutes . "m Packs: " . total
       packStatus .= " | Avg: " . Round(total / mminutes, 2) . " packs/min"
-      ;wtf := ((runMain ? Mains * scaleParam : 0) + 5)
-      ;MsgBox, %wtf%
-      ;MsgBox, %packStatus%
       ; Display pack status at the bottom of the first reroll instance
       DisplayPackStatus(packStatus, ((runMain ? Mains * scaleParam : 0) + 5), 625)
       
@@ -3975,7 +4019,7 @@ InitializeJsonFile() {
 AppendToJsonFile(variableValue) {
    global jsonFileName
    if (jsonFileName = "") {
-      MsgBox, JSON file not initialized. Call InitializeJsonFile() first.
+      MsgBox, 0x40000, JSON, JSON file not initialized. Call InitializeJsonFile() first.
       return
    }
    
@@ -3999,7 +4043,6 @@ AppendToJsonFile(variableValue) {
 ; Function to sum all variable values in the JSON file
 SumVariablesInJsonFile() {
    global jsonFileName
-   ; MsgBox, %jsonFileName%
    if (jsonFileName = "") {
       return 0 ; Return 0 instead of nothing if jsonFileName is empty
    }
@@ -4040,7 +4083,7 @@ CheckForUpdate() {
    response := HttpGet(url)
    if !response
    {
-      MsgBox, currentDictionary.fail_fetch
+      MsgBox, 0x40000, Check for Update, currentDictionary.fail_fetch
       return
    }
    latestReleaseBody := FixFormat(ExtractJSONValue(response, "body"))
@@ -4049,13 +4092,13 @@ CheckForUpdate() {
    Clipboard := latestReleaseBody
    if (zipDownloadURL = "" || !InStr(zipDownloadURL, "http"))
    {
-      MsgBox, % currentDictionary.fail_url
+      MsgBox, 0x40000, Check for Update, % currentDictionary.fail_url
       return
    }
    
    if (latestVersion = "")
    {
-      MsgBox, % currentDictionary.fail_version
+      MsgBox, 0x40000, Check for Update, % currentDictionary.fail_version
       return
    }
    
@@ -4067,22 +4110,22 @@ CheckForUpdate() {
       ; Show a message box asking if the user wants to download
       updateAvailable := currentDictionary.update_title
       latestDownloaad := currentDictionary.confirm_dl
-      MsgBox, 4, %updateAvailable% %latestVersion%, %releaseNotes%`n`nDo you want to download the latest version?
+      MsgBox, 262148, %updateAvailable% %latestVersion%, %releaseNotes%`n`nDo you want to download the latest version?
       
       ; If the user clicks Yes (return value 6)
       IfMsgBox, Yes
       {
-         MsgBox, 64, Downloading..., % currentDictionary.downloading
+         MsgBox, 262208, Downloading..., % currentDictionary.downloading
          
          ; Proceed with downloading the update
          URLDownloadToFile, %zipDownloadURL%, %zipPath%
          if ErrorLevel
          {
-            MsgBox, % currentDictionary.dl_failed
+            MsgBox, 0x40000, Check for Update, % currentDictionary.dl_failed
             return
          }
          else {
-            MsgBox, % currentDictionary.dl_complete
+            MsgBox, 0x40000, Check for Update, % currentDictionary.dl_complete
             
             ; Create a temporary folder for extraction
             tempExtractPath := A_Temp "\PTCGPB_Temp"
@@ -4094,7 +4137,7 @@ CheckForUpdate() {
             ; Check if extraction was successful
             if !FileExist(tempExtractPath)
             {
-               MsgBox, % currentDictionary.extract_failed
+               MsgBox, 0x40000, Check for Update, % currentDictionary.extract_failed
                return
             }
             
@@ -4112,25 +4155,25 @@ CheckForUpdate() {
                
                ; Clean up the temporary extraction folder
                FileRemoveDir, %tempExtractPath%, 1
-               MsgBox, % currentDictionary.installed
+               MsgBox, 0x40000, Check for Update, % currentDictionary.installed
                Reload
             }
             else
             {
-               MsgBox, % currentDictionary.missing_files
+               MsgBox, 0x40000, Check for Update, % currentDictionary.missing_files
                return
             }
          }
       }
       else
       {
-         MsgBox, % currentDictionary.cancel
+         MsgBox, 0x40000, Check for Update, % currentDictionary.cancel
          return
       }
    }
    else
    {
-      MsgBox, % currentDictionary.up_to_date
+      MsgBox, 0x40000, Check for Update, % currentDictionary.up_to_date
    }
 }
 
@@ -4271,7 +4314,7 @@ ErrorHandler(exception) {
       . "Line: " exception.Line "`n`n"
       . "Click OK to close all related scripts and exit."
    
-   MsgBox, 16, PTCGPB Error, %errorMessage%
+   MsgBox, 262160, PTCGPB Error, %errorMessage%
    
    ; Kill all related scripts
    KillAllScripts()
