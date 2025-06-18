@@ -1321,14 +1321,14 @@ NextStep:
       ,TopBarBtnOptions["x"] := 35
       ,TopBarBtnOptions["y"] := 10
       ,TopBarBtnOptions["w"] := 121
-      ,TopBarBtnOptions["h"] := 22
+      ,TopBarBtnOptions["h"] := 25
       ,TopBarBtnOptions["vName"] := "Btn_reload"
       ,TopBarBtnOptions["gName"] := "SaveReload"
       ,TopBarBtnOptions["imagePath"] := btn_mainPage
       ,TopBarBtnOptions["text"] := currentDictionary.btn_reload
       ,TopBarBtnOptions["vTextName"] := "Txt_Btn_reload"
       ,TopBarBtnOptions["textX"] := 35
-      ,TopBarBtnOptions["textY"] := 11
+      ,TopBarBtnOptions["textY"] := 12
    AddBtnforTop(TopBarBtnOptions)
    ; Clean up the options object for the next button
    TopBarBtnOptions := {}
@@ -1336,14 +1336,14 @@ NextStep:
       ,TopBarBtnOptions["x"] := 185
       ,TopBarBtnOptions["y"] := 10
       ,TopBarBtnOptions["w"] := 121
-      ,TopBarBtnOptions["h"] := 22
+      ,TopBarBtnOptions["h"] := 25
       ,TopBarBtnOptions["vName"] := "Btn_ClassicMode"
       ,TopBarBtnOptions["gName"] := "OpenClassicMode"
       ,TopBarBtnOptions["text"] := "Classic Mode"
       ,TopBarBtnOptions["imagePath"] := btn_mainPage
       ,TopBarBtnOptions["vTextName"] := "Txt_Btn_ClassicMode"
       ,TopBarBtnOptions["textX"] := 185
-      ,TopBarBtnOptions["textY"] := 11
+      ,TopBarBtnOptions["textY"] := 12
    AddBtnforTop(TopBarBtnOptions)
    SetTopBarNormalFont()
    Gui, TopBar:Add, Text, x35 y60 BackgroundTrans, % currentDictionary.btn_Language . " :"
@@ -1362,11 +1362,11 @@ NextStep:
    SetTopBarBtnFont()
    TopBarBtnOptions := {}
       ,TopBarBtnOptions["type"] := "Picture"
-      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 95 ,TopBarBtnOptions["w"] := 100,TopBarBtnOptions["h"] := 22
+      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 95 ,TopBarBtnOptions["w"] := 100,TopBarBtnOptions["h"] := 25
       ,TopBarBtnOptions["vName"] := "Btn_Font" ,TopBarBtnOptions["gName"] := "ChooseFont"
       ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_topbar2.png" : A_ScriptDir . "\GUI\Images\panel_topbar1.png")
       ,TopBarBtnOptions["text"] := "Choose Font" ,TopBarBtnOptions["vTextName"] := "Txt_Btn_Font"
-      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 96
+      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 97
    AddBtnforTop(TopBarBtnOptions)
    SetTopBarNormalFont()
    Gui, TopBar:Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "x150 y97 w147 h20 vcurrentfont -E0x200 Center backgroundtrans", %currentfont%
@@ -1376,11 +1376,11 @@ NextStep:
    SetTopBarBtnFont()
    TopBarBtnOptions := {}
       ,TopBarBtnOptions["type"] := "Picture"
-      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 155 ,TopBarBtnOptions["w"] := 100,TopBarBtnOptions["h"] := 22
+      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 155 ,TopBarBtnOptions["w"] := 100,TopBarBtnOptions["h"] := 25
       ,TopBarBtnOptions["vName"] := "Btn_FontColor" ,TopBarBtnOptions["gName"] := "ChooseFontColor"
       ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_topbar2.png" : A_ScriptDir . "\GUI\Images\panel_topbar1.png")
       ,TopBarBtnOptions["text"] := "Choose Color" ,TopBarBtnOptions["vTextName"] := "Txt_Btn_FontColor"
-      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 156
+      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 157
    AddBtnforTop(TopBarBtnOptions)
    SetTopBarNormalFont()
    Gui, TopBar:Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "x150 y157 w147 h20 vFontColor BackgroundTrans -E0x200 Center backgroundtrans", %FontColor%
@@ -1389,11 +1389,11 @@ NextStep:
    SetTopBarBtnFont()
    TopBarBtnOptions := {}
       ,TopBarBtnOptions["type"] := "Picture"
-      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 215 ,TopBarBtnOptions["w"] := 60,TopBarBtnOptions["h"] := 22
+      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 215 ,TopBarBtnOptions["w"] := 60,TopBarBtnOptions["h"] := 25
       ,TopBarBtnOptions["vName"] := "Btn_BackgroundToggle" ,TopBarBtnOptions["gName"] := "ChooseBackground"
       ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_small2.png" : A_ScriptDir . "\GUI\Images\panel_small1.png")
       ,TopBarBtnOptions["text"] := "Search" ,TopBarBtnOptions["vTextName"] := "Txt_Btn_BackgroundToggle"
-      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 216
+      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 217
    AddBtnforTop(TopBarBtnOptions)
    SetTopBarNormalFont()
    Gui, TopBar:Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "x100 y217 w200 h20 vBackgroundImage -E0x200 Center backgroundtrans", %BackgroundImage%
@@ -1402,11 +1402,11 @@ NextStep:
    SetTopBarBtnFont()
    TopBarBtnOptions := {}
       ,TopBarBtnOptions["type"] := "Picture"
-      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 275 ,TopBarBtnOptions["w"] := 60,TopBarBtnOptions["h"] := 22
+      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 275 ,TopBarBtnOptions["w"] := 60,TopBarBtnOptions["h"] := 25
       ,TopBarBtnOptions["vName"] := "Btn_PageToggle" ,TopBarBtnOptions["gName"] := "ChoosePage"
       ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_small2.png" : A_ScriptDir . "\GUI\Images\panel_small1.png")
       ,TopBarBtnOptions["text"] := "Search" ,TopBarBtnOptions["vTextName"] := "Txt_Btn_PageToggle"
-      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 276
+      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 277
    AddBtnforTop(TopBarBtnOptions)
    SetTopBarNormalFont()
    Gui, TopBar:Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "x100 y277 w200 h20 vPageImage -E0x200 Center backgroundtrans", %PageImage%
@@ -1415,30 +1415,30 @@ NextStep:
    SetTopBarBtnFont()
    TopBarBtnOptions := {}
       ,TopBarBtnOptions["type"] := "Picture"
-      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 335 ,TopBarBtnOptions["w"] := 60,TopBarBtnOptions["h"] := 22
+      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 335 ,TopBarBtnOptions["w"] := 60,TopBarBtnOptions["h"] := 25
       ,TopBarBtnOptions["vName"] := "Btn_MenuToggle" ,TopBarBtnOptions["gName"] := "ChooseMenu"
       ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_small2.png" : A_ScriptDir . "\GUI\Images\panel_small1.png")
       ,TopBarBtnOptions["text"] := "Search" ,TopBarBtnOptions["vTextName"] := "Txt_Btn_MenuToggle"
-      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 336
+      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 337
    AddBtnforTop(TopBarBtnOptions)
    SetTopBarNormalFont()
    Gui, TopBar:Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "x100 y337 w200 h20 vMenuBackground -E0x200 Center backgroundtrans", %MenuBackground%
    SetTopBarBtnFont()
    TopBarBtnOptions := {}
       ,TopBarBtnOptions["type"] := "Picture"
-      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 370 ,TopBarBtnOptions["w"] := 100,TopBarBtnOptions["h"] := 22
+      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 370 ,TopBarBtnOptions["w"] := 100,TopBarBtnOptions["h"] := 25
       ,TopBarBtnOptions["vName"] := "Btn_Theme" ,TopBarBtnOptions["gName"] := "ToggleTheme"
       ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_topbar2.png" : A_ScriptDir . "\GUI\Images\panel_topbar1.png")
       ,TopBarBtnOptions["text"] := "Toggle Theme" ,TopBarBtnOptions["vTextName"] := "Txt_Btn_Theme"
-      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 371
+      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 372
    AddBtnforTop(TopBarBtnOptions)
    TopBarBtnOptions := {}
       ,TopBarBtnOptions["type"] := "Picture"
-      ,TopBarBtnOptions["x"] := 140 ,TopBarBtnOptions["y"] := 400 ,TopBarBtnOptions["w"] := 60,TopBarBtnOptions["h"] := 22
+      ,TopBarBtnOptions["x"] := 140 ,TopBarBtnOptions["y"] := 400 ,TopBarBtnOptions["w"] := 60,TopBarBtnOptions["h"] := 28
       ,TopBarBtnOptions["vName"] := "saveTopBar" ,TopBarBtnOptions["gName"] := "SaveTopBarSettings"
       ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_small2.png" : A_ScriptDir . "\GUI\Images\panel_small1.png")
       ,TopBarBtnOptions["text"] := "Save" ,TopBarBtnOptions["vTextName"] := "Txt_saveTopBar"
-      ,TopBarBtnOptions["textX"] := 140 ,TopBarBtnOptions["textY"] := 401
+      ,TopBarBtnOptions["textX"] := 138,TopBarBtnOptions["textY"] := 402
    AddBtnforTop(TopBarBtnOptions)
    SetTopBarNormalFont()
    Gui, Font, norm
@@ -3236,7 +3236,7 @@ ToggleTheme:
       ,CurrentTheme := (CurrentTheme = "Dark"? "Light": "Dark")
       ,btn_mainPage := Front . (CurrentTheme = "Dark"? "panel2.png": "panel1.png")
       ,ToolTipImage := Front . (CurrentTheme = "Dark"? "ToolTip2.png": "ToolTip1.png")
-      ,btn_fontColor := CurrentTheme = "Dark"? "FDFDFD": "EE2222"
+      ,btn_fontColor := CurrentTheme = "Dark"? "FDFDFD": "CC0000"
       ,titleImage := Front . (CurrentTheme = "Dark"? "Title2.png": "Title1.png")
       ,TopBarBig := Front . (CurrentTheme = "Dark"? "TopBarBig2.png": "TopBarBig1.png")
       ,TopBarSmall := Front . (CurrentTheme = "Dark"? "TopBarSmall2.png": "TopBarSmall1.png")
