@@ -1193,29 +1193,11 @@ EraseInput(num := 0, total := 0) {
     failSafe := A_TickCount
     failSafeTime := 0
 
-    ; Slow machines with higher delay will use a different click position and Shift + End
-    if (Delay > 250) {
-        Loop {
-            FindImageAndClick(0, 475, 25, 495, , "OK2", 138, 454)
-            adbClick_wbb(15, 500)
-            Sleep, 10
-            adbInputEvent ("59 123")
-            Sleep, 10
-            adbInputEvent("67") ; Press Backspace
-            if(FindOrLoseImage(15, 500, 68, 520, , "Erase", 0, failSafeTime))
-                break
-        }
-    } else {
-        ; Default is set to double click unless delay is greater than 250
-        Loop {
-            FindImageAndClick(0, 475, 25, 495, , "OK2", 138, 454)
-            adbClick_wbb(50, 500)
-            adbClick_wbb(50, 500)
-            Sleep, 10
-            adbInputEvent("67")
-            if(FindOrLoseImage(15, 500, 68, 520, , "Erase", 0, failSafeTime))
-                break
-        }
+    Loop {
+        FindImageAndClick(0, 475, 25, 495, , "OK2", 138, 454)
+        adbInputEvent("59 122 67") ; Press Shift + Home + Backspace
+        if(FindOrLoseImage(15, 500, 68, 520, , "Erase", 0, failSafeTime))
+            break
     }
 
     failSafeTime := (A_TickCount - failSafe) // 1000
