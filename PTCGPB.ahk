@@ -88,7 +88,7 @@ githubUser := "mixman208"
    ,scriptFolder := A_ScriptDir
    ,zipPath := A_Temp . "\update.zip"
    ,extractPath := A_Temp . "\update"
-   ,intro := "Reroll 1 Extra Pack!"
+   ,intro := "New GUI!"
 
 if not A_IsAdmin
 {
@@ -151,10 +151,10 @@ NextStep:
    
    ; ========== Handle save.signal ==========
    if FileExist(saveSignalFile) {
-      ;KillADBProcesses()
+      KillADBProcesses()
       FileDelete, %saveSignalFile%
    } else {
-      ;KillADBProcesses()
+      KillADBProcesses()
       CheckForUpdate()
    }
    
