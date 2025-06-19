@@ -1,4593 +1,3997 @@
-﻿#Include %A_ScriptDir%\Scripts\Include\
-#Include Logging.ahk
-#Include ADB.ahk
+﻿; Improved status display function
+DisplayPackStatus(Message, X := 0, Y := 625) {
+   global SelectedMonitorIndex
+   static GuiName := "ScreenPackStatus"
+   
+   ; Fixed light theme colors
+   bgColor := "F0F5F9" ; Light background
+   textColor := "2E3440" ; Dark text for contrast
+   
+   MaxRetries := 10
+   RetryCount := 0
+   
+   try {
+      ; Get monitor origin from index
+      SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
+      SysGet, Monitor, Monitor, %SelectedMonitorIndex%
+      X := MonitorLeft + X
+      
+      ;Adjust Y position to be just above buttons
+      Y := MonitorTop + 503 ; This is approximately where the buttons start - 30 (status height)
+      
+      ; Check if GUI already exists
+      Gui %GuiName%:+LastFoundExist
+      if (PackGuiBuild) {
+         GuiControl, %GuiName%:, PackStatus, %Message%
+      }
+      else {
+         PackGuiBuild := 1
+         ; Create a new GUI with light theme styling
+         OwnerWND := WinExist(1)
+         Gui, %GuiName%:Destroy
+         if(!OwnerWND)
+            Gui, %GuiName%:New, +ToolWindow -Caption +LastFound -DPIScale +AlwaysOnTop
+         else
+            Gui, %GuiName%:New, +Owner%OwnerWND% +ToolWindow -Caption +LastFound -DPIScale
+         Gui, %GuiName%:Color, %bgColor% ; Light background
+         Gui, %GuiName%:Margin, 2, 2
+         Gui, %GuiName%:Font, s8 c%textColor% ; Dark text
+         Gui, %GuiName%:Add, Text, vPackStatus c%textColor%, %Message%
+         ; Show the GUI without activating it
+         Gui, %GuiName%:Show, NoActivate x%X% y%Y%, %GuiName%
+      }
+   } catch e {
+      ; Silent error handling
+   }
+}
+
+;OPTIMIZATIONS START
+#NoEnv
+#MaxHotkeysPerInterval 99000000
+#HotkeyInterval 99000000
+#KeyHistory 0
+ListLines Off
+Process, Priority, , A
+SetBatchLines, -1
+SetKeyDelay, -1, -1
+SetMouseDelay, -1
+SetDefaultMouseSpeed, 0
+SetWinDelay, -1
+SetControlDelay, -1
+SendMode Input
+DllCall("ntdll\ZwSetTimerResolution","Int",5000,"Int",1,"Int*",MyCurrentTimerResolution) ;setting the Windows Timer Resolution to 0.5ms, THIS IS A GLOBAL CHANGE
+;OPTIMIZATIONS END
+;YOUR SCRIPT GOES HERE
+DllCall("Sleep","UInt",1) ;I just slept exactly 1ms!
+DllCall("ntdll\ZwDelayExecution","Int",0,"Int64*",-5000) ;you can use this to sleep in increments of 0.5ms if you need even more granularity
+
+#Include %A_ScriptDir%\Scripts\Include\
 #Include Dictionary.ahk
+#Include ADB.ahk
+#Include Logging.ahk
+#Include FontListHelper.ahk
+#Include ChooseColors.ahk
+#Include DropDownColor.ahk
 
 version = Arturos PTCGP Bot
 #SingleInstance, force
 CoordMode, Mouse, Screen
 SetTitleMatchMode, 3
 
-OnError("ErrorHandler") ; Add this line here
+OnError("ErrorHandler")
 
-global STATIC_BRUSH := 0
+;OnError("ErrorHandler") ; Add this line here
 
 githubUser := "mixman208"
-repoName := "PTCGPB"
-localVersion := "v6.4.19e"
-scriptFolder := A_ScriptDir
-zipPath := A_Temp . "\update.zip"
-extractPath := A_Temp . "\update"
-intro := "Reroll 1 Extra Pack!"
-
-; GUI dimensions
-global GUI_WIDTH := 377 
-global GUI_HEIGHT := 677
-
-; Image scaling and ratio constants for 1280x720
-global IMG_SCALE_RATIO := 0.5625
-global UI_ELEMENT_SCALE := 0.85
-
-; Added new global variable for background image toggle
-global useBackgroundImage := true
-
-global scriptName, winTitle, FriendID, Instances, instanceStartDelay, jsonFileName, PacksText, runMain, Mains, AccountName, scaleParam
-global autoUseGPTest, TestTime
-global CurrentVisibleSection
-global FriendID_Divider, Instance_Divider3
-global System_Divider1, System_Divider2, System_Divider3, System_Divider4
-global Pack_Divider1, Pack_Divider2, Pack_Divider3
-global SaveForTradeDivider_1, SaveForTradeDivider_2
-global Discord_Divider3
-global tesseractPath, applyRoleFilters, debugMode, statusMessage
-global tesseractOption
-global spendHourGlass
-global rowGap
-global injectSortMethodCreated := false
-global injectSortMethod := "ModifiedAsc" ; Default sort method
-global SortMethodLabel, InjectSortMethodDropdown
-global sortByCreated := false
-global SortByText, SortByDropdown
-global showcaseLikes, showcaseURL, skipMissionsInjectMissions
-global minStarsA1Mewtwo, minStarsA1Charizard, minStarsA1Pikachu, minStarsA1a
-global minStarsA2Dialga, minStarsA2Palkia, minStarsA2a, minStarsA2b
-global minStarsA3Solgaleo, minStarsA3Lunala, minStarsA3a
-global waitForEligibleAccounts, maxWaitHours
-global finishSignalFile := A_ScriptDir "\Scripts\Include\finish.signal"
+   ,repoName := "PTCGPB"
+   ,localVersion := "v6.4.20"
+   ,scriptFolder := A_ScriptDir
+   ,zipPath := A_Temp . "\update.zip"
+   ,extractPath := A_Temp . "\update"
+   ,intro := "Reroll 1 Extra Pack!"
 
 if not A_IsAdmin
 {
-    ; Relaunch script with admin rights
-    Run *RunAs "%A_ScriptFullPath%"
-    ExitApp
+   ; Relaunch script with admin rights
+   Run *RunAs "%A_ScriptFullPath%"
+   ExitApp
 }
 
+; ========== Load Settings ==========
+settingsLoaded := LoadSettingsFromIni()
+if (!settingsLoaded) {
+   CreateDefaultSettingsFile()
+   LoadSettingsFromIni()
+}
 ; ========== language Selection ==========
-global IsLanguageSet, defaultBotLanguage
-IniRead, IsLanguageSet, Settings.ini, UserSettings, IsLanguageSet, 0
-IniRead, defaultBotLanguage, Settings.ini, UserSettings, defaultBotLanguage, 1
-IniRead, BotLanguage, Settings.ini, UserSettings, BotLanguage, English
-
 if (!IsLanguageSet) {
-    ; build language select
-    Gui, Add, Text,, Select Language
-    BotLanguagelist := "English|中文|日本語|Deutsch"
-    if (BotLanguage != "")
-    {
-        index := 0
-        Loop, Parse, BotLanguagelist, |
-        {
-            index++
-            if (A_LoopField = BotLanguage)
-            {
-                defaultChooseLang := index
-                break
-            }
-        }
-    }
-    Gui, Add, DropDownList, vBotLanguage w200 choose%defaultChooseLang%, %BotLanguagelist%
-    Gui, Add, Button, Default gNextStep, Next
-    Gui, Show,, Language Selection
-    Return
+   ; Build language select
+   Gui, Add, Text,, Select Language
+   BotLanguagelist := "English|中文|日本語|Deutsch"
+   defaultChooseLang := 1
+   if (BotLanguage != "") {
+      Loop, Parse, BotLanguagelist, |
+         if (A_LoopField = BotLanguage) {
+            defaultChooseLang := A_Index
+            break
+         }
+   }
+   Gui, Add, DropDownList, vBotLanguage w200 choose%defaultChooseLang%, %BotLanguagelist%
+   Gui, Add, Button, Default gNextStep, Next
+   Gui, Show,, Language Selection
+   Return
 }
 
-; Next be clicked
 NextStep:
-    Gui, Submit
-    
-    if (BotLanguage = "English")
-        defaultBotLanguage := 1
-    else if (BotLanguage = "中文")
-        defaultBotLanguage := 2
-    else if (BotLanguage = "日本語")
-        defaultBotLanguage := 3
-    else if (BotLanguage = "Deutsch")
-        defaultBotLanguage := 4
-    
-    IniWrite, 1, Settings.ini, UserSettings, IsLanguageSet
-    IniWrite, %defaultBotLanguage%, Settings.ini, UserSettings, defaultBotLanguage
-    IniWrite, %BotLanguage%, Settings.ini, UserSettings, BotLanguage
-    Gui, Destroy
-    
-    ; Define Language Dictionary
-    global LicenseDictionary, ProxyDictionary, currentDictionary, SetUpDictionary, HelpDictionary
-    LicenseDictionary := CreateLicenseNoteLanguage(defaultBotLanguage)
-    ProxyDictionary := CreateProxyLanguage(defaultBotLanguage)
-    currentDictionary := CreateGUITextByLanguage(defaultBotLanguage, localVersion)
-    SetUpDictionary := CreateSetUpByLanguage(defaultBotLanguage)
-    HelpDictionary := CreateHelpByLanguage(defaultBotLanguage)
-    
-    RegRead, proxyEnabled, HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings, ProxyEnable
-    
-    ; Check for debugMode and display license notification if not in debug mode
-    IniRead, debugMode, Settings.ini, UserSettings, debugMode, 0
-    IniRead, shownLicense, Settings.ini, UserSettings, shownLicense, 0
-    global saveSignalFile
-    saveSignalFile := A_ScriptDir "\Scripts\Include\save.signal"
-    if (!debugMode && !shownLicense && !FileExist(saveSignalFile)) ; <------------- New modify
-    {
-        title := LicenseDictionary.Title
-        content := LicenseDictionary.Content
-        MsgBox, 64, %title%, %content%
-        IniWrite, 1, Settings.ini, UserSettings, shownLicense
-        
-        if (proxyEnabled){
-            notice := ProxyDictionary.Notice
-            MsgBox, 64,, %notice%
-        }
-    }
-    
-    ;; Color Decide
-    ; Define refined global color variables for consistent theming
-    global DARK_BG := "3d3d3d" ; Deeper blue-gray background
-    global DARK_CONTROL_BG := "7C8590" ; Slightly lighter panel background
-    global DARK_ACCENT := "81A1C1" ; Lighter blue accent (changed to match section colors)
-    global DARK_TEXT := "FDFDFD" ; Crisp white text with slight blue tint
-    global DARK_TEXT_SECONDARY := "FDFDFD" ; Slightly dimmed secondary text
-    
-    global LIGHT_BG := "e9f1f7" ; Soft light background with blue hint
-    global LIGHT_CONTROL_BG := "7C8590" ; Pure white for controls
-    global LIGHT_ACCENT := "2E5984" ; Darker accent (changed to match section colors)
-    global LIGHT_TEXT := "717F94" ; Dark text that matches dark mode background
-    global LIGHT_TEXT_SECONDARY := "717F94" ; Medium gray with blue tint
-    
-    ; Define input field colors for light and dark themes
-    global DARK_INPUT_BG := "7C8590" ; Slightly lighter than control background
-    global DARK_INPUT_TEXT := "FDFDFD" ; Same as main text
-    global LIGHT_INPUT_BG := "7C8590" ; Light gray with blue tint
-    global LIGHT_INPUT_TEXT := "FDFDFD" ; Dark text
-    
-    ; Define Pages' colors for light and dark themes
-    global DARK_BTN_TEXT := "000000"
-    global DARK_PAGE_BTN_TEXT := "E9F3F7"
-    global DARK_PAGE_TEXT := "FDFDFD"
-    global LIGHT_BTN_TEXT := "717F94"
-    global LIGHT_PAGE_BTN_TEXT := "E9F3F7"
-    global LIGHT_PAGE_TEXT := "292929"
-    
-    ; Section colors - Dark theme
-    global DARK_SECTION_COLORS := {}
-    DARK_SECTION_COLORS["RerollSettings"] := "FDFDFD" ; Lighter Blue for better visibility on dark background
-    DARK_SECTION_COLORS["FriendID"] := "FDFDFD" ; Lighter Blue
-    DARK_SECTION_COLORS["InstanceSettings"] := "FDFDFD" ; Lighter Blue
-    DARK_SECTION_COLORS["TimeSettings"] := "FDFDFD" ; Lighter Blue
-    DARK_SECTION_COLORS["SystemSettings"] := "FDFDFD" ; Lighter Teal for dark background
-    DARK_SECTION_COLORS["PackSettings"] := "FDFDFD" ; Lighter Purple for visibility
-    DARK_SECTION_COLORS["SaveForTrade"] := "FDFDFD" ; Lighter Orange
-    DARK_SECTION_COLORS["DiscordSettings"] := "FDFDFD" ; Lighter Discord Blue
-    DARK_SECTION_COLORS["DownloadSettings"] := "FDFDFD" ; Light Green
-    
-    ; Section colors - Light theme
-    global LIGHT_SECTION_COLORS := {}
-    LIGHT_SECTION_COLORS["RerollSettings"] := "3E4756" ; Dark Blue for contrast on light background
-    LIGHT_SECTION_COLORS["FriendID"] := "3E4756" ; Dark Blue
-    LIGHT_SECTION_COLORS["InstanceSettings"] := "3E4756" ; Dark Blue
-    LIGHT_SECTION_COLORS["TimeSettings"] := "3E4756" ; Dark Blue
-    LIGHT_SECTION_COLORS["SystemSettings"] := "3E4756" ; Dark Teal
-    LIGHT_SECTION_COLORS["PackSettings"] := "3E4756" ; Dark Purple
-    LIGHT_SECTION_COLORS["SaveForTrade"] := "3E4756" ; Dark Orange
-    LIGHT_SECTION_COLORS["DiscordSettings"] := "3E4756" ; Darker Discord Blue
-    LIGHT_SECTION_COLORS["DownloadSettings"] := "3E4756" ; Darker Green
-    
-    IsNumeric(var) {
-        if var is number
-            return true
-        return false
-    }
-    
-    ;; Font Setting
-    ; Improved font functions with better hierarchy and reduced sizes
-    SetPageTitleFont() {
-        global isDarkTheme, DARK_PAGE_TEXT, LIGHT_PAGE_TEXT
-        
-        if (isDarkTheme)
-            Gui, Font, norm s12 c%DARK_PAGE_TEXT%, Segoe UI
-        else
-            Gui, Font, norm s12 c%LIGHT_PAGE_TEXT%, Segoe UI
-    }
-    
-    SetSmallBtnFont() { ;For toolbar e.g. background,theme
-        global isDarkTheme, DARK_PAGE_TEXT, LIGHT_PAGE_TEXT
-        
-        if (isDarkTheme)
-            Gui, Font, underline s8 c%DARK_PAGE_TEXT%, Verdana
-        else
-            Gui, Font, underline s8 c%LIGHT_PAGE_TEXT%, Verdana
-    }
-    
-    SetSmallBtnText() {
-        global isDarkTheme, useBackgroundImage, currentDictionary
-        
-        if (isDarkTheme) {
-            controlName := currentDictionary.btn_theme_Light
-            GuiControl,, ThemeToggle, %controlName%
-        } else {
-            controlName := currentDictionary.btn_theme_Dark
-            GuiControl,, ThemeToggle, %controlName%
-        }
-        
-        if (useBackgroundImage) {
-            controlName := currentDictionary.btn_bg_Off
-            GuiControl,, BackgroundToggle, %controlName%
-        } else {
-            controlName := currentDictionary.btn_bg_On
-            GuiControl,, BackgroundToggle, %controlName%
-        }
-    }
-    
-    SetLicenseFont() { ; For cc licence message
-        global isDarkTheme, DARK_PAGE_TEXT, LIGHT_PAGE_TEXT
-        if (isDarkTheme)
-            Gui, Font, norm s7 c%DARK_PAGE_TEXT%, Segoe UI
-        else
-            Gui, Font, norm s7 c%LIGHT_PAGE_TEXT%, Segoe UI
-    }
-    
-    SetPanelBtnFont() { ; For button on the panel e.g. Start Bot, Arrange Windows
-        global isDarkTheme, DARK_BTN_TEXT, LIGHT_PAGE_TEXT, defaultBotLanguage
-        if (isDarkTheme)
-            if(defaultBotLanguage = 2 || defaultBotLanguage = 3)
-                Gui, Font, norm s11 c%DARK_BTN_TEXT%, Segoe UI
-            else
-                Gui, Font, norm s13 c%DARK_BTN_TEXT%, Segoe UI
-        else
-            if(defaultBotLanguage = 2 || defaultBotLanguage = 3)
-                Gui, Font, norm s11 c%LIGHT_BTN_TEXT%, Segoe UI
-            else
-                Gui, Font, norm s13 c%LIGHT_BTN_TEXT%, Segoe UI
-    }
-    
-    SetPageBtnFont() { ; For the Button at the bottom e.g. Main Page
-        global isDarkTheme, DARK_PAGE_BTN_TEXT, LIGHT_PAGE_BTN_TEXT
-        if (isDarkTheme)
-            if(defaultBotLanguage = 2 || defaultBotLanguage = 3)
-                Gui, Font, norm s12 c%DARK_PAGE_BTN_TEXT%, Segoe UI
-            else
-                Gui, Font, norm s15 c%DARK_PAGE_BTN_TEXT%, Segoe UI
-        else
-            if(defaultBotLanguage = 2 || defaultBotLanguage = 3)
-                Gui, Font, norm s12 c%LIGHT_PAGE_BTN_TEXT%, Segoe UI
-            else
-                Gui, Font, norm s15 c%LIGHT_PAGE_BTN_TEXT%, Segoe UI
-    }
-    
-    SetArturoFont() {
-        global isDarkTheme, DARK_TEXT, LIGHT_TEXT
-        if (isDarkTheme)
-            Gui, Font, s12 bold c%DARK_TEXT%, Segoe UI
-        else
-            Gui, Font, s12 bold c%LIGHT_TEXT%, Segoe UI
-    }
-    
-    SetTitleFont() {
-        global isDarkTheme, DARK_TEXT, LIGHT_TEXT
-        if (isDarkTheme)
-            Gui, Font, s10 bold c%DARK_TEXT%, Segoe UI
-        else
-            Gui, Font, s10 bold c%LIGHT_TEXT%, Segoe UI
-    }
-    
-    SetSectionFont() {
-        global isDarkTheme, DARK_TEXT, LIGHT_TEXT
-        if (isDarkTheme)
-            Gui, Font, norm s10 bold c%DARK_TEXT%, Segoe UI ; Reduced from s12
-        else
-            Gui, Font, norm s10 bold c%LIGHT_TEXT%, Segoe UI
-    }
-    
-    SetHeaderFont() {
-        global isDarkTheme, DARK_TEXT, LIGHT_TEXT
-        if (isDarkTheme)
-            Gui, Font, s9 bold c%DARK_TEXT%, Segoe UI ; Reduced from s10
-        else
-            Gui, Font, s9 bold c%LIGHT_TEXT%, Segoe UI
-    }
-    
-    SetNormalFont() {
-        global isDarkTheme, DARK_TEXT, LIGHT_TEXT
-        if (isDarkTheme)
-            Gui, Font, norm s9 c%DARK_TEXT%, Segoe UI ; Reduced from s9
-        else
-            Gui, Font, norm s9 c%LIGHT_TEXT%, Segoe UI
-    }
-    
-    SetSmallFont() {
-        global isDarkTheme, DARK_TEXT_SECONDARY, LIGHT_TEXT_SECONDARY
-        if (isDarkTheme)
-            Gui, Font, norm s7 c%DARK_TEXT_SECONDARY%, Segoe UI ; Reduced from s8
-        else
-            Gui, Font, norm s7 c%LIGHT_TEXT_SECONDARY%, Segoe UI
-    }
-    
-    SetInputFont() {
-        global isDarkTheme, DARK_INPUT_TEXT, LIGHT_INPUT_TEXT
-        if (isDarkTheme)
-            Gui, Font, norm s9 c%DARK_INPUT_TEXT%, Segoe UI ; Reduced from s9
-        else
-            Gui, Font, norm s9 c%LIGHT_INPUT_TEXT%, Segoe UI
-    }
-    
-    ; ===== NEW: Helper Functions for Code Optimization =====
-    
-    ;; ApplyTheme Functions
-    ;Function to apply Page Text based on current theme
-    ApplyPageTextColor(controlName) {
-        global isDarkTheme, Dark_PAGE_TEXT, LIGHT_PAGE_TEXT
-        
-        pageTextColor := isDarkTheme ? DARK_PAGE_TEXT : LIGHT_PAGE_TEXT
-        GuiControl, +c%pageTxetColor% , %controlName%
-    }
-    
-    ApplyPageTextColorToMutiple(controlList) {
-        Loop, Parse, controlList, `,
-        {
-            if (A_LoopField){
-                ApplyPageTextColor(A_LoopField)
-            }
-        }
-    }
-    
-    ;Function to apply Btn Text based on current theme
-    ApplyBtnTextColor(controlName) {
-        global isDarkTheme, DARK_BTN_TEXT, LIGHT_BTN_TEXT
-        
-        btnTextColor := isDarkTheme ? DARK_BTN_TEXT : LIGHT_BTN_TEXT
-        GuiControl, +c%btnTextColor% , %controlName%
-    }
-    
-    ApplyBtnTextColorToMutiple(controlList) {
-        Loop, Parse, controlList, `,
-        {
-            if (A_LoopField) {
-                ApplyBtnTextColor(A_LoopField)
-            }
-        }
-    }
-    
-    ApplyPageBtnTextColor(controlName) {
-        global isDarkTheme, Dark_PAGE_BTN_TEXT, LIGHT_PAGE_BTN_TEXT
-        
-        pageBtnTextColor := isDarkTheme ? DARK_PAGE_BTN_TEXT : LIGHT_PAGE_BTN_TEXT
-        GuiControl, +c%pageBtnTxetColor% , %controlName%
-    }
-    
-    ApplyPageBtnTextColorToMutiple(controlList) {
-        Loop, Parse, controlList, `,
-        {
-            if (A_LoopField){
-                ApplyPageBtnTextColor(A_LoopField)
-            }
-        }
-    }
-    
-    ; Function to apply text color based on current theme
-    ApplyTextColor(controlName) {
-        global isDarkTheme, DARK_TEXT, LIGHT_TEXT
-        
-        textColor := isDarkTheme ? DARK_TEXT : LIGHT_TEXT
-        GuiControl, +c%textColor%, %controlName%
-    }
-    
-    ; Function to apply input field styling based on current theme
-    ApplyInputStyle(controlName) {
-        global isDarkTheme, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
-        
-        inputBgColor := isDarkTheme ? DARK_INPUT_BG : LIGHT_INPUT_BG
-        inputTextColor := isDarkTheme ? DARK_INPUT_TEXT : LIGHT_INPUT_TEXT
-        GuiControl, +Background%inputBgColor% +c%inputTextColor%, %controlName%
-    }
-    
-    ; Function to apply style to multiple text controls at once
-    ApplyTextColorToMultiple(controlList) {
-        Loop, Parse, controlList, `,
-        {
-            if (A_LoopField){
-                ApplyTextColor(A_LoopField)
-            }
-        }
-    }
-    
-    ; Function to apply style to multiple input fields at once
-    ApplyInputStyleToMultiple(controlList) {
-        Loop, Parse, controlList, `,
-        {
-            if (A_LoopField){
-                ApplyInputStyle(A_LoopField)
-        } }
-    }
-    
-    ; Unified function to save all settings to INI file - FIXED VERSION
-    SaveAllSettings() {
-        global FriendID, AccountName, waitTime, Delay, folderPath, discordWebhookURL, discordUserId, Columns, godPack
-        global Instances, instanceStartDelay, defaultLanguage, SelectedMonitorIndex, swipeSpeed, deleteMethod
-        global runMain, Mains, heartBeat, heartBeatWebhookURL, heartBeatName, nukeAccount, packMethod
-        global autoLaunchMonitor, autoUseGPTest, TestTime
-        global CheckShinyPackOnly, TrainerCheck, FullArtCheck, RainbowCheck, ShinyCheck, CrownCheck
-        global InvalidCheck, ImmersiveCheck, PseudoGodPack, minStars, Palkia, Dialga, Arceus, Shining
-        global Mew, Pikachu, Charizard, Mewtwo, Solgaleo, Lunala, Buzzwole, slowMotion, ocrLanguage, clientLanguage
-        global CurrentVisibleSection, heartBeatDelay, sendAccountXml, showcaseEnabled, showcaseURL, isDarkTheme
-        global useBackgroundImage, tesseractPath, applyRoleFilters, debugMode, tesseractOption, statusMessage
-        global s4tEnabled, s4tSilent, s4t3Dmnd, s4t4Dmnd, s4t1Star, s4tGholdengo, s4tWP, s4tWPMinCards
-        global s4tDiscordUserId, s4tDiscordWebhookURL, s4tSendAccountXml, minStarsShiny, instanceLaunchDelay, mainIdsURL, vipIdsURL
-        global spendHourGlass, openExtraPack, injectSortMethod, rowGap, SortByDropdown
-        global waitForEligibleAccounts, maxWaitHours, skipMissionsInjectMissions
-        
-        ; === MISSING ADVANCED SETTINGS VARIABLES ===
-        global minStarsA1Mewtwo, minStarsA1Charizard, minStarsA1Pikachu, minStarsA1a
-        global minStarsA2Dialga, minStarsA2Palkia, minStarsA2a, minStarsA2b
-        global minStarsA3Solgaleo, minStarsA3Lunala, minStarsA3a
-        
-        ; FIXED: Make sure all values are properly synced from GUI before saving
-        Gui, Submit, NoHide
-        
-        ; FIXED: Explicitly get the deleteMethod from the dropdown control with validation
-        GuiControlGet, currentDeleteMethod,, deleteMethod
-        if (currentDeleteMethod != "" && currentDeleteMethod != "ERROR") {
-            deleteMethod := currentDeleteMethod
-        } else if (deleteMethod = "" || deleteMethod = "ERROR") {
-            ; Set default if empty or invalid
-            deleteMethod := "13 Pack"
-        }
-        
-        ; FIXED: Validate deleteMethod against known valid options
-        validMethods := "13 Pack|Inject|Inject Missions|Inject for Reroll"
-        if (!InStr(validMethods, deleteMethod)) {
-            deleteMethod := "13 Pack" ; Reset to default if invalid
-        }
-        
-        ; Update injectSortMethod based on dropdown if available
-        if (sortByCreated) {
-            GuiControlGet, selectedOption,, SortByDropdown
-            if (selectedOption = "Oldest First")
-                injectSortMethod := "ModifiedAsc"
-            else if (selectedOption = "Newest First")
-                injectSortMethod := "ModifiedDesc"
-            else if (selectedOption = "Fewest Packs First")
-                injectSortMethod := "PacksAsc"
-            else if (selectedOption = "Most Packs First")
-                injectSortMethod := "PacksDesc"
-        }
-        
-        ; Do not initalize friend IDs or id.txt if Inject or Inject Missions
-        IniWrite, %deleteMethod%, Settings.ini, UserSettings, deleteMethod
-        if (deleteMethod = "Inject for Reroll" || deleteMethod = "13 Pack") {
-            IniWrite, %FriendID%, Settings.ini, UserSettings, FriendID
-            IniWrite, %mainIdsURL%, Settings.ini, UserSettings, mainIdsURL
-        } else {
-            if(FileExist("ids.txt"))
-                FileDelete, ids.txt
-            IniWrite, "", Settings.ini, UserSettings, FriendID
-            IniWrite, "", Settings.ini, UserSettings, mainIdsURL
-            mainIdsURL := ""
-            FriendID := ""
-        }
-        ; Save pack selections directly without resetting them
-        IniWrite, %Palkia%, Settings.ini, UserSettings, Palkia
-        IniWrite, %Dialga%, Settings.ini, UserSettings, Dialga
-        IniWrite, %Arceus%, Settings.ini, UserSettings, Arceus
-        IniWrite, %Shining%, Settings.ini, UserSettings, Shining
-        IniWrite, %Mew%, Settings.ini, UserSettings, Mew
-        IniWrite, %Pikachu%, Settings.ini, UserSettings, Pikachu
-        IniWrite, %Charizard%, Settings.ini, UserSettings, Charizard
-        IniWrite, %Mewtwo%, Settings.ini, UserSettings, Mewtwo
-        IniWrite, %Solgaleo%, Settings.ini, UserSettings, Solgaleo
-        IniWrite, %Lunala%, Settings.ini, UserSettings, Lunala
-        IniWrite, %Buzzwole%, Settings.ini, UserSettings, Buzzwole
-        ; Save basic settings
-        IniWrite, %AccountName%, Settings.ini, UserSettings, AccountName
-        IniWrite, %waitTime%, Settings.ini, UserSettings, waitTime
-        IniWrite, %Delay%, Settings.ini, UserSettings, Delay
-        IniWrite, %folderPath%, Settings.ini, UserSettings, folderPath
-        IniWrite, %discordWebhookURL%, Settings.ini, UserSettings, discordWebhookURL
-        IniWrite, %discordUserId%, Settings.ini, UserSettings, discordUserId
-        IniWrite, %Columns%, Settings.ini, UserSettings, Columns
-        IniWrite, %godPack%, Settings.ini, UserSettings, godPack
-        IniWrite, %Instances%, Settings.ini, UserSettings, Instances
-        IniWrite, %instanceStartDelay%, Settings.ini, UserSettings, instanceStartDelay
-        IniWrite, %defaultLanguage%, Settings.ini, UserSettings, defaultLanguage
-        IniWrite, %rowGap%, Settings.ini, UserSettings, rowGap
-        IniWrite, %SelectedMonitorIndex%, Settings.ini, UserSettings, SelectedMonitorIndex
-        IniWrite, %swipeSpeed%, Settings.ini, UserSettings, swipeSpeed
-        IniWrite, %runMain%, Settings.ini, UserSettings, runMain
-        IniWrite, %Mains%, Settings.ini, UserSettings, Mains
-        IniWrite, %autoUseGPTest%, Settings.ini, UserSettings, autoUseGPTest
-        IniWrite, %TestTime%, Settings.ini, UserSettings, TestTime
-        IniWrite, %heartBeat%, Settings.ini, UserSettings, heartBeat
-        IniWrite, %heartBeatWebhookURL%, Settings.ini, UserSettings, heartBeatWebhookURL
-        IniWrite, %heartBeatName%, Settings.ini, UserSettings, heartBeatName
-        IniWrite, %heartBeatDelay%, Settings.ini, UserSettings, heartBeatDelay
-        IniWrite, %nukeAccount%, Settings.ini, UserSettings, nukeAccount
-        IniWrite, %packMethod%, Settings.ini, UserSettings, packMethod
-        IniWrite, %CheckShinyPackOnly%, Settings.ini, UserSettings, CheckShinyPackOnly
-        IniWrite, %TrainerCheck%, Settings.ini, UserSettings, TrainerCheck
-        IniWrite, %FullArtCheck%, Settings.ini, UserSettings, FullArtCheck
-        IniWrite, %RainbowCheck%, Settings.ini, UserSettings, RainbowCheck
-        IniWrite, %ShinyCheck%, Settings.ini, UserSettings, ShinyCheck
-        IniWrite, %CrownCheck%, Settings.ini, UserSettings, CrownCheck
-        IniWrite, %InvalidCheck%, Settings.ini, UserSettings, InvalidCheck
-        IniWrite, %ImmersiveCheck%, Settings.ini, UserSettings, ImmersiveCheck
-        IniWrite, %PseudoGodPack%, Settings.ini, UserSettings, PseudoGodPack
-        IniWrite, %minStars%, Settings.ini, UserSettings, minStars
-        IniWrite, %slowMotion%, Settings.ini, UserSettings, slowMotion
-        IniWrite, %ocrLanguage%, Settings.ini, UserSettings, ocrLanguage
-        IniWrite, %clientLanguage%, Settings.ini, UserSettings, clientLanguage
-        IniWrite, %mainIdsURL%, Settings.ini, UserSettings, mainIdsURL
-        IniWrite, %vipIdsURL%, Settings.ini, UserSettings, vipIdsURL
-        IniWrite, %autoLaunchMonitor%, Settings.ini, UserSettings, autoLaunchMonitor
-        IniWrite, %instanceLaunchDelay%, Settings.ini, UserSettings, instanceLaunchDelay
-        IniWrite, %spendHourGlass%, Settings.ini, UserSettings, spendHourGlass
-        IniWrite, %openExtraPack%, Settings.ini, UserSettings, openExtraPack
-        IniWrite, %injectSortMethod%, Settings.ini, UserSettings, injectSortMethod
-        IniWrite, %waitForEligibleAccounts%, Settings.ini, UserSettings, waitForEligibleAccounts
-        IniWrite, %maxWaitHours%, Settings.ini, UserSettings, maxWaitHours
-        
-        IniWrite, %showcaseURL%, Settings.ini, UserSettings, showcaseURL
-        IniWrite, %skipMissionsInjectMissions%, Settings.ini, UserSettings, skipMissionsInjectMissions
-        
-        ; Save showcase settings
-        IniWrite, %showcaseEnabled%, Settings.ini, UserSettings, showcaseEnabled
-        IniWrite, 5, Settings.ini, UserSettings, showcaseLikes
-        
-        IniWrite, %minStarsA1Mewtwo%, Settings.ini, UserSettings, minStarsA1Mewtwo
-        IniWrite, %minStarsA1Charizard%, Settings.ini, UserSettings, minStarsA1Charizard
-        IniWrite, %minStarsA1Pikachu%, Settings.ini, UserSettings, minStarsA1Pikachu
-        IniWrite, %minStarsA1a%, Settings.ini, UserSettings, minStarsA1a
-        IniWrite, %minStarsA2Dialga%, Settings.ini, UserSettings, minStarsA2Dialga
-        IniWrite, %minStarsA2Palkia%, Settings.ini, UserSettings, minStarsA2Palkia
-        IniWrite, %minStarsA2a%, Settings.ini, UserSettings, minStarsA2a
-        IniWrite, %minStarsA2b%, Settings.ini, UserSettings, minStarsA2b
-        IniWrite, %minStarsA3Solgaleo%, Settings.ini, UserSettings, minStarsA3Solgaleo
-        IniWrite, %minStarsA3Lunala%, Settings.ini, UserSettings, minStarsA3Lunala
-        IniWrite, %minStarsA3a%, Settings.ini, UserSettings, minStarsA3a
-        
-        IniWrite, %sendAccountXml%, Settings.ini, UserSettings, sendAccountXml
-        
-        ; Save S4T settings
-        IniWrite, %s4tEnabled%, Settings.ini, UserSettings, s4tEnabled
-        IniWrite, %s4tSilent%, Settings.ini, UserSettings, s4tSilent
-        IniWrite, %s4t3Dmnd%, Settings.ini, UserSettings, s4t3Dmnd
-        IniWrite, %s4t4Dmnd%, Settings.ini, UserSettings, s4t4Dmnd
-        IniWrite, %s4t1Star%, Settings.ini, UserSettings, s4t1Star
-        IniWrite, %s4tGholdengo%, Settings.ini, UserSettings, s4tGholdengo
-        IniWrite, %s4tWP%, Settings.ini, UserSettings, s4tWP
-        IniWrite, %s4tWPMinCards%, Settings.ini, UserSettings, s4tWPMinCards
-        IniWrite, %s4tDiscordUserId%, Settings.ini, UserSettings, s4tDiscordUserId
-        IniWrite, %s4tDiscordWebhookURL%, Settings.ini, UserSettings, s4tDiscordWebhookURL
-        IniWrite, %s4tSendAccountXml%, Settings.ini, UserSettings, s4tSendAccountXml
-        IniWrite, %minStarsShiny%, Settings.ini, UserSettings, minStarsShiny
-        
-        ; Save extra settings
-        IniWrite, %tesseractPath%, Settings.ini, UserSettings, tesseractPath
-        IniWrite, %applyRoleFilters%, Settings.ini, UserSettings, applyRoleFilters
-        IniWrite, %debugMode%, Settings.ini, UserSettings, debugMode
-        IniWrite, %tesseractOption%, Settings.ini, UserSettings, tesseractOption
-        IniWrite, %statusMessage%, Settings.ini, UserSettings, statusMessage
-        
-        ; Save theme settings
-        IniWrite, %isDarkTheme%, Settings.ini, UserSettings, isDarkTheme
-        IniWrite, %useBackgroundImage%, Settings.ini, UserSettings, useBackgroundImage
-        
-        ; FIXED: Debug logging if enabled
-        if (debugMode) {
-            FileAppend, % A_Now . " - Settings saved. DeleteMethod: " . deleteMethod . "`n", %A_ScriptDir%\debug_settings.log
-        }
-    }
-    
-    ; Function to update ALL text controls with appropriate color
-    SetAllTextColors(textColor) {
-        ; Create a string with all control names separated by commas
-        controlList := "Txt_Instances,Txt_InstanceStartDelay,Txt_Columns,Txt_runMain,Txt_AccountName,Txt_autoUseGPTest,"
-        controlList .= "Txt_Delay,Txt_WaitTime,Txt_SwipeSpeed,Txt_slowMotion,"
-        controlList .= "Txt_Monitor,Txt_Scale,Txt_FolderPath,Txt_OcrLanguage,Txt_ClientLanguage,"
-        controlList .= "Txt_RowGap,Txt_InstanceLaunchDelay,Txt_autoLaunchMonitor,"
-        controlList .= "Txt_MinStars,Txt_ShinyMinStars,Txt_DeleteMethod,Txt_packMethod,Txt_nukeAccount,"
-        controlList .= "Txt_VariablePackCount,Txt_spendHourGlass,Txt_openExtraPack,SortByText,"
-        controlList .= "Txt_Buzzwole,Txt_Solgaleo,Txt_Lunala,Txt_Shining,Txt_Arceus,Txt_Palkia,Txt_Dialga,Txt_Pikachu,Txt_Charizard,Txt_Mewtwo,Txt_Mew,"
-        controlList .= "AllPackSelection,Txt_PackHeading,Txt_PageBuzzwole,Txt_PageSolgaleo,Txt_PageLunala,Txt_PageShining,"
-        controlList .= "Txt_FullArtCheck,Txt_TrainerCheck,Txt_RainbowCheck,Txt_PseudoGodPack,"
-        controlList .= "Txt_CrownCheck,Txt_ShinyCheck,Txt_ImmersiveCheck,Txt_CheckShinyPackOnly,Txt_InvalidCheck,"
-        controlList .= "Txt_s4tEnabled,Txt_s4tSilent,Txt_s4t3Dmnd,Txt_s4t4Dmnd,Txt_s4t1Star,Txt_s4tWP,"
-        controlList .= "s4tWPMinCardsLabel,s4tGholdengoArrow,"
-        controlList .= "Txt_DiscordID,Txt_DiscordWebhook,Txt_sendAccountXml,"
-        controlList .= "Txt_heartBeat,hbName,hbURL,hbDelay,"
-        controlList .= "Txt_S4T_DiscordID,Txt_S4T_DiscordWebhook,Txt_s4tSendAccountXml,S4TDiscordSettingsSubHeading,"
-        controlList .= "Txt_MainIdsURL,Txt_VipIdsURL,Txt_showcaseEnabled,"
-        controlList .= "VersionInfo,HeaderTitle,"
-        controlList .= "FriendIDLabel,InstanceSettingsLabel,TimeSettingsLabel,SystemSettingsLabel,"
-        controlList .= "SaveForTradeLabel,DiscordSettingsLabel,DownloadSettingsLabel,"
-        controlList .= "ExtraSettingsHeading,Txt_TesseractPath,"
-        controlList .= "Txt_tesseractOption,Txt_applyRoleFilters,Txt_debugMode,Txt_statusMessage"
-        
-        ; Apply color to all controls in the list
-        Loop, Parse, controlList, `,
-        {
-            if (A_LoopField)
-                GuiControl, +c%textColor%, %A_LoopField%
-        }
-    }
-    
-    SetAllPagesColor(btnTxetColor, textColor, pageBtnTextColor) {
-        TextControl := "Txt_title_set,Txt_title_main,Txt_license,Btn_ToolTip,Btn_Language,Btn_reload,BackgroundToggle,ThemeToggle,"
-        TextControl .= "title_download,title_discord,title_trade,title_pack,title_system,title_reroll"
-        
-        BtnControl := "Txt_Btn_Arrange,Txt_Btn_Coffee,Txt_Btn_Join,Txt_Btn_Mumu,"
-        BtnControl .= "Txt_Btn_BalanceXMLs,Txt_Btn_Start,Txt_Btn_Update,"
-        BtnControl .= "Txt_Btn_RerollSettings,Txt_Btn_SystemSettings,Txt_Btn_PackSettings,"
-        BtnControl .= "Txt_Btn_SaveForTrade,Txt_Btn_DiscordSettings,Txt_Btn_DownloadSettings,Txt_Btn_ClassicMode"
-        
-        pageBtnControl := "Txt_Btn_main, Txt_Btn_Setting, Txt_Btn_inset, Txt_Btn_returnPack"
-        ; Apply color to all controls in the list
-        Loop, Parse, TextControl, `,
-        {
-            if (A_LoopField)
-                GuiControl, +c%textColor%, %A_LoopField%
-        }
-        
-        ; Apply color to all controls in the list
-        ApplyBtnTextColorToMutiple(BtnControl)
-        
-        ; Apply color to all controls in the list
-        ApplyPageBtnTextColorToMutiple(pageBtnControl)
-    }
-    
-    ; Function to apply theme colors to the GUI
-    ApplyTheme() {
-        global isDarkTheme, DARK_BG, DARK_CONTROL_BG, DARK_TEXT, DARK_INPUT_BG, DARK_INPUT_TEXT
-        global LIGHT_BG, LIGHT_CONTROL_BG, LIGHT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
-        global CurrentVisibleSection, DARK_SECTION_COLORS, LIGHT_SECTION_COLORS
-        global DARK_BTN_TEXT, DARK_PAGE_TEXT, DARK_PAGE_BTN_TEXT,LIGHT_BTN_TEXT, LIGHT_PAGE_TEXT, LIGHT_PAGE_BTN_TEXT
-        
-        if (isDarkTheme) {
-            ; Dark theme with better contrast
-            Gui, Color, %DARK_BG%, %DARK_CONTROL_BG%
-            
-            ; Update input fields for dark theme
-            SetInputBackgrounds(DARK_INPUT_BG, DARK_INPUT_TEXT)
-            
-            ; Update all text labels with dark theme colors
-            SetAllTextColors(DARK_TEXT)
-            
-            ; Update all btn texts and titles
-            SetAllPagesColor(DARK_BTN_TEXT, DARK_PAGE_TEXT, DARK_PAGE_BTN_TEXT)
-        } else {
-            ; Light theme with better contrast
-            Gui, Color, %LIGHT_BG%, %LIGHT_CONTROL_BG%
-            
-            ; Update input fields for light theme
-            SetInputBackgrounds(LIGHT_INPUT_BG, LIGHT_INPUT_TEXT)
-            
-            ; Update all text labels with light theme colors
-            SetAllTextColors(LIGHT_TEXT)
-            
-            ; Update all btn texts and titles
-            SetAllPagesColor(LIGHT_BTN_TEXT, LIGHT_PAGE_TEXT, LIGHT_PAGE_BTN_TEXT)
-        }
-        
-        ; Update small btn text
-        SetSmallBtnText()
-        
-        ; Update section headers with appropriate colors
-        UpdateSectionHeaders()
-        
-        ; Force a redraw of the GUI to apply colors immediately
-        WinSet, Redraw,, A
-    }
-    
-    ; Helper function to reset button colors to default
-    ResetButtonColors() {
-        global isDarkTheme, DARK_TEXT, LIGHT_TEXT
-        
-        defaultColor := isDarkTheme ? DARK_TEXT : LIGHT_TEXT
-        
-        GuiControl, +c%defaultColor%, Btn_RerollSettings
-        GuiControl, +c%defaultColor%, Btn_SystemSettings
-        GuiControl, +c%defaultColor%, Btn_PackSettings
-        GuiControl, +c%defaultColor%, Btn_SaveForTrade
-        GuiControl, +c%defaultColor%, Btn_DiscordSettings
-        GuiControl, +c%defaultColor%, Btn_DownloadSettings
-    }
-    
-    ; Helper function to update all input field backgrounds
-    SetInputBackgrounds(bgColor, textColor) {
-        ; Create a list of all input controls
-        inputList := "FriendID,Instances,instanceStartDelay,Columns,Mains,TestTime,"
-        inputList .= "Delay,waitTime,swipeSpeed,folderPath,instanceLaunchDelay,"
-        inputList .= "minStars,minStarsShiny,discordUserId,discordWebhookURL,"
-        inputList .= "heartBeatName,heartBeatWebhookURL,heartBeatDelay,"
-        inputList .= "mainIdsURL,vipIdsURL,s4tWPMinCards,"
-        inputList .= "s4tDiscordUserId,s4tDiscordWebhookURL,SelectedMonitorIndex,"
-        inputList .= "defaultLanguage,ocrLanguage,clientLanguage,deleteMethod,tesseractPath,"
-        
-        ; Apply style to all inputs
-        Loop, Parse, inputList, `,
-        {
-            if (A_LoopField)
-                GuiControl, +Background%bgColor% +c%textColor%, %A_LoopField%
-        }
-    }
-    
-    ;; Special GUI Controls
-    ; Add this function near other GUI helper functions
-    AddSectionDivider(x, y, w, vName) {
-        ; Create a subtle divider line with a variable name for showing/hiding
-        Gui, Add, Text, x%x% y%y% w%w% h1 +0x10 v%vName% Hidden, ; Horizontal line divider
-    }
-    
-    AddBtn(type, x, y, w, h, vName, gName, Text := "", imagePath := "", vTextName := "", textX := "", textY := "") {
-        type := Trim(type)
-        
-        if (type = "Picture") {
-            if (FileExist(imagePath))
-                content := imagePath
-            else
-                content := ""
-        } else {
-            content := Text
-        }
-        
-        setWidth := (w != "") ? True : False
-        setHeight := (h != "") ? True : False
-        gLabel := (gName != "") ? True : False
-        
-        GuiOptions := ""
-        if (x != "")
-            GuiOptions .= "x" . x . " "
-        if (y != "")
-            GuiOptions .= "y" . y . " "
-        if (setWidth)
-            GuiOptions .= "w" . w . " "
-        if (setHeight)
-            GuiOptions .= "h" . h . " "
-        GuiOptions .= "v" . vName . " "
-        if (gLabel)
-            GuiOptions .= "g" . gName . " "
-        GuiOptions .= "hwndMainHwnd Hidden BackgroundTrans"
-        
-        Gui, Add, %type%, %GuiOptions%, %content%
-        
-        textHwnd := ""
-        
-        if (vTextName != "") {
-            TextOptions := ""
-            if (textX != "")
-                TextOptions .= "x" . textX . " "
-            if (textY != "")
-                TextOptions .= "y" . textY . " "
-            TextOptions .= "v" . vTextName . " hwndTextHwnd Hidden BackgroundTrans"
-            Gui, Add, Text, %TextOptions%, %Text%
-        }
-        
-        return { hwnd: MainHwnd, textHwnd: textHwnd }
-    }
-    
-    AddCheckBox(x, y, w, h, vName, gName, checkedImagePath, uncheckedImagePath, isChecked := False, vTextName := "", text := "", textX := "", textY := "") {
-        ; decide which picture to show
-        imagePath := isChecked ? checkedImagePath : uncheckedImagePath
-        
-        gName := (gName = "") ? "CheckBoxToggle" : gName
-        
-        ; Create a btn not only use Gui, add, checkBox
-        Gui, Add, Picture
-            , % "x" x " y" y " w" w " h" h " v" vName
-            . " g" gName
-            . " Hidden BackgroundTrans"
-            , %imagePath%
-        
-        ; Create text for checkBox
-        if (vTextName != "" && textX != "" && textY != "") {
-            Gui, Add, Text, x%textX% y%textY% v%vTextName% Hidden BackgroundTrans, %text%
-        }
-    }
-    
-    ;; Hover Class
-    ; Fix the flickering when the mouse is over the text controls
-    class ToggleImageOnHover {
-        static Pairs := []
-        static TextToPicture := {}
-        static LastHoverTime := {}
-        static DEBOUNCE_DELAY := 20 ; milliseconds to prevent rapid switching
-        
-        RegisterTextControl(hText, hPicture) {
-            this.TextToPicture[hText] := hPicture
-        }
-        
-        CreateImagePair(hPic1, hPic2) {
-            Pair := {1: hPic1, 2: hPic2, hover: false, debouncing: false}
-            this.Pairs[hPic1] := Pair
-            this.LastHoverTime[hPic1] := 0
-            this.Api.PreparePair(Pair)
-            
-            if this.Pairs.Count() = 1 {
-                this.Api.Pairs := this.Pairs
-                this.Api.SetOnHover()
-            }
-        }
-        
-        RemovePair(hPic1) {
-            this.Pairs.Delete(hPic1)
-            this.LastHoverTime.Delete(hPic1)
-            if !this.Pairs.Count()
-                this.Api.RemoveOnHover()
-        }
-        
-        CheckIfHover() {
-            MouseGetPos,,,, hCtrl, 2
-            this.Api.CheckIfHover(hCtrl)
-        }
-        
-        ResetHoverState(hPicture) {
-            if (this.Pairs.HasKey(hPicture)) {
-                Pair := this.Pairs[hPicture]
-                if (Pair.hover) {
-                    Pair.hover := false
-                    this.Api.Switch(Pair)
-                    Timer := ObjBindMethod(this.Api, "OnMouseLeavePair", Pair)
-                    SetTimer, % Timer, Delete
-                }
-            }
-        }
-        
-        ResetAllHoverStates() {
-            for k, Pair in this.Pairs {
-                if (Pair.hover) {
-                    Pair.hover := false
-                    this.Api.Switch(Pair)
-                    Timer := ObjBindMethod(this.Api, "OnMouseLeavePair", Pair)
-                    SetTimer, % Timer, Delete
-                }
-            }
-        }
-        
-        ForceRecheck() {
-            RerecheckTimer := ObjBindMethod(this, "DelayedRecheck")
-            SetTimer, % RerecheckTimer, -50
-        }
-        
-        class Api {
-            static WM_MOUSEMOVE := 0x200
-            
-            PreparePair(Pair) {
-                static SS_NOTIFY := 0x100
-                Loop 2 {
-                    GuiControl, +%SS_NOTIFY%, % Pair[A_Index]
-                }
-                this.Switch(Pair)
-            }
-            
-            SetOnHover() {
-                this.OnHover := ObjBindMethod(this, "ON_WM_MOUSEMOVE")
-                OnMessage(this.WM_MOUSEMOVE, this.OnHover)
-            }
-            
-            RemoveOnHover() {
-                OnMessage(this.WM_MOUSEMOVE, this.OnHover, 0)
-            }
-            
-            ON_WM_MOUSEMOVE(wp, lp, msg, hwnd) {
-                this.CheckIfHover(hwnd)
-            }
-            
-            CheckIfHover(hwnd) {
-                ; Map text control to picture control
-                if (ToggleImageOnHover.TextToPicture.HasKey(hwnd)) {
-                    hwnd := ToggleImageOnHover.TextToPicture[hwnd]
-                }
-                
-                currentTime := A_TickCount
-                
-                for k, Pair in this.Pairs {
-                    ; Check if mouse is over this pair
-                    isOverPair := (hwnd = Pair[1] || hwnd = Pair[2])
-                    
-                    ; Also check if mouse is over associated text
-                    isOverText := false
-                    for textHandle, pictureHandle in ToggleImageOnHover.TextToPicture {
-                        if (hwnd = textHandle && (pictureHandle = Pair[1] || pictureHandle = Pair[2])) {
-                            isOverText := true
-                            isOverPair := true
-                            break
-                        }
-                    }
-                    
-                    if isOverPair {
-                        ; Debounce rapid hover changes
-                        if (currentTime - ToggleImageOnHover.LastHoverTime[k] < ToggleImageOnHover.DEBOUNCE_DELAY) {
-                            continue
-                        }
-                        
-                        if !Pair.hover && !Pair.debouncing {
-                            Pair.hover := true
-                            Pair.debouncing := true
-                            ToggleImageOnHover.LastHoverTime[k] := currentTime
-                            this.Switch(Pair, true)
-                            
-                            ; Clear debouncing after a short delay
-                            DebounceTimer := ObjBindMethod(this, "ClearDebouncing", Pair)
-                            SetTimer, % DebounceTimer, -20
-                            
-                            ; Set up leave detection
-                            Timer := ObjBindMethod(this, "OnMouseLeavePair", Pair)
-                            SetTimer, % Timer, 50 ; Reduced frequency for smoother detection
-                            break
-                        }
-                    }
-                }
-            }
-            
-            ClearDebouncing(Pair) {
-                Pair.debouncing := false
-            }
-            
-            OnMouseLeavePair(Pair) {
-                MouseGetPos,,,, hCtrl, 2
-                
-                ; Check if mouse is still over the picture pair
-                isOnPicture := (hCtrl = Pair[1] || hCtrl = Pair[2])
-                
-                ; Check if mouse is over associated text
-                isOnText := false
-                for textHandle, pictureHandle in ToggleImageOnHover.TextToPicture {
-                    if (hCtrl = textHandle && (pictureHandle = Pair[1] || pictureHandle = Pair[2])) {
-                        isOnText := true
-                        break
-                    }
-                }
-                
-                ; Also check mouse position to prevent edge cases
-                MouseGetPos, mx, my
-                isInBounds := this.IsMouseInControlBounds(Pair, mx, my)
-                
-                if !(isOnPicture || isOnText || isInBounds) {
-                    Pair.hover := false
-                    Pair.debouncing := false
-                    SetTimer,, Delete
-                    this.Switch(Pair)
-                }
-            }
-            
-            IsMouseInControlBounds(Pair, mx, my) {
-                ; Get bounds of the first picture control
-                ControlGetPos, x, y, w, h,, % "ahk_id " . Pair[1]
-                
-                ; Add small tolerance to prevent edge flickering
-                tolerance := 2
-                return (mx >= x - tolerance && mx <= x + w + tolerance && my >= y - tolerance && my <= y + h + tolerance)
-            }
-            
-            Switch(Pair, mode := false) {
-                ; Simple switch without redraw control to avoid errors
-                for k, v in ["Show", "Hide"]
-                    GuiControl, % v, % Pair[mode ? 3 - k : k]
-            }
-        }
-    }
-    
-    DisableImageButton(PicName, HoverName) {
-        GuiControl, Disable, %PicName%
-        GuiControl, Hide, %PicName%
-        GuiControl, Disable, %HoverName%
-        GuiControl, Hide, %HoverName%
-    }
-    
-    EnableImageButton(PicName, HoverName) {
-        GuiControl, Enable, %PicName%
-        GuiControl, Hide, %PicName%
-        GuiControl, Enable, %HoverName%
-        GuiControl, Hide, %HoverName%
-    }
-    
-    DisableImageButtonToMultiple(pictureList, hoverList) {
-        Loop, Parse, pictureList, `,
-        {
-            if (A_LoopField)
-                GuiControl, Disable, %A_LoopField%
-        }
-        
-        Loop, Parse, hoverList, `,
-        {
-            if (A_LoopField)
-                GuiControl, Disable, %A_LoopField%
-        }
-    }
-    
-    EnableImageButtonToMultiple(pictureList, hoverList) {
-        Loop, Parse, pictureList, `,
-        {
-            if (A_LoopField)
-                GuiControl, Enable, %A_LoopField%
-        }
-        
-        Loop, Parse, hoverList, `,
-        {
-            if (A_LoopField)
-                GuiControl, Enable, %A_LoopField%
-        }
-    }
-    
-    DisableAllImageButton() {
-        buttonList := "Btn_RerollSettings,Btn_SystemSettings,Btn_PackSettings,Btn_SaveForTrade,Btn_DiscordSettings,Btn_DownloadSettings,"
-        buttonList .= "Btn_Arrange,Btn_Coffee,Btn_Join,Btn_Mumu,Btn_BalanceXMLs,Btn_Start,Btn_Update,"
-        buttonList .= "Btn_previous,Btn_next"
-        hoverList := "Hover_RerollSettings,Hover_SystemSettings,Hover_PackSettings,Hover_SaveForTrade,Hover_DiscordSettings,Hover_DownloadSettings,"
-        hoverList .= "Hover_Arrange,Hover_Coffee,Hover_Join,Hover_Mumu,Hover_BalanceXMLs,Hover_Start,Hover_Update,"
-        hoverList .= "Hover_previous,Hover_next"
-        
-        DisableImageButtonToMultiple(buttonList, hoverList)
-    }
-    
-    ; Add this function to apply section-specific colors to section headers
-    UpdateSectionHeaders() {
-        global isDarkTheme, CurrentVisibleSection
-        global DARK_SECTION_COLORS, LIGHT_SECTION_COLORS
-        
-        if (CurrentVisibleSection = "")
-            return
-        
-        ; Get the appropriate color for the current section
-        sectionColor := isDarkTheme ? DARK_SECTION_COLORS[CurrentVisibleSection] : LIGHT_SECTION_COLORS[CurrentVisibleSection]
-        
-        ; Apply color to section headers based on current section
-        if (CurrentVisibleSection = "InstanceSettings") {
-            GuiControl, +c%sectionColor%, Txt_Instances
-        }
-        else if (CurrentVisibleSection = "TimeSettings") {
-            GuiControl, +c%sectionColor%, Txt_Delay
-        }
-        else if (CurrentVisibleSection = "SaveForTrade") {
-            GuiControl, +c%sectionColor%, Txt_s4tEnabled
-        }
-    }
-    
-    ; Function to toggle checkbox image and v Value
-    ToggleCheckbox(varName) {
-        global
-        
-        newValue := !%varName%
-        %varName% := newValue
-        
-        GuiControl,, %varName%, % newValue ? checkedPath : uncheckedPath
-        IniWrite, %newValue%, Settings.ini, UserSettings, %varName% ; Added to fix Gholdengo not displaying correctly
-    }
-    
-    ; Function to toggle background image visibility
-    ToggleBackgroundImage() {
-        global useBackgroundImage, isDarkTheme
-        
-        ; Toggle the setting
-        useBackgroundImage := !useBackgroundImage
-        
-        ; Save the setting
-        IniWrite, %useBackgroundImage%, Settings.ini, UserSettings, useBackgroundImage
-        
-        ; Update the GUI
-        if (useBackgroundImage) {
-            ; Update button text
-            GuiControl,, BackgroundToggle, currentDictionary.btn_bg_Off
-            ; Show background image if it exists
-            GuiControl, Show, BackgroundPic
-        } else {
-            ; Update button text
-            GuiControl,, BackgroundToggle, currentDictionary.btn_bg_On
-            ; Hide background image
-            GuiControl, Hide, BackgroundPic
-        }
-        
-        ; Update the solid background color to ensure it shows through
-        bgColor := isDarkTheme ? DARK_BG : LIGHT_BG
-        Gui, Color, %bgColor%
-    }
-    
-    ; Ensure fade.ahk is not launched multiple times while allowing the current instance to continue running.global fadeStartflag := False
-    global fadeStartflag := False
-    fadeStart() {
-        FileAppend,, %A_ScriptDir%\Scripts\Include\stop.signal
-        Sleep, 30
-        FileDelete, %A_ScriptDir%\Scripts\Include\stop.signal
-        DetectHiddenWindows, On
-        SetTitleMatchMode, 2
-        
-        if !WinExist("fade_in.ahk ahk_class AutoHotkey") {
-            Run, %A_ScriptDir%\Scripts\Include\fade.ahk
-        } else {
-            return
-        }
-        
-        Loop {
-            if FileExist(fadeInFinish)
-                break
-        }
-    }
-    
-    ;; Hide&Show
-    ; Function to show multiple controls at once
-    ShowControls(controlList) {
-        Loop, Parse, controlList, `,
-        {
-            if (A_LoopField)
-                GuiControl, Show, %A_LoopField%
-        }
-    }
-    
-    ; Function to hide multiple controls at once
-    HideControls(controlList) {
-        Loop, Parse, controlList, `,
-        {
-            if (A_LoopField)
-                GuiControl, Hide, %A_LoopField%
-        }
-    }
-    
-    ; Trace hide and show
-    global CurrentVisibleSection := ""
-    
-    ; ========== hide all section ==========
-    HideAllSections() {
-        ; OPTIMIZED: Using control lists and helper function
-        
-        ; Create control lists grouped by sections
-        chooseSettingsPage := "Bg_set,title_set,Btn_RerollSettings,Btn_SystemSettings,Btn_PackSettings,Btn_SaveForTrade,Btn_DiscordSettings,Btn_DownloadSettings,Btn_main,"
-        chooseSettingsPage .= "Txt_title_set,Txt_Btn_RerollSettings,Txt_Btn_SystemSettings,Txt_Btn_PackSettings,Txt_Btn_SaveForTrade,Txt_Btn_DiscordSettings,Txt_Btn_DownloadSettings,Txt_Btn_main,"
-        chooseSettingsPage .= "Hover_RerollSettings,Hover_SystemSettings,Hover_PackSettings,Hover_SaveForTrade,Hover_DiscordSettings,Hover_DownloadSettings"
-        mainPage := "Bg_main,title_main,Btn_Arrange,Btn_Coffee,Btn_Join,Btn_Mumu,Btn_BalanceXMLs,Btn_Start,Btn_Update,Btn_Setting,Btn_ClassicMode,"
-        mainPage .= "Txt_title_main,Txt_Btn_Arrange,Txt_Btn_Coffee,Txt_Btn_Join,Txt_Btn_Mumu,Txt_Btn_BalanceXMLs,Txt_Btn_Start,Txt_Btn_Update,Txt_Btn_Setting,Txt_Btn_ClassicMode,"
-        mainPage .= "Hover_Arrange,Hover_Coffee,Hover_Join,Hover_Mumu,Hover_BalanceXMLs,Hover_Start,Hover_Update"
-        inSettingPage := "Bg_inset,Btn_previous,Btn_next,Btn_inset,Txt_Btn_inset,title_box,title_download,title_discord,title_trade,title_pack,title_system,title_reroll,"
-        inSettingPage .= "Hover_previous,Hover_next"
-        friendIDControls := "FriendID,FriendIDLabel,FriendIDSeparator"
-        instanceControls := "Txt_Instances,Instances,Txt_InstanceStartDelay,instanceStartDelay,"
-        instanceControls .= "Txt_Columns,Columns,Txt_runMain,runMain,Mains,autoUseGPTest,Txt_autoUseGPTest,TestTime,Txt_AccountName,AccountName"
-        timeControls := "Txt_Delay,Delay,Txt_WaitTime,waitTime,Txt_SwipeSpeed,swipeSpeed,"
-        timeControls .= "slowMotion,Txt_slowMotion,TimeSettingsSeparator"
-        systemControls := "Txt_Monitor,SelectedMonitorIndex,Txt_Scale,defaultLanguage,"
-        systemControls .= "Txt_FolderPath,folderPath,Txt_OcrLanguage,ocrLanguage,Txt_ClientLanguage,clientLanguage,"
-        systemControls .= "Txt_RowGap,rowGap,Txt_InstanceLaunchDelay,instanceLaunchDelay,autoLaunchMonitor,Txt_autoLaunchMonitor,"
-        systemControls .= "SystemSettingsSeparator"
-        extraControls := "ExtraSettingsHeading,tesseractOption,Txt_TesseractPath,tesseractPath,"
-        extraControls .= "applyRoleFilters,debugMode,statusMessage,Txt_tesseractOption,Txt_applyRoleFilters,Txt_debugMode,Txt_statusMessage"
-        packControls := "PackSettingsHeading,Txt_MinStars,minStars,"
-        packControls .= "Txt_ShinyMinStars,minStarsShiny,Txt_DeleteMethod,deleteMethod,packMethod,Txt_packMethod,nukeAccount,Txt_nukeAccount,"
-        packControls .= "SortByText,SortByDropdown,"
-        packControls .= "Pack_Divider1,Buzzwole,Solgaleo,Lunala,Shining,Arceus,Palkia,Dialga,Pikachu,"
-        packControls .= "Txt_Shining,Txt_Arceus,Txt_Palkia,Txt_Dialga,Txt_Pikachu,Txt_Charizard,Txt_Mewtwo,Txt_Mew,Txt_Solgaleo,Txt_Lunala,Txt_Buzzwole,"
-        packControls .= "Charizard,Mewtwo,Mew,Pack_Divider2,ShinyCheck,"
-        packControls .= "AllPackSelection,Txt_PackHeading,Page_Buzzwole,Page_Solgaleo,Page_Lunala,Page_Shining,"
-        packControls .= "Txt_PageBuzzwole,Txt_PageSolgaleo,Txt_PageLunala,Txt_PageShining,Btn_returnPack,Txt_Btn_returnPack,"
-        packControls .= "FullArtCheck,TrainerCheck,RainbowCheck,PseudoGodPack,InvalidCheck,"
-        packControls .= "Txt_FullArtCheck,Txt_TrainerCheck,Txt_RainbowCheck,Txt_PseudoGodPack,Txt_CrownCheck,Txt_ShinyCheck,Txt_ImmersiveCheck,Txt_CheckShinyPackOnly,Txt_InvalidCheck,"
-        packControls .= "CheckShinyPackOnly,CrownCheck,ImmersiveCheck,Pack_Divider3,"
-        packControls .= "spendHourGlass,Txt_spendHourGlass,openExtraPack,Txt_openExtraPack"
-        s4tControls := "s4tEnabled,s4tSilent,s4t3Dmnd,s4t4Dmnd,s4t1Star,"
-        s4tControls .= "Txt_s4tEnabled,Txt_s4tSilent,Txt_s4t3Dmnd,Txt_s4t4Dmnd,Txt_s4t1Star,Txt_s4tWP,Txt_s4tSendAccountXml,"
-        s4tControls .= "s4tGholdengo,s4tGholdengoEmblem,s4tGholdengoArrow,Txt_S4TSeparator,s4tWP,"
-        s4tControls .= "s4tWPMinCardsLabel,s4tWPMinCards,S4TDiscordSettingsSubHeading,Txt_S4T_DiscordID,"
-        s4tControls .= "s4tDiscordUserId,Txt_S4T_DiscordWebhook,s4tDiscordWebhookURL,s4tSendAccountXml,"
-        s4tControls .= "SaveForTradeDivider_1,SaveForTradeDivider_2"
-        discordControls := "DiscordSettingsHeading,Txt_DiscordID,discordUserId,Txt_DiscordWebhook,"
-        discordControls .= "discordWebhookURL,sendAccountXml,Txt_sendAccountXml,HeartbeatSettingsSubHeading,heartBeat,Txt_heartBeat,"
-        discordControls .= "hbName,heartBeatName,hbURL,heartBeatWebhookURL,hbDelay,heartBeatDelay,"
-        discordControls .= "DiscordSettingsSeparator,Discord_Divider3"
-        downloadControls := "Txt_MainIdsURL,mainIdsURL,Txt_VipIdsURL,vipIdsURL,"
-        downloadControls .= "showcaseEnabled,Txt_showcaseEnabled,Txt_ShowcaseURL,showcaseURL"
-        
-        ; Hide all controls by section using helper function
-        HideControls(chooseSettingsPage)
-        HideControls(mainPage)
-        HideControls(inSettingPage)
-        HideControls(friendIDControls)
-        HideControls(instanceControls)
-        HideControls(timeControls)
-        HideControls(systemControls)
-        HideControls(extraControls)
-        HideControls(packControls)
-        HideControls(s4tControls)
-        HideControls(discordControls)
-        HideControls(downloadControls)
-        
-        ; Explicitly hide these checkboxes to ensure they don't appear in wrong sections
-        GuiControl, Hide, spendHourGlass
-        GuiControl, Hide, Txt_spendHourGlass        
-        ; Hide separators
-        GuiControl, Hide, RerollSettingsSeparator
-        
-        ; Hide Sort By controls if they exist
-        global sortByCreated
-        if (sortByCreated) {
-            GuiControl, Hide, SortByText
-            GuiControl, Hide, SortByDropdown
-        }
-        
-        ; Hide ALL divider elements
-        dividerList := "FriendID_Divider,Instance_Divider3,System_Divider1,System_Divider2,System_Divider3,"
-        dividerList .= "System_Divider4,Pack_Divider1,Pack_Divider2,Pack_Divider3,Discord_Divider3,"
-        dividerList .= "SaveForTrade_Divider1,SaveForTrade_Divider2"
-        HideControls(dividerList)
-    }
-    
-    global fadeInFinish := A_ScriptDir "\Scripts\Include\finish.signal"
-    ; ========== show choose settings page ==========
-    ShowInitail() {
-        global isDarkTheme, useBackgroundImage
-        fadeStartflag := True
-        fadeStart()
-        Loop {
-            if FileExist(finishSignalFile)
-                break
-            Sleep, 10
-        }
-        FileDelete, %finishSignalFile% ; delete signal
-        
-        BarControls := "Ot_license,Txt_license,Btn_ToolTip,Btn_Language,Btn_reload,BackgroundToggle,ThemeToggle,Btn_ClassicMode,Txt_Btn_ClassicMode"
-        mainPageControl := "Bg_main,Btn_Arrange,Btn_Coffee,Btn_Join,Btn_Mumu,"
-        mainPageControl .= "Btn_BalanceXMLs,Btn_Start,Btn_Update,Btn_Setting,"
-        mainPageControl .= "Txt_title_main,Txt_Btn_Arrange,Txt_Btn_Coffee,Txt_Btn_Join,Txt_Btn_Mumu,"
-        mainPageControl .= "Txt_Btn_BalanceXMLs,Txt_Btn_Start,Txt_Btn_Update,Txt_Btn_Setting"
-        
-        ShowControls(BarControls)
-        ShowControls(mainPageControl)
-        
-        if (!isDarkTheme && useBackgroundImage)
-            GuiControl, Show, title_main
-        
-        FileAppend,, %A_ScriptDir%\Scripts\Include\go.signal
-        fadeStartflag := False
-    }
-    
-    Showsettingpage() {
-        global isDarkTheme, useBackgroundImage
-        
-        ; Ensure the fade-in is finished before calling HideAllSection()
-        if(fadeStartflag = False){
-            fadeStart()
-            Loop {
-                if FileExist(finishSignalFile)
-                    break
-                Sleep, 10
-            }
-            FileDelete, %finishSignalFile% ; delete signal
-        }
-        
-        DisableAllImageButton()
-        picList := "Btn_RerollSettings,Btn_SystemSettings,Btn_PackSettings,Btn_SaveForTrade,Btn_DiscordSettings,Btn_DownloadSettings"
-        hoverList := "Hover_RerollSettings,Hover_SystemSettings,Hover_PackSettings,Hover_SaveForTrade,Hover_DiscordSettings,Hover_DownloadSettings"
-        EnableImageButtonToMultiple(picList, hoverList)
-        
-        HideAllSections()
-        
-        SettingsPageControl := "Bg_set,Btn_RerollSettings,Btn_SystemSettings,Btn_PackSettings,"
-        SettingsPageControl .= "Btn_SaveForTrade,Btn_DiscordSettings,Btn_DownloadSettings,Btn_main,"
-        SettingsPageControl .= "Txt_title_set,Txt_Btn_RerollSettings,Txt_Btn_SystemSettings,Txt_Btn_PackSettings,"
-        SettingsPageControl .= "Txt_Btn_SaveForTrade,Txt_Btn_DiscordSettings,Txt_Btn_DownloadSettings,Txt_Btn_main"
-        
-        ShowControls(SettingsPageControl)
-        
-        if(!isDarkTheme && useBackgroundImage) {
-            GuiControl, Show, title_set
-        }
-        
-        TextControl := "Txt_title_set,Txt_license"
-        BtnControl := "Txt_Btn_RerollSettings,Txt_Btn_SystemSettings,Txt_Btn_PackSettings,"
-        BtnControl .= "Txt_Btn_SaveForTrade,Txt_Btn_DiscordSettings,Txt_Btn_DownloadSettings"
-        
-        ApplyPageTextColorToMutiple(TextControl)
-        ApplyBtnTextColorToMutiple(BtnControl)
-        ApplyPageBtnTextColor("Txt_Btn_main")
-        if(fadeStartflag = False)
-            FileAppend,, %A_ScriptDir%\Scripts\Include\go.signal
-    }
-    
-    ShowInsettingpage() {
-        global isDarkTheme, useBackgroundImage
-        
-        inSettingsPageControl := "Bg_inset,Btn_previous,Btn_next,Btn_inset,Txt_Btn_inset"
-        
-        ShowControls(inSettingsPageControl)
-        ApplyPageBtnTextColor("Txt_Btn_inset")
-    }
-    
-    Showmainpage() {
-        global isDarkTheme
-        
-        ; Ensure the fade-in is finished before calling HideAllSection()
-        if(fadeStartflag = False){
-            fadeStart()
-            Loop {
-                if FileExist(finishSignalFile)
-                    break
-                Sleep, 10
-            }
-            FileDelete, %finishSignalFile% ; delete signal
-        }
-        DisableAllImageButton()
-        picList := "Btn_Arrange,Btn_Coffee,Btn_Join,Btn_Mumu,Btn_BalanceXMLs,Btn_Start,Btn_Update"
-        hoverList := "Hover_Arrange,Hover_Coffee,Hover_Join,Hover_Mumu,Hover_BalanceXMLs,Hover_Start,Hover_Update"
-        EnableImageButtonToMultiple(picList, hoverList)
-        
-        HideAllSections()
-        
-        mainPageControl := "Bg_main,Btn_Arrange,Btn_Coffee,Btn_Join,Btn_Mumu,"
-        mainPageControl .= "Btn_BalanceXMLs,Btn_Start,Btn_Update,Btn_Setting,Btn_ClassicMode,"
-        mainPageControl .= "Txt_title_main,Txt_Btn_Arrange,Txt_Btn_Coffee,Txt_Btn_Join,Txt_Btn_Mumu,"
-        mainPageControl .= "Txt_Btn_BalanceXMLs,Txt_Btn_Start,Txt_Btn_Update,Txt_Btn_Setting,Txt_Btn_ClassicMode"
-        
-        ShowControls(mainPageControl)
-        
-        if(!isDarkTheme && useBackgroundImage) {
-            GuiControl, Show, title_main
-        }
-        
-        TextControl := "Txt_title_main,Txt_license"
-        BtnControl := "Txt_Btn_Arrange,Txt_Btn_Coffee,Txt_Btn_Join,Txt_Btn_Mumu,"
-        BtnControl .= "Txt_Btn_BalanceXMLs,Txt_Btn_Start,Txt_Btn_Update,Txt_Btn_ClassicMode"
-        
-        ApplyPageTextColorToMutiple(TextControl)
-        ApplyBtnTextColorToMutiple(BtnControl)
-        ApplyPageBtnTextColor("Txt_Btn_Setting")
-        
-        if(fadeStartflag = False)
-            FileAppend,, %A_ScriptDir%\Scripts\Include\go.signal
-    }
-    
-    ; ========== show Reroll Settings section (Updated) ==========
-    ShowRerollSettingsSection() {
-        global isDarkTheme, DARK_TEXT, LIGHT_TEXT
-        global DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
-        global DARK_SECTION_COLORS, LIGHT_SECTION_COLORS
-        ToggleImageOnHover.ResetAllHoverStates()
-        ; Ensure the fade-in is finished before calling HideAllSection()
-        if(fadeStartflag = False){
-            fadeStart()
-            Loop {
-                if FileExist(finishSignalFile)
-                    break
-                Sleep, 10
-            }
-            FileDelete, %finishSignalFile% ; delete signal
-        }
-        
-        DisableAllImageButton()
-        ; First, make sure all other sections are hidden
-        HideAllSections()
-        ShowInsettingpage()
-        
-        ; Get the section color
-        sectionColor := isDarkTheme ? DARK_SECTION_COLORS["RerollSettings"] : LIGHT_SECTION_COLORS["RerollSettings"]
-        
-        ; === Friend ID Section with Heading ===
-        ; Define lists of controls to show
-        friendIDControls := "title_reroll,FriendIDLabel,FriendID_Divider"
-        instanceControls := "Txt_Instances,Instances,Txt_Columns,Columns,"
-        instanceControls .= "Txt_InstanceStartDelay,instanceStartDelay,runMain,Txt_runMain,autoUseGPTest,Txt_autoUseGPTest,"
-        instanceControls .= "Txt_AccountName,AccountName,Instance_Divider3"
-        timeControls := "Txt_Delay,Delay,Txt_WaitTime,waitTime,Txt_SwipeSpeed,swipeSpeed,slowMotion,Txt_slowMotion"
-        
-        ; Show controls using helper function
-        ShowControls(friendIDControls)
-        ShowControls(instanceControls)
-        ShowControls(timeControls)
-        
-        ; Check if deleteMethod is "inject for reroll" and show FriendID
-        GuiControlGet, deleteMethod
-        if (deleteMethod = "Inject for Reroll" || deleteMethod = "13 Pack") {
-            GuiControl, show, FriendID
-        }
-        
-        if(!isDarkTheme && useBackgroundImage) {
-            GuiControl, Show, title_box
-        }
-        
-        ; Show Mains if runMain is checked
-        IniRead, runMain, Settings.ini, UserSettings, runMain, 1
-        if (runMain) {
-            GuiControl, Show, Mains
-        }
-        
-        IniRead, autoUseGPTest, Settings.ini, UserSettings, autoUseGPTest, 0
-        if (autoUseGPTest) {
-            GuiControl, Show, TestTime
-        }
-        
-        ; Apply styling based on theme
-        textColor := isDarkTheme ? DARK_TEXT : LIGHT_TEXT
-        inputBgColor := isDarkTheme ? DARK_INPUT_BG : LIGHT_INPUT_BG
-        inputTextColor := isDarkTheme ? DARK_INPUT_TEXT : LIGHT_INPUT_TEXT
-        
-        ; Text controls
-        textControls := "FriendIDLabel,Txt_Instances,Txt_InstanceStartDelay,Txt_Columns,Txt_runMain,Txt_autoUseGPTest,"
-        textControls .= "Txt_AccountName,Txt_Delay,Txt_WaitTime,Txt_SwipeSpeed,Txt_slowMotion"
-        
-        ; Input controls
-        inputControls := "FriendID,Instances,instanceStartDelay,Columns,AccountName,Delay,waitTime,swipeSpeed"
-        
-        ; Apply text styling
-        ApplyPageTextColor("title_reroll")
-        
-        Loop, Parse, textControls, `,
-        {
-            if (A_LoopField)
-                GuiControl, +c%textColor%, %A_LoopField%
-        }
-        
-        ; Apply input styling
-        Loop, Parse, inputControls, `,
-        {
-            if (A_LoopField)
-                GuiControl, +Background%inputBgColor% +c%inputTextColor%, %A_LoopField%
-        }
-        
-        ; Apply styling to Mains if shown
-        if (runMain)
-            GuiControl, +Background%inputBgColor% +c%inputTextColor%, Mains
-        
-        if (autoUseGPTest)
-            GuiControl, +Background%inputBgColor% +c%inputTextColor%, TestTime
-        
-        ; Update section headers with appropriate colors
-        UpdateSectionHeaders()
-        
-        if(fadeStartflag = False || )
-            FileAppend,, %A_ScriptDir%\Scripts\Include\go.signal
-        
-        picList := "Btn_previous,Btn_next"
-        hovList := "Hover_previous,Hover_next"
-        EnableImageButtonToMultiple(picList, hovList)
-        
-        CurrentVisibleSection := "RerollSettings"
-    }
-    
-    ; ========== show System Settings Section (updated with dividers) ==========
-    ShowSystemSettingsSection() {
-        global isDarkTheme, DARK_TEXT, LIGHT_TEXT, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
-        global DARK_SECTION_COLORS, LIGHT_SECTION_COLORS
-        ToggleImageOnHover.ResetAllHoverStates()
-        ; Ensure the fade-in is finished before calling HideAllSection()
-        if(fadeStartflag = False){
-            fadeStart()
-            Loop {
-                if FileExist(finishSignalFile)
-                    break
-                Sleep, 10
-            }
-            FileDelete, %finishSignalFile% ; delete signal
-        }
-        
-        DisableAllImageButton()
-        ; First, make sure all other sections are hidden
-        HideAllSections()
-        ShowInsettingpage()
-        
-        ; Get the section color
-        sectionColor := isDarkTheme ? DARK_SECTION_COLORS["SystemSettings"] : LIGHT_SECTION_COLORS["SystemSettings"]
-        
-        ; Define control lists
-        monitorControls := "title_system,Txt_Monitor,SelectedMonitorIndex,Txt_Scale,defaultLanguage"
-        pathControls := "Txt_FolderPath,folderPath,Txt_OcrLanguage,ocrLanguage,Txt_ClientLanguage,clientLanguage"
-        instanceControls := "Txt_RowGap,rowGap,Txt_InstanceLaunchDelay,instanceLaunchDelay,autoLaunchMonitor,Txt_autoLaunchMonitor,"
-        instanceControls .= "SystemSettingsSeparator"
-        extraControls := "ExtraSettingsHeading,tesseractOption,Txt_tesseractOption,applyRoleFilters,Txt_applyRoleFilters,debugMode,Txt_debugMode,statusMessage,Txt_statusMessage"
-        
-        ; Show controls by group
-        ShowControls(monitorControls)
-        ShowControls(pathControls)
-        ShowControls(instanceControls)
-        ShowControls(extraControls)
-        
-        if(!isDarkTheme && useBackgroundImage) {
-            GuiControl, Show, title_box
-        }
-        
-        ; Check if tesseractOption is checked
-        IniRead, tesseractOption, Settings.ini, UserSettings, tesseractOption, 0
-        if (tesseractOption) {
-            GuiControl, Show, Txt_TesseractPath
-            GuiControl, Show, tesseractPath
-            ApplyTextColor("Txt_TesseractPath")
-            ApplyInputStyle("tesseractPath")
-        }
-        
-        ; Apply text styling to all text controls
-        textControls := "Txt_Monitor,Txt_Scale,Txt_FolderPath,Txt_OcrLanguage,Txt_ClientLanguage,"
-        textControls .= "Txt_RowGap,Txt_InstanceLaunchDelay,Txt_autoLaunchMonitor,"
-        textControls .= "ExtraSettingsHeading,Txt_tesseractOption,Txt_applyRoleFilters,Txt_debugMode,Txt_statusMessage"
-        ApplyTextColorToMultiple(textControls)
-        
-        ApplyPageTextColor("title_system")
-        
-        ; Apply input styling to all input fields
-        inputControls := "SelectedMonitorIndex,defaultLanguage,folderPath,ocrLanguage,clientLanguage,"
-        inputControls .= "rowGap,instanceLaunchDelay"
-        ApplyInputStyleToMultiple(inputControls)
-        
-        ; Update section headers with appropriate colors
-        UpdateSectionHeaders()
-        
-        if(fadeStartflag = False)
-            FileAppend,, %A_ScriptDir%\Scripts\Include\go.signal
-        
-        picList := "Btn_previous,Btn_next"
-        hovList := "Hover_previous,Hover_next"
-        EnableImageButtonToMultiple(picList, hovList)
-        
-        CurrentVisibleSection := "systemSettings"
-    }
-    
-    ; ========== Show Pack Settings Section (IMPROVED LAYOUT with dividers) ==========
-    ShowPackSettingsSection() {
-        global isDarkTheme, DARK_TEXT, LIGHT_TEXT, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
-        global DARK_SECTION_COLORS, LIGHT_SECTION_COLORS, deleteMethod, nukeAccount
-        global Shining, Arceus, Palkia, Dialga, Pikachu, Charizard, Mewtwo, Mew, Solgaleo, Lunala, Buzzwole
-        global sortByCreated
-        ToggleImageOnHover.ResetAllHoverStates()
-        ; Ensure the fade-in is finished before calling HideAllSection()
-        if(fadeStartflag = False){
-            fadeStart()
-            Loop {
-                if FileExist(finishSignalFile)
-                    break
-                Sleep, 10
-            }
-            FileDelete, %finishSignalFile% ; delete signal
-        }
-        
-        SetNormalFont()
-        
-        DisableAllImageButton()
-        ; First, make sure all other sections are hidden
-        HideAllSections()
-        ShowInsettingpage()
-        
-        ; Get the section color
-        sectionColor := isDarkTheme ? DARK_SECTION_COLORS["PackSettings"] : LIGHT_SECTION_COLORS["PackSettings"]
-        
-        ; === God Pack Settings Subsection ===
-        ; Define control lists for each subsection
-        godPackControls := "title_pack,Txt_MinStars,minStars,Txt_ShinyMinStars,minStarsShiny,"
-        godPackControls .= "Txt_DeleteMethod,deleteMethod,Pack_Divider1"
-        
-        packSelectionControls := "Buzzwole,Solgaleo,Lunala,Shining,"
-        packSelectionControls .= "Txt_Buzzwole,Txt_Solgaleo,Txt_Lunala,Txt_Shining,"
-        packSelectionControls .= "AllPackSelection,Pack_Divider2"
-        
-        cardDetectionControls := "FullArtCheck,TrainerCheck,RainbowCheck,"
-        cardDetectionControls .= "PseudoGodPack,CrownCheck,ShinyCheck,ImmersiveCheck,"
-        cardDetectionControls .= "Txt_FullArtCheck,Txt_TrainerCheck,Txt_RainbowCheck,Txt_PseudoGodPack,"
-        cardDetectionControls .= "Txt_CrownCheck,Txt_ShinyCheck,Txt_ImmersiveCheck,Txt_CheckShinyPackOnly,Txt_InvalidCheck,"
-        cardDetectionControls .= "InvalidCheck,CheckShinyPackOnly,Pack_Divider3"
-        
-        ; Show controls by subsection
-        ShowControls(godPackControls)
-        ShowControls(packSelectionControls)
-        ShowControls(cardDetectionControls)
-        
-        if(!isDarkTheme && useBackgroundImage) {
-            GuiControl, Show, title_box
-        }
-        
-        ; Check if deleteMethod is "inject" and show nukeAccount if not
-        GuiControlGet, deleteMethod
-        
-        if (InStr(deleteMethod, "Inject")) {
-            ; First make sure to hide nukeAccount which isn't applicable for Inject methods
-            GuiControl, Hide, nukeAccount
-            GuiControl, Hide, Txt_nukeAccount
-            GuiControl,, nukeAccount, 0 ; Uncheck the checkbox when hidden
-            
-            ; Always show spendHourGlass
-            GuiControl, Show, spendHourGlass
-            GuiControl, Show, Txt_spendHourGlass
-            ApplyTextColor("Txt_spendHourGlass")
-            
-            GuiControl, Show, SortByText
-            GuiControl, Show, SortByDropdown
-            ApplyTextColor("SortByText")
-            if (deleteMethod = "Inject for Reroll") {
-                GuiControl, Show, openExtraPack
-                GuiControl, Show, Txt_openExtraPack
-                GuiControl, Show, packMethod
-                GuiControl, Show, Txt_packMethod
-                ApplyTextColor(Txt_openExtraPack)
-                ApplyTextColor(Txt_packMethod)
-            } else {
-                GuiControl, Hide, openExtraPack
-                GuiControl, Hide, Txt_openExtraPack
-                GuiControl, Hide, packMethod
-                GuiControl, Hide, Txt_packMethod
-            }
-        } else {
-            ; Always show spendHourGlass
-            HideNotInInject := "spendHourGlass,Txt_spendHourGlass,openExtraPack,Txt_openExtraPack,packMethod,Txt_packMethods"
-            HideControls(HideNotInInject)
-            GuiControl,, spendHourGlass, 0
-            
-            ; Non-Inject method selected
-            GuiControl, Show, nukeAccount
-            GuiControl, Show, Txt_nukeAccount
-            MethodControls := "SortByText,SortByDropdown"
-            HideControls(MethodControls)
-            ; Apply styling
-            ApplyTextColor("Txt_nukeAccount")
-        }
-        
-        ; Apply theme-based styling
-        textColor := isDarkTheme ? DARK_TEXT : LIGHT_TEXT
-        inputBgColor := isDarkTheme ? DARK_INPUT_BG : LIGHT_INPUT_BG
-        inputTextColor := isDarkTheme ? DARK_INPUT_TEXT : LIGHT_INPUT_TEXT
-        
-        ; God Pack Settings text controls
-        godPackTextControls := "Txt_MinStars,Txt_ShinyMinStars,Txt_DeleteMethod,Txt_packMethod,Txt_spendHourGlass,Txt_openExtraPack"
-        if (!InStr(deleteMethod, "Inject")) {
-            godPackTextControls .= ",Txt_nukeAccount"
-        }
-        
-        ; Pack Selection text controls
-        packSelectionTextControls := "Txt_Buzzwole,Txt_Solgaleo,Txt_Lunala,Txt_Shining"
-        
-        ; Card Detection text controls
-        cardDetectionTextControls := "Txt_FullArtCheck,Txt_TrainerCheck,Txt_RainbowCheck,Txt_PseudoGodPack,"
-        cardDetectionTextControls .= "Txt_CrownCheck,Txt_ShinyCheck,Txt_ImmersiveCheck,Txt_CheckShinyPackOnly,Txt_InvalidCheck,"
-        
-        ; Input controls
-        inputControls := "minStars,minStarsShiny"
-        
-        ; Apply text styling to all controls
-        ApplyTextColorToMultiple(godPackTextControls)
-        ApplyTextColorToMultiple(packSelectionTextControls)
-        ApplyTextColorToMultiple(cardDetectionTextControls)
-        ApplyPageTextColor("title_pack")
-        
-        ; Apply input styling
-        ApplyInputStyleToMultiple(inputControls)
-        
-        ; Update section headers with appropriate colors
-        UpdateSectionHeaders()
-        
-        if(fadeStartflag = False)
-            FileAppend,, %A_ScriptDir%\Scripts\Include\go.signal
-        
-        picList := "Btn_previous,Btn_next"
-        hovList := "Hover_previous,Hover_next"
-        EnableImageButtonToMultiple(picList, hovList)
-        
-        CurrentVisibleSection := "PackSettings"
-    }
-    
-    ; ========== Show Save For Trade Section (Updated with dividers) ==========
-    ShowSaveForTradeSection() {
-        global isDarkTheme, DARK_TEXT, LIGHT_TEXT, DARK_TEXT_SECONDARY, LIGHT_TEXT_SECONDARY
-        global DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
-        global DARK_SECTION_COLORS, LIGHT_SECTION_COLORS
-        ToggleImageOnHover.ResetAllHoverStates()
-        ; Ensure the fade-in is finished before calling HideAllSection()
-        if(fadeStartflag = False){
-            fadeStart()
-            Loop {
-                if FileExist(finishSignalFile)
-                    break
-                Sleep, 10
-            }
-            FileDelete, %finishSignalFile% ; delete signal
-        }
-        
-        DisableAllImageButton()
-        ; First, make sure all other sections are hidden
-        HideAllSections()
-        ShowInsettingpage()
-        
-        ; Get the section color
-        sectionColor := isDarkTheme ? DARK_SECTION_COLORS["SaveForTrade"] : LIGHT_SECTION_COLORS["SaveForTrade"]
-        
-        ; Show s4tEnabled toggle
-        GuiControl, Show, title_trade
-        GuiControl, Show, s4tEnabled
-        GuiControl, Show, Txt_s4tEnabled
-        GuiControl, +c%sectionColor%, Txt_s4tEnabled
-        
-        if(!isDarkTheme && useBackgroundImage) {
-            GuiControl, Show, title_box
-        }
-        
-        ApplyPageTextColor("title_trade")
-        
-        ; Check if s4tEnabled is checked to show related controls
-        IniRead, s4tEnabled, Settings.ini, UserSettings, s4tEnabled, 0
-        if (s4tEnabled) {
-            ; Show dividers
-            GuiControl, Show, SaveForTradeDivider_1
-            GuiControl, Show, SaveForTradeDivider_2
-            ; Define control lists for enabled state
-            mainS4TControls := "s4tSilent,s4t3Dmnd,s4t4Dmnd,s4t1Star,Txt_S4TSeparator,s4tWP,"
-            mainS4TControls .= "Txt_s4tSilent,Txt_s4t3Dmnd,Txt_s4t4Dmnd,Txt_s4t1Star,Txt_s4tWP"
-            ShowControls(mainS4TControls)
-            
-            ; Discord subsection controls
-            s4tDiscordControls := "S4TDiscordSettingsSubHeading,Txt_S4T_DiscordID,s4tDiscordUserId,"
-            s4tDiscordControls .= "Txt_S4T_DiscordWebhook,s4tDiscordWebhookURL,s4tSendAccountXml,Txt_s4tSendAccountXml"
-            ShowControls(s4tDiscordControls)
-            
-            ; Apply section color to sub-heading
-            GuiControl, +c%sectionColor%, S4TDiscordSettingsSubHeading
-            
-            ; Apply text styling
-            textColor := isDarkTheme ? DARK_TEXT : LIGHT_TEXT
-            secondaryTextColor := isDarkTheme ? DARK_TEXT_SECONDARY : LIGHT_TEXT_SECONDARY
-            
-            ; Set text colors
-            mainTextControls := "s4tSilent,s4t3Dmnd,s4t4Dmnd,s4t1Star,s4tWP,"
-            mainTextControls .= "Txt_S4T_DiscordID,Txt_S4T_DiscordWebhook,s4tSendAccountXml"
-            ApplyTextColorToMultiple(mainTextControls)
-            
-            ; Set secondary text color
-            GuiControl, +c%secondaryTextColor%, Txt_S4TSeparator
-            
-            ; Apply input styling to fields
-            inputControls := "s4tDiscordUserId,s4tDiscordWebhookURL"
-            ApplyInputStyleToMultiple(inputControls)
-            
-            ; Check if Shining is enabled to show Gholdengo
-            IniRead, Shining, Settings.ini, UserSettings, Shining, 0
-            if (Shining) {
-                GuiControl, Show, s4tGholdengo
-                GuiControl, Show, s4tGholdengoEmblem
-                GuiControl, Show, s4tGholdengoArrow
-                
-                gholdengoControls := "s4tGholdengoArrow"
-                ApplyTextColorToMultiple(gholdengoControls)
-            }
-            
-            ; Check if s4tWP is checked to show min cards
-            IniRead, s4tWP, Settings.ini, UserSettings, s4tWP, 0
-            if (s4tWP) {
-                GuiControl, Show, s4tWPMinCardsLabel
-                GuiControl, Show, s4tWPMinCards
-                
-                ApplyTextColor("s4tWPMinCardsLabel")
-                ApplyInputStyle("s4tWPMinCards")
-            }
-        }
-        
-        ; Update section headers with appropriate colors
-        UpdateSectionHeaders()
-        
-        if(fadeStartflag = False)
-            FileAppend,, %A_ScriptDir%\Scripts\Include\go.signal
-        
-        picList := "Btn_previous,Btn_next"
-        hovList := "Hover_previous,Hover_next"
-        EnableImageButtonToMultiple(picList, hovList)
-        
-        CurrentVisibleSection := "SaveForTrade"
-    }
-    
-    ; ========== Show Discord Settings Section (Updated with dividers) ==========
-    ShowDiscordSettingsSection() {
-        global isDarkTheme, DARK_TEXT, LIGHT_TEXT
-        global DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
-        global DARK_SECTION_COLORS, LIGHT_SECTION_COLORS
-        ToggleImageOnHover.ResetAllHoverStates()
-        ; Ensure the fade-in is finished before calling HideAllSection()
-        if(fadeStartflag = False){
-            fadeStart()
-            Loop {
-                if FileExist(finishSignalFile)
-                    break
-                Sleep, 10
-            }
-            FileDelete, %finishSignalFile% ; delete signal
-        }
-        
-        DisableAllImageButton()
-        ; First, make sure all other sections are hidden
-        HideAllSections()
-        ShowInsettingpage()
-        
-        ; Get the section color
-        sectionColor := isDarkTheme ? DARK_SECTION_COLORS["DiscordSettings"] : LIGHT_SECTION_COLORS["DiscordSettings"]
-        
-        ; Define control lists
-        mainDiscordControls := "title_discord,DiscordSettingsHeading,Txt_DiscordID,discordUserId,"
-        mainDiscordControls .= "Txt_DiscordWebhook,discordWebhookURL,sendAccountXml,Txt_sendAccountXml"
-        
-        heartbeatHeadingControls := "HeartbeatSettingsSubHeading,Discord_Divider3,heartBeat,Txt_heartBeat"
-        
-        ; Show main Discord controls
-        ShowControls(mainDiscordControls)
-        ShowControls(heartbeatHeadingControls)
-        
-        if(!isDarkTheme && useBackgroundImage) {
-            GuiControl, Show, title_box
-        }
-        
-        ; Apply section color to headings
-        GuiControl, +c%sectionColor%, DiscordSettingsHeading
-        GuiControl, +c%sectionColor%, HeartbeatSettingsSubHeading
-        
-        ; Apply text styling
-        textColor := isDarkTheme ? DARK_TEXT : LIGHT_TEXT
-        mainTextControls := "Txt_DiscordID,Txt_DiscordWebhook,Txt_sendAccountXml,Txt_heartBeat"
-        ApplyTextColorToMultiple(mainTextControls)
-        
-        ; Apply input styling
-        inputControls := "discordUserId,discordWebhookURL"
-        ApplyInputStyleToMultiple(inputControls)
-        
-        ApplyPageTextColor("title_discord")
-        
-        ; Check if heartBeat is enabled to show related controls
-        IniRead, heartBeat, Settings.ini, UserSettings, heartBeat, 0
-        if (heartBeat) {
-            heartbeatControls := "hbName,heartBeatName,hbURL,heartBeatWebhookURL,hbDelay,heartBeatDelay"
-            ShowControls(heartbeatControls)
-            
-            ; Apply text styling to heartbeat controls
-            heartbeatTextControls := "hbName,hbURL,hbDelay"
-            ApplyTextColorToMultiple(heartbeatTextControls)
-            
-            ; Apply input styling to heartbeat fields
-            heartbeatInputControls := "heartBeatName,heartBeatWebhookURL,heartBeatDelay"
-            ApplyInputStyleToMultiple(heartbeatInputControls)
-        }
-        
-        ; Show the bottom separator
-        GuiControl, Show, DiscordSettingsSeparator
-        
-        ; Update section headers with appropriate colors
-        UpdateSectionHeaders()
-        
-        if(fadeStartflag = False)
-            FileAppend,, %A_ScriptDir%\Scripts\Include\go.signal
-        
-        picList := "Btn_previous,Btn_next"
-        hovList := "Hover_previous,Hover_next"
-        EnableImageButtonToMultiple(picList, hovList)
-        
-        CurrentVisibleSection := "DiscordSettings"
-    }
-    
-    ; ========== Download Settings Section (updated with divider and showcase options) ==========
-    ShowDownloadSettingsSection() {
-        global isDarkTheme, DARK_TEXT, LIGHT_TEXT
-        global DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
-        global DARK_SECTION_COLORS, LIGHT_SECTION_COLORS
-        global showcaseEnabled, showcaseURL
-        ToggleImageOnHover.ResetAllHoverStates()
-        ; Ensure the fade-in is finished before calling HideAllSection()
-        if(fadeStartflag = False){
-            fadeStart()
-            Loop {
-                if FileExist(finishSignalFile)
-                    break
-                Sleep, 10
-            }
-            FileDelete, %finishSignalFile% ; delete signal
-        }
-        
-        DisableAllImageButton()
-        ; First, make sure all other sections are hidden
-        HideAllSections()
-        ShowInsettingpage()
-        
-        ; Define control lists
-        mainControls := "title_download,Txt_MainIdsURL,mainIdsURL,Txt_VipIdsURL,vipIdsURL,showcaseEnabled,Txt_showcaseEnabled"
-        ShowControls(mainControls)
-        
-        if(!isDarkTheme && useBackgroundImage) {
-            GuiControl, Show, title_box
-        }
-        
-        ; Apply text styling
-        textColor := isDarkTheme ? DARK_TEXT : LIGHT_TEXT
-        mainTextControls := "Txt_MainIdsURL,Txt_VipIdsURL,Txt_showcaseEnabled"
-        ApplyTextColorToMultiple(mainTextControls)
-        
-        ; Apply input styling
-        inputControls := "mainIdsURL,vipIdsURL"
-        ApplyInputStyleToMultiple(inputControls)
-        ApplyPageTextColor("title_download")
-        
-        /*
-        ; Check if showcaseEnabled is checked to show related controls
-        IniRead, showcaseEnabled, Settings.ini, UserSettings, showcaseEnabled
-        if (showcaseEnabled) {
-            ShowControls("Txt_ShowcaseURL,showcaseURL")
-            ApplyTextColor("Txt_ShowcaseURL")
-            ApplyInputStyle("showcaseURL")
-        }
-        */
-        
-        ; Update section headers with appropriate colors
-        UpdateSectionHeaders()
-        
-        if(fadeStartflag = False)
-            FileAppend,, %A_ScriptDir%\Scripts\Include\go.signal
-        
-        picList := "Btn_previous,Btn_next"
-        hovList := "Hover_previous,Hover_next"
-        EnableImageButtonToMultiple(picList, hovList)
-        
-        CurrentVisibleSection := "DownloadSettings"
-    }
-    
-    ShowPackSelectPage() {
-        global isDarkTheme, DARK_TEXT, LIGHT_TEXT, useBackgroundImage
-        
-        ; Ensure the fade-in is finished before calling HideAllSection()
-        if(fadeStartflag = False){
-            fadeStart()
-            Loop {
-                if FileExist(finishSignalFile)
-                    break
-                Sleep, 10
-            }
-            FileDelete, %finishSignalFile% ; delete signal
-        }
-        
-        HideAllSections()
-        ShowInsettingpage()
-        
-        controlList := "title_Pack,Page_Buzzwole,Page_Solgaleo,Page_Lunala,Page_Shining,Arceus,"
-        controlList .= "Palkia,Dialga,Pikachu,Charizard,Mewtwo,Mew,Btn_returnPack"
-        Txt_controlList := "Txt_PackHeading,Txt_PageBuzzwole,Txt_PageSolgaleo,Txt_PageLunala,Txt_PageShining,Txt_Arceus,"
-        Txt_controlList .= "Txt_Palkia,Txt_Dialga,Txt_Pikachu,Txt_Charizard,Txt_Mewtwo,Txt_Mew"
-        HideControls := "Btn_next,Btn_previous,Btn_inset,Txt_Btn_inset"
-        
-        ShowControls(controlList)
-        ShowControls(Txt_controlList)
-        HideControls(HideControls)
-        GuiControl, Show, Txt_Btn_returnPack
-        
-        if(!isDarkTheme && useBackgroundImage) {
-            GuiControl, Show, title_box
-        }
-        
-        ApplyTextColorToMultiple(Txt_controlList)
-        ApplyPageBtnTextColor("Txt_Btn_returnPack")
-        ApplyPageTextColor("title_pack")
-        
-        if(fadeStartflag = False)
-            FileAppend,, %A_ScriptDir%\Scripts\Include\go.signal
-        
-        CurrentVisibleSection := "PackSelection"
-    }
-    
-    ;; Shortcuts Functions
-    HandleKeyboardShortcut(sectionIndex) {
-        ; Create array for sections (updated to new structure)
-        sections := []
-        sections.Push("RerollSettings")
-        sections.Push("SystemSettings")
-        sections.Push("PackSettings")
-        sections.Push("SaveForTrade")
-        sections.Push("DiscordSettings")
-        sections.Push("DownloadSettings")
-        
-        ; Check if the index is valid
-        if (sectionIndex > 0 && sectionIndex <= sections.MaxIndex()) {
-            ; Get the section name
-            sectionName := sections[sectionIndex]
-            
-            ; Hide all sections
-            HideAllSections()
-            
-            ; Show the selected section based on its name
-            if (sectionName = "RerollSettings")
-                ShowRerollSettingsSection()
-            else if (sectionName = "SystemSettings")
-                ShowSystemSettingsSection()
-            else if (sectionName = "PackSettings")
-                ShowPackSettingsSection()
-            else if (sectionName = "SaveForTrade")
-                ShowSaveForTradeSection()
-            else if (sectionName = "DiscordSettings")
-                ShowDiscordSettingsSection()
-            else if (sectionName = "DownloadSettings")
-                ShowDownloadSettingsSection()
-            
-            ; Update current section and tab highlighting
-            CurrentVisibleSection := sectionName
-            
-            ; Set section title
-            friendlyName := GetFriendlyName(sectionName)
-            
-            ; Update section color
-            sectionColor := isDarkTheme ? DARK_SECTION_COLORS[sectionName] : LIGHT_SECTION_COLORS[sectionName]
-            
-            ; Save current settings after changing sections
-            SaveAllSettings()
-        }
-    }
-    
-    HandleFunctionKeyShortcut(functionIndex) {
-        if (functionIndex = 1)
-            gosub, LaunchAllMumu ; F1: Launch all Mumu
-        else if (functionIndex = 2)
-            gosub, ArrangeWindows ; F2: Arrange Windows
-        else if (functionIndex = 3)
-            gosub, StartBot ; F3: Start Bot
-    }
-    
-    ; Function to show help menu with keyboard shortcuts
-    ShowHelpMenu() {
-        global isDarkTheme, useBackgroundImage
-        
-        helpText := HelpDictionary.Help_Shortcuts . "`n`n"
-        helpText .= "Ctrl+1: " . currentDictionary.btn_reroll . "`n"
-        helpText .= "Ctrl+2: " . currentDictionary.btn_system . "`n"
-        helpText .= "Ctrl+3: " . currentDictionary.btn_pack . "`n"
-        helpText .= "Ctrl+4: " . currentDictionary.btn_save . "`n"
-        helpText .= "Ctrl+5: " . currentDictionary.btn_discord . "`n"
-        helpText .= "Ctrl+6: " . currentDictionary.btn_download . "`n"
-        helpText .= "`n" . HelpDictionary.Help_FunctionKeys . "`n"
-        helpText .= "F1: " . currentDictionary.btn_mumu . "`n"
-        helpText .= "F2: " . currentDictionary.btn_arrange . "`n"
-        helpText .= "F3: " . currentDictionary.btn_start . "`n"
-        helpText .= "F4: " . HelpDictionary.Help_F4 . "`n"
-        helpText .= "Shift+F7: " . HelpDictionary.Help_ShiftF7 . "`n`n"
-        helpText .= HelpDictionary.Help_Interface . "`n"
-        helpText .= HelpDictionary.Help_CurrentTheme . (isDarkTheme ? currentDictionary.btn_theme_Dark : currentDictionary.btn_theme_Light) . "`n"
-        helpText .= HelpDictionary.Help_BackgroundImage . (useBackgroundImage ? HelpDictionary.Help_Enabled : HelpDictionary.Help_Disabled) . "`n"
-        helpText .= HelpDictionary.Help_ToggleTheme
-        helpText .= HelpDictionary.Help_ToggleBG
-        
-        MsgBox, 64, Keyboard Shortcuts Help, %helpText%
-    }
-    
-    ; Helper function to convert section names to friendly names
-    GetFriendlyName(sectionName) {
-        if (sectionName = "RerollSettings")
-            return "Reroll Settings"
-        else if (sectionName = "SystemSettings")
-            return "System Settings"
-        else if (sectionName = "PackSettings") ; Updated
-            return "Pack Settings"
-        else if (sectionName = "SaveForTrade")
-            return "Save For Trade"
-        else if (sectionName = "DiscordSettings")
-            return "Discord Settings"
-        else if (sectionName = "DownloadSettings")
-            return "Download Settings"
-        else
-            return sectionName
-    }
-    
-    ; Function to load settings from INI file
-    LoadSettingsFromIni() {
-        global
-        
-        ; Check if Settings.ini exists
-        if (FileExist("Settings.ini")) {
-            ; Read basic settings with default values if they don't exist in the file
-            ;friend id
-            IniRead, FriendID, Settings.ini, UserSettings, FriendID, ""
-            ;instance settings
-            IniRead, Instances, Settings.ini, UserSettings, Instances, 1
-            IniRead, instanceStartDelay, Settings.ini, UserSettings, instanceStartDelay, 0
-            IniRead, Columns, Settings.ini, UserSettings, Columns, 5
-            IniRead, runMain, Settings.ini, UserSettings, runMain, 1
-            IniRead, Mains, Settings.ini, UserSettings, Mains, 1
-            IniRead, AccountName, Settings.ini, UserSettings, AccountName, ""
-            IniRead, autoLaunchMonitor, Settings.ini, UserSettings, autoLaunchMonitor, 1
-            IniRead, autoUseGPTest, Settings.ini, UserSettings, autoUseGPTest, 0
-            IniRead, TestTime, Settings.ini, UserSettings, TestTime, 3600
-            ;Time settings
-            IniRead, Delay, Settings.ini, UserSettings, Delay, 250
-            IniRead, waitTime, Settings.ini, UserSettings, waitTime, 5
-            IniRead, swipeSpeed, Settings.ini, UserSettings, swipeSpeed, 300
-            IniRead, slowMotion, Settings.ini, UserSettings, slowMotion, 0
-            
-            ;system settings
-            IniRead, SelectedMonitorIndex, Settings.ini, UserSettings, SelectedMonitorIndex, 1
-            IniRead, defaultLanguage, Settings.ini, UserSettings, defaultLanguage, Scale125
-            IniRead, rowGap, Settings.ini, UserSettings, rowGap, 100
-            IniRead, folderPath, Settings.ini, UserSettings, folderPath, C:\Program Files\Netease
-            IniRead, ocrLanguage, Settings.ini, UserSettings, ocrLanguage, en
-            IniRead, clientLanguage, Settings.ini, UserSettings, clientLanguage, en
-            IniRead, instanceLaunchDelay, Settings.ini, UserSettings, instanceLaunchDelay, 5
-            
-            ; Extra Settings
-            IniRead, tesseractPath, Settings.ini, UserSettings, tesseractPath, C:\Program Files\Tesseract-OCR\tesseract.exe
-            IniRead, applyRoleFilters, Settings.ini, UserSettings, applyRoleFilters, 0
-            IniRead, debugMode, Settings.ini, UserSettings, debugMode, 0
-            IniRead, tesseractOption, Settings.ini, UserSettings, tesseractOption, 0
-            IniRead, statusMessage, Settings.ini, UserSettings, statusMessage, 1
-            
-            ;pack settings
-            IniRead, minStars, Settings.ini, UserSettings, minStars, 0
-            IniRead, minStarsShiny, Settings.ini, UserSettings, minStarsShiny, 0
-            IniRead, deleteMethod, Settings.ini, UserSettings, deleteMethod, 13 Pack
-            IniRead, packMethod, Settings.ini, UserSettings, packMethod, 0
-            IniRead, nukeAccount, Settings.ini, UserSettings, nukeAccount, 0
-            IniRead, spendHourGlass, Settings.ini, UserSettings, spendHourGlass, 0
-            IniRead, openExtraPack, Settings.ini, UserSettings, openExtraPack, 0
-            IniRead, injectSortMethod, Settings.ini, UserSettings, injectSortMethod, ModifiedAsc
-            IniRead, godPack, Settings.ini, UserSettings, godPack, Continue
-            
-            IniRead, Palkia, Settings.ini, UserSettings, Palkia, 0
-            IniRead, Dialga, Settings.ini, UserSettings, Dialga, 0
-            IniRead, Arceus, Settings.ini, UserSettings, Arceus, 0
-            IniRead, Shining, Settings.ini, UserSettings, Shining, 0
-            IniRead, Mew, Settings.ini, UserSettings, Mew, 0
-            IniRead, Pikachu, Settings.ini, UserSettings, Pikachu, 0
-            IniRead, Charizard, Settings.ini, UserSettings, Charizard, 0
-            IniRead, Mewtwo, Settings.ini, UserSettings, Mewtwo, 0
-            IniRead, Solgaleo, Settings.ini, UserSettings, Solgaleo, 0
-            IniRead, Lunala, Settings.ini, UserSettings, Lunala, 0
-            IniRead, Buzzwole, Settings.ini, UserSettings, Buzzwole, 1
-            
-            IniRead, CheckShinyPackOnly, Settings.ini, UserSettings, CheckShinyPackOnly, 0
-            IniRead, TrainerCheck, Settings.ini, UserSettings, TrainerCheck, 0
-            IniRead, FullArtCheck, Settings.ini, UserSettings, FullArtCheck, 0
-            IniRead, RainbowCheck, Settings.ini, UserSettings, RainbowCheck, 0
-            IniRead, ShinyCheck, Settings.ini, UserSettings, ShinyCheck, 0
-            IniRead, CrownCheck, Settings.ini, UserSettings, CrownCheck, 0
-            IniRead, ImmersiveCheck, Settings.ini, UserSettings, ImmersiveCheck, 0
-            IniRead, InvalidCheck, Settings.ini, UserSettings, InvalidCheck, 0
-            IniRead, PseudoGodPack, Settings.ini, UserSettings, PseudoGodPack, 0
-            
-            ; Read S4T settings
-            IniRead, s4tEnabled, Settings.ini, UserSettings, s4tEnabled, 0
-            IniRead, s4tSilent, Settings.ini, UserSettings, s4tSilent, 1
-            IniRead, s4t3Dmnd, Settings.ini, UserSettings, s4t3Dmnd, 0
-            IniRead, s4t4Dmnd, Settings.ini, UserSettings, s4t4Dmnd, 0
-            IniRead, s4t1Star, Settings.ini, UserSettings, s4t1Star, 0
-            IniRead, s4tGholdengo, Settings.ini, UserSettings, s4tGholdengo, 0
-            IniRead, s4tWP, Settings.ini, UserSettings, s4tWP, 0
-            IniRead, s4tWPMinCards, Settings.ini, UserSettings, s4tWPMinCards, 1
-            IniRead, s4tDiscordWebhookURL, Settings.ini, UserSettings, s4tDiscordWebhookURL, ""
-            IniRead, s4tDiscordUserId, Settings.ini, UserSettings, s4tDiscordUserId, ""
-            IniRead, s4tSendAccountXml, Settings.ini, UserSettings, s4tSendAccountXml, 0
-            
-            ;discord settings
-            IniRead, DiscordWebhookURL, Settings.ini, UserSettings, DiscordWebhookURL, ""
-            IniRead, DiscordUserId, Settings.ini, UserSettings, DiscordUserId, ""
-            IniRead, heartBeat, Settings.ini, UserSettings, heartBeat, 0
-            IniRead, heartBeatWebhookURL, Settings.ini, UserSettings, heartBeatWebhookURL, ""
-            IniRead, heartBeatName, Settings.ini, UserSettings, heartBeatName, ""
-            IniRead, heartBeatDelay, Settings.ini, UserSettings, heartBeatDelay, 30
-            IniRead, sendAccountXml, Settings.ini, UserSettings, sendAccountXml, 0
-            
-            ;download settings
-            IniRead, mainIdsURL, Settings.ini, UserSettings, mainIdsURL, ""
-            IniRead, vipIdsURL, Settings.ini, UserSettings, vipIdsURL, ""
-            IniRead, showcaseEnabled, Settings.ini, UserSettings, showcaseEnabled, 0
-            IniRead, showcaseLikes, Settings.ini, UserSettings, showcaseLikes, 5
-            
-            ; Advanced settings
-            IniRead, minStarsA1Charizard, Settings.ini, UserSettings, minStarsA1Charizard, 0
-            IniRead, minStarsA1Mewtwo, Settings.ini, UserSettings, minStarsA1Mewtwo, 0
-            IniRead, minStarsA1Pikachu, Settings.ini, UserSettings, minStarsA1Pikachu, 0
-            IniRead, minStarsA1a, Settings.ini, UserSettings, minStarsA1a, 0
-            IniRead, minStarsA2Dialga, Settings.ini, UserSettings, minStarsA2Dialga, 0
-            IniRead, minStarsA2Palkia, Settings.ini, UserSettings, minStarsA2Palkia, 0
-            IniRead, minStarsA2a, Settings.ini, UserSettings, minStarsA2a, 0
-            IniRead, minStarsA3Solgaleo, Settings.ini, UserSettings, minStarsA3Solgaleo, 0
-            IniRead, minStarsA3Lunala, Settings.ini, UserSettings, minStarsA3Lunala, 0
-            IniRead, minStarsA3a, Settings.ini, UserSettings, minStarA3aBuzzwole, 0
-            
-            IniRead, waitForEligibleAccounts, Settings.ini, UserSettings, waitForEligibleAccounts, 1
-            IniRead, maxWaitHours, Settings.ini, UserSettings, maxWaitHours, 24
-            
-            IniRead, isDarkTheme, Settings.ini, UserSettings, isDarkTheme, 1
-            IniRead, useBackgroundImage, Settings.ini, UserSettings, useBackgroundImage, 1
-            
-            ; Validate numeric values
-            if (!IsNumeric(Instances))
-                Instances := 1
-            if (!IsNumeric(Columns) || Columns < 1)
-                Columns := 5
-            if (!IsNumeric(waitTime))
-                waitTime := 5
-            if (!IsNumeric(Delay) || Delay < 10)
-                Delay := 250
-            if (s4tWPMinCards < 1 || s4tWPMinCards > 2)
-                s4tWPMinCards := 1
-            
-            ; Return success
-            return true
-        } else {
-            ; Settings file doesn't exist, will use defaults
-            return false
-        }
-    }
-    
-    ; Function to create the default settings file if it doesn't exist
-    CreateDefaultSettingsFile() {
-        if (!FileExist("Settings.ini")) {
-            ; Create default settings file
-            IniWrite, "", Settings.ini, UserSettings, FriendID
-            IniWrite, "", Settings.ini, UserSettings, AccountName
-            IniWrite, 5, Settings.ini, UserSettings, waitTime
-            IniWrite, 250, Settings.ini, UserSettings, Delay
-            IniWrite, C:\Program Files\Netease, Settings.ini, UserSettings, folderPath
-            IniWrite, 5, Settings.ini, UserSettings, Columns
-            IniWrite, Continue, Settings.ini, UserSettings, godPack
-            IniWrite, 1, Settings.ini, UserSettings, Instances
-            IniWrite, 0, Settings.ini, UserSettings, instanceStartDelay
-            IniWrite, Scale125, Settings.ini, UserSettings, defaultLanguage
-            IniWrite, 1, Settings.ini, UserSettings, SelectedMonitorIndex
-            IniWrite, 300, Settings.ini, UserSettings, swipeSpeed
-            IniWrite, 1, Settings.ini, UserSettings, runMain
-            IniWrite, 1, Settings.ini, UserSettings, Mains
-            IniWrite, 0, Settings.ini, UserSettings, autoUseGPTest
-            IniWrite, 3600, Settings.ini, UserSettings, TestTime
-            IniWrite, 0, Settings.ini, UserSettings, heartBeat
-            IniWrite, "", Settings.ini, UserSettings, heartBeatWebhookURL
-            IniWrite, "", Settings.ini, UserSettings, heartBeatName
-            IniWrite, 30, Settings.ini, UserSettings, heartBeatDelay
-            IniWrite, C:\Program Files\Tesseract-OCR\tesseract.exe, Settings.ini, UserSettings, tesseractPath
-            IniWrite, 0, Settings.ini, UserSettings, applyRoleFilters
-            IniWrite, 0, Settings.ini, UserSettings, debugMode
-            IniWrite, 0, Settings.ini, UserSettings, tesseractOption
-            IniWrite, 1, Settings.ini, UserSettings, statusMessage
-            IniWrite, 0, Settings.ini, UserSettings, showcaseEnabled
-            IniWrite, "", Settings.ini, UserSettings, showcaseURL
-            IniWrite, 5, Settings.ini, UserSettings, showcaseLikes
-            IniWrite, 1, Settings.ini, UserSettings, isDarkTheme
-            IniWrite, 1, Settings.ini, UserSettings, useBackgroundImage
-            IniWrite, 100, Settings.ini, UserSettings, rowGap
-            IniWrite, 15, Settings.ini, UserSettings, variablePackCount
-            IniWrite, 0, Settings.ini, UserSettings, claimSpecialMissions
-            IniWrite, 0, Settings.ini, UserSettings, spendHourGlass
-            IniWrite, ModifiedAsc, Settings.ini, UserSettings, injectSortMethod
-            IniWrite, 1, Settings.ini, UserSettings, waitForEligibleAccounts
-            IniWrite, 24, Settings.ini, UserSettings, maxWaitHours
-            
-            return true
-        }
-        return false
-    }
-    
-    resetWindows(Title, SelectedMonitorIndex, silent := true) {
-        global Columns, runMain, Mains, scaleParam, debugMode, rowGap
-        RetryCount := 0
-        MaxRetries := 10
-        
-        ; Use the configurable rowGap with fallback default of 100
-        if (!rowGap)
-            rowGap := 100
-        
-        Loop
-        {
-            try {
-                ; Get monitor origin from index
-                SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
-                SysGet, Monitor, Monitor, %SelectedMonitorIndex%
-                
-                if (runMain) {
-                    if (InStr(Title, "Main") = 1) {
-                        instanceIndex := StrReplace(Title, "Main", "")
-                        if (instanceIndex = "")
-                            instanceIndex := 1
-                    } else {
-                        instanceIndex := (Mains - 1) + Title + 1
-                    }
-                } else {
-                    instanceIndex := Title
-                }
-                
-                rowHeight := 533 ; Adjust the height of each row
-                currentRow := Floor((instanceIndex - 1) / Columns)
-                y := currentRow * rowHeight + (currentRow * rowGap) ; Use the configurable gap
-                x := Mod((instanceIndex - 1), Columns) * scaleParam
-                WinMove, %Title%, , % (MonitorLeft + x), % (MonitorTop + y), scaleParam, 537
-                break
-            }
-            catch {
-                RetryCount++
-                if (RetryCount > MaxRetries) {
-                    if (!silent && debugMode)
-                        MsgBox, Failed to position window %Title% after %MaxRetries% attempts
-                    return false
-                }
-            }
-            Sleep, 1000
-        }
-        return true
-    }
-    
-    ; ====== For picture button======
-    BuildfirstImagePath()
-    {
-        global
-        IniRead, isDarkTheme, Settings.ini, UserSettings, isDarkTheme, 0
-        IniRead, useBackgroundImage, Settings.ini, UserSettings, useBackgroundImage, 0
-        
-        frontpath := A_ScriptDir . "\GUI\GuiImage\"
-        
-        if (isDarkTheme) {
-            mode := "darkmod\"
-        } else {
-            mode := "lightmod\"
-        }
-        if (useBackgroundImage = 0) {
-            BGPath := "close\"
-            smallBtnBox := ""
-        } else {
-            BGPath := "open\"
-        }
-        
-        btn_panelHover := frontpath . mode . "btn\set\panelHover.png"
-        
-        ; ========== set btn =========
-        btn_settingPage := frontpath . mode . "btn\set\panel.png"
-        btn_main := frontpath . mode . "btn\set\mainpage.png"
-        
-        ; ========= main btn =========
-        btn_mainPage := frontpath . mode . "btn\main\panel.png"
-        btn_setting := frontpath . mode . "btn\main\settingpage.png"
-        
-        ; ========= inset btn =========
-        btn_inset := frontpath . mode . "btn\inset\goback.png"
-        btn_next := frontpath . mode . "btn\inset\next.png"
-        btn_previous := frontpath . mode . "btn\inset\previous.png"
-        btn_nextHover := frontpath . mode . "btn\inset\nextHover.png"
-        btn_previousHover := frontpath . mode . "btn\inset\previousHover.png"
-        
-        ; ========== background image and other =========
-        bg_main := frontpath . mode . "background\" . BGPath . "main.png"
-        bg_inset := frontpath . mode . "background\" . BGPath . "inset.png"
-        bg_set := frontpath . mode . "background\" . BGPath . "set.png"
-        title_set := frontpath . "other\title_set.png"
-        title_main := frontpath . "other\title_main.png"
-        title_box := frontpath . "other\title_box.png"
-        
-        ; ========== License ==========
-        license := frontpath . mode . "other\License.png"
-    }
-    
-    BuildImagePath(isDarkTheme, useBackgroundImage)
-    {
-        global
-        IniWrite, %isDarkTheme%, Settings.ini, UserSettings, isDarkTheme
-        IniWrite, %useBackgroundImage%, Settings.ini, UserSettings, useBackgroundImage
-        IniRead, useBackgroundImage, Settings.ini, UserSettings, useBackgroundImage
-        IniRead, isDarkTheme, Settings.ini, UserSettings, isDarkTheme
-        
-        frontpath := A_ScriptDir . "\GUI\GuiImage\"
-        
-        if (isDarkTheme) {
-            mode := "darkmod\"
-        } else {
-            mode := "lightmod\"
-        }
-        
-        if (useBackgroundImage = 0) {
-            BGPath := "close\"
-        } else {
-            BGPath := "open\"
-        }
-        
-        btn_panelHover := frontpath . mode . "btn\set\panelHover.png"
-        
-        ; ========== set btn =========
-        btn_settingPage := frontpath . mode . "btn\set\panel.png"
-        btn_main := frontpath . mode . "btn\set\mainpage.png"
-        
-        ; ========= main btn =========
-        btn_mainPage := frontpath . mode . "btn\main\panel.png"
-        btn_setting := frontpath . mode . "btn\main\settingpage.png"
-        
-        ; ========= inset btn =========
-        btn_inset := frontpath . mode . "btn\inset\goback.png"
-        btn_next := frontpath . mode . "btn\inset\next.png"
-        btn_previous := frontpath . mode . "btn\inset\previous.png"
-        btn_nextHover := frontpath . mode . "btn\inset\nextHover.png"
-        btn_previousHover := frontpath . mode . "btn\inset\previousHover.png"
-        
-        ; ========== background image and other =========
-        bg_main := frontpath . mode . "background\" . BGPath . "main.png"
-        bg_inset := frontpath . mode . "background\" . BGPath . "inset.png"
-        bg_set := frontpath . mode . "background\" . BGPath . "set.png"
-        
-        ; ========== License ==========
-        license := frontpath . mode . "other\License.png"
-        
-        UpdateGui()
-    }
-    
-    UpdateGui() {
-        global
-        ; btn
-        GuiControl,, Btn_RerollSettings, %btn_settingPage%
-        GuiControl,, Btn_SystemSettings, %btn_settingPage%
-        GuiControl,, Btn_PackSettings, %btn_settingPage%
-        GuiControl,, Btn_SaveForTrade, %btn_settingPage%
-        GuiControl,, Btn_DiscordSettings, %btn_settingPage%
-        GuiControl,, Btn_DownloadSettings, %btn_settingPage%
-        GuiControl,, Btn_Arrange, %btn_mainPage%
-        GuiControl,, Btn_Coffee, %btn_mainPage%
-        GuiControl,, Btn_Join, %btn_mainPage%
-        GuiControl,, Btn_Mumu, %btn_mainPage%
-        GuiControl,, Btn_Start, %btn_mainPage%
-        GuiControl,, Btn_Update, %btn_mainPage%
-        GuiControl,, Btn_BalanceXMLs, %btn_mainPage%
-        GuiControl,, Btn_previous, %btn_previous%
-        GuiControl,, Btn_next, %btn_next%
-        
-        ; Hover
-        GuiControl,, Hover_Arrange, %btn_panelHover%
-        GuiControl,, Hover_Coffee, %btn_panelHover%
-        GuiControl,, Hover_Join, %btn_panelHover%
-        GuiControl,, Hover_Mumu, %btn_panelHover%
-        GuiControl,, Hover_BalanceXMLs, %btn_panelHover%
-        GuiControl,, Hover_Start, %btn_panelHover%
-        GuiControl,, Hover_Update, %btn_panelHover%
-        GuiControl,, Hover_RerollSettings, %btn_panelHover%
-        GuiControl,, Hover_SystemSettings, %btn_panelHover%
-        GuiControl,, Hover_PackSettings, %btn_panelHover%
-        GuiControl,, Hover_SaveForTrade, %btn_panelHover%
-        GuiControl,, Hover_DiscordSettings, %btn_panelHover%
-        GuiControl,, Hover_DownloadSettings, %btn_panelHover%
-        GuiControl,, Hover_previous, %btn_previousHover%
-        GuiControl,, Hover_next, %btn_nextHover%
-        
-        ; background
-        GuiControl,, Bg_main, %bg_main%
-        GuiControl,, Bg_set, %bg_set%
-        GuiControl,, Bg_inset, %bg_inset%
-        
-        ; other
-        GuiControl,, Ot_license, %license%
-        GuiControl,, Btn_ClassicMode, %btn_settingPage%
-    }
-    ; First, try to load existing settings
-    settingsLoaded := LoadSettingsFromIni()
-    
-    ; If no settings were loaded, create a default settings file
-    if (!settingsLoaded) {
-        CreateDefaultSettingsFile()
-        ; Now load the default settings we just created
-        LoadSettingsFromIni()
-    }    
-    if FileExist(saveSignalFile) {
-        ; KillADBProcesses()
-        FileDelete, %saveSignalFile%
-    } else {
-        ; KillADBProcesses()
-        CheckForUpdate()
-    }
-    scriptName := StrReplace(A_ScriptName, ".ahk")
-    winTitle := scriptName
-    showStatus := true
-    totalFile := A_ScriptDir . "\json\total.json"
-    backupFile := A_ScriptDir . "\json\total-backup.json"
-    if FileExist(totalFile) ; Check if the file exists
-    {
-        FileCopy, %totalFile%, %backupFile%, 1 ; Copy source file to target
-        if (ErrorLevel)
-            MsgBox, Failed to create %backupFile%. Ensure permissions and paths are correct.
-    }
-    FileDelete, %totalFile%
-    packsFile := A_ScriptDir . "\json\Packs.json"
-    backupFile := A_ScriptDir . "\json\Packs-backup.json"
-    if FileExist(packsFile) ; Check if the file exists
-    {
-        FileCopy, %packsFile%, %backupFile%, 1 ; Copy source file to target
-        if (ErrorLevel)
-            MsgBox, Failed to create %backupFile%. Ensure permissions and paths are correct.
-    }
-    InitializeJsonFile() ; Create or open the JSON file
-    BuildfirstImagePath()
-    
-    ; Initialize with dark theme
-    if (isDarkTheme)
-        Gui, Color, %DARK_BG%, %DARK_CONTROL_BG% ; Dark theme
-    else
-        Gui, Color, %LIGHT_BG%, %LIGHT_CONTROL_BG% ; Light theme
-    
-    ; ALL BUTTON
-    global title_set, Txt_title_set
-    global Btn_RerollSettings, Btn_SystemSettings, Btn_PackSettings, Btn_SaveForTrade, Btn_DiscordSettings, Btn_DownloadSettings
-    global Txt_Btn_RerollSettings, Txt_Btn_SystemSettings, Txt_Btn_PackSettings, Txt_Btn_SaveForTrade, Txt_Btn_DiscordSettings, Txt_Btn_DownloadSettings
-    global Hover_RerollSettings, Hover_SystemSettings, Hover_PackSettings, Hover_SaveForTrade, Hover_DiscordSettings, Hover_DownloadSettings
-    global Btn_main, Txt_Btn_main
-    
-    global title_main, Txt_title_main
-    global Btn_Arrange, Btn_Coffee, Btn_Join, Btn_Mumu, Btn_BalanceXMLs, Btn_Start, Btn_Update, Btn_Setting
-    global Txt_Btn_Arrange, Txt_Btn_Coffee, Txt_Btn_Join, Txt_Btn_Mumu, Txt_Btn_BalanceXMLs, Txt_Btn_Start, Txt_Btn_Update, Txt_Btn_Setting
-    global Hover_Arrange, Hover_Coffee, Hover_Join, Hover_Mumu, Hover_BalanceXMLs, Hover_Start, Hover_Update
-    global Btn_previous, Btn_next, Btn_inset, Txt_Btn_inset
-    global Hover_previous, Hover_next
-    
-    global Ot_license, Txt_license
-    global Btn_ToolTip, Btn_Language, Btn_reload, BackgroundToggle, ThemeToggle, Btn_ClassicMode, Txt_Btn_ClassicMode
-    
-    ;; Choose Settings page
-    Gui, Add, Picture, x0 y0 w%GUI_WIDTH% h%GUI_HEIGHT% vBg_set Hidden, %bg_set%
-    Gui, Add, Picture, x20 y175 vPanel_set backgroundtrans Hidden, %panel_set%
-    PageBtnShift(defaultBotLanguage)
-    SetPageTitleFont()
-    TestHover := AddBtn("Picture", 20, 92, 315, 54, "title_set", "", currentDictionary.title_set, title_set, "Txt_title_set", (37+xs_TitleSet), 102)
-    
-    SetPanelBtnFont()
-    RerollSettingsBtn := AddBtn("Picture", 43, 190, 298, 54, "Btn_RerollSettings", "", "", btn_settingPage)
-    RerollSettingsHover := AddBtn("Picture", 43, 190, 298, 54, "Hover_RerollSettings", "ToggleSection", currentDictionary.btn_reroll, btn_panelHover, "Txt_Btn_RerollSettings", (131+xs_Reroll), (200+ys))
-    
-    SystemSettingsBtn := AddBtn("Picture", 45, 244, 298, 54, "Btn_SystemSettings", "", "", btn_settingPage)
-    SystemSettingsHover := AddBtn("Picture", 45, 244, 298, 54, "Hover_SystemSettings", "ToggleSection", currentDictionary.btn_system, btn_panelHover, "Txt_Btn_SystemSettings", (125+xs_System), (254+ys))
-    
-    PackSettingsBtn := AddBtn("Picture", 45, 298, 298, 54, "Btn_PackSettings", "", "", btn_settingPage)
-    PackSettingsHover := AddBtn("Picture", 45, 298, 298, 54, "Hover_PackSettings", "ToggleSection", currentDictionary.btn_pack, btn_panelHover, "Txt_Btn_PackSettings", (135+xs_Pack), (309+ys))
-    
-    SaveForTradeBtn := AddBtn("Picture", 45, 352, 298, 54, "Btn_SaveForTrade", "", "", btn_settingPage)
-    SaveForTradeHover := AddBtn("Picture", 45, 352, 298, 54, "Hover_SaveForTrade", "ToggleSection", currentDictionary.btn_save, btn_panelHover, "Txt_Btn_SaveForTrade", (132+xs_Trade), (362+ys))
-    
-    DiscordSettingsBtn := AddBtn("Picture", 45, 406, 298, 54, "Btn_DiscordSettings", "", "", btn_settingPage)
-    DiscordSettingsHover := AddBtn("Picture", 45, 406, 298, 54, "Hover_DiscordSettings", "ToggleSection", currentDictionary.btn_discord, btn_panelHover, "Txt_Btn_DiscordSettings", (125+xs_Discord), (416+ys))
-    
-    DownloadSettingsBtn := AddBtn("Picture", 45, 460, 298, 54, "Btn_DownloadSettings", "", "", btn_settingPage)
-    DownloadSettingsHover := AddBtn("Picture", 45, 460, 298, 54, "Hover_DownloadSettings", "ToggleSection", currentDictionary.btn_download, btn_panelHover, "Txt_Btn_DownloadSettings", (115+xs_Download), (470+ys))
-    
-    SetPageBtnFont()
-    TestHover := AddBtn("Picture", 90, 575, 204, 68, "Btn_main", "SettingPage", currentDictionary.btn_main, btn_main, "Txt_Btn_main", (142+xs_MainPage), (590+ys))
-    ;; Main Page
-    Gui, Add, Picture, x0 y0 w%GUI_WIDTH% h%GUI_HEIGHT% vBg_main, %bg_main%
-    
-    SetPageTitleFont()
-    TestHover := AddBtn("Picture", 20, 68, 221, 72, "title_main", "", currentDictionary.title_main . "`n" . localVersion . " " . intro, title_main, "Txt_title_main", 40, 76)
-    
-    SetPanelBtnFont()
-    ArrangeBtn := AddBtn("Picture", 45, 157, 298, 54, "Btn_Mumu", "", "", btn_mainPage)
-    ArrangeHover := AddBtn("Picture", 45, 157, 298, 54, "Hover_Mumu", "LaunchAllMumu", currentDictionary.btn_mumu, btn_panelHover, "Txt_Btn_Mumu", (126+xs_Launch), (167+ys))
-    
-    CoffeeBtn := AddBtn("Picture", 45, 211, 298, 54, "Btn_Arrange", "", "", btn_mainPage)
-    CoffeeHover := AddBtn("Picture", 45, 211, 298, 54, "Hover_Arrange", "ArrangeWindows", currentDictionary.btn_arrange, btn_panelHover, "Txt_Btn_Arrange", (120+xs_Arrange), (221+ys))
-    
-    JoinBtn := AddBtn("Picture", 45, 268, 298, 54, "Btn_BalanceXMLs", "", "", btn_mainPage)
-    JoinHover := AddBtn("Picture", 45, 268, 298, 54, "Hover_BalanceXMLs", "BalanceXMLs", currentDictionary.btn_balance, btn_panelHover, "Txt_Btn_BalanceXMLs", (136+xs_Balance), (278+ys))
-    
-    MumuBtn := AddBtn("Picture", 45, 324, 298, 54, "Btn_Update", "", "", btn_mainPage)
-    MumuHover := AddBtn("Picture", 45, 324, 298, 54, "Hover_Update", "CheckForUpdates", currentDictionary.btn_update, btn_panelHover, "Txt_Btn_Update", (125+xs_Update), (334+ys))
-    
-    BalanceXMLsBtn := AddBtn("Picture", 45, 379, 298, 54, "Btn_Join", "", , btn_mainPage)
-    BalanceXMLsHover := AddBtn("Picture", 45, 379, 298, 54, "Hover_Join", "OpenDiscord", currentDictionary.btn_join, btn_panelHover, "Txt_Btn_Join", (143+xs_Join), (389+ys))
-    
-    StartBtn := AddBtn("Picture", 45, 436, 298, 54, "Btn_Coffee", "", "", btn_mainPage)
-    StartHover := AddBtn("Picture", 45, 436, 298, 54, "Hover_Coffee", "OpenLink", currentDictionary.btn_coffee, btn_panelHover, "Txt_Btn_Coffee", (125+xs_Coffee), (446+ys))
-    
-    UpdateBtn := AddBtn("Picture", 45, 491, 298, 54, "Btn_Start", "", "", btn_mainPage)
-    UpdateHover := AddBtn("Picture", 45, 491, 298, 54, "Hover_Start", "StartBot", currentDictionary.btn_start, btn_panelHover, "Txt_Btn_Start", (152+xs_Start), (501+ys))
-    SetPageBtnFont()
-    TestHover := AddBtn("Picture", 85, 590, 204, 68, "Btn_Setting", "MainPage", currentDictionary.btn_setting, btn_setting, "Txt_Btn_Setting", (122+xs_SettingPage), (604+ys_SettingPage))
-    ;; Settings Page
-    Gui, Add, Picture, x0 y0 w%GUI_WIDTH% h%GUI_HEIGHT% vBg_inset Hidden, %bg_inset%
-    
-    previousBtn := AddBtn("Picture", 280, 525, 30, 30, "Btn_previous", "", "", btn_previous)
-    previousHover := AddBtn("Picture", 280, 525, 30, 30, "Hover_previous", "Previous", "", btn_previousHover)
-    nextBtn := AddBtn("Picture", 320, 525, 30, 30, "Btn_next", "", "", btn_next)
-    nextHover := AddBtn("Picture", 320, 525, 30, 30, "Hover_next", "Next", "", btn_nextHover)
-    SetPageBtnFont()
-    TestHover := AddBtn("Picture", 85, 590, 204, 68, "Btn_inset", "GoBackPage", currentDictionary.btn_return, btn_inset, "Txt_Btn_inset", (137+xs_Return), (604+ys_Return))
-    
-    SetPageTitleFont()
-    Gui, Add, Picture, x20 y77 w211 h51 vtitle_box backgroundtrans Hidden, %title_box%
-    Gui, Add, Text, x37 y85 vtitle_download backgroundtrans Hidden, % currentDictionary.btn_download
-    Gui, Add, Text, x37 y85 vtitle_discord backgroundtrans Hidden, % currentDictionary.btn_discord
-    Gui, Add, Text, x37 y85 vtitle_trade backgroundtrans Hidden, % currentDictionary.btn_save
-    Gui, Add, Text, x37 y85 vtitle_pack backgroundtrans Hidden, % currentDictionary.btn_pack
-    Gui, Add, Text, x37 y85 vtitle_system backgroundtrans Hidden, % currentDictionary.btn_system
-    Gui, Add, Text, x37 y85 vtitle_reroll backgroundtrans Hidden, % currentDictionary.btn_reroll
-    
-    SetLicenseFont()
-    ; header & licence
-    TestHover := AddBtn("Picture", 16, 11, 349, 26, "Ot_license", "", "PTCGPB " . localVersion . " (Licensed under CC BY-NC 4.0 international license)", license, "Txt_license", 45, 18)
-    
-    SetSmallBtnFont()
-    
-    ; Add ToolTip Button
-    TestHover := AddBtn("Text", (42+xs_ToolTip), (45+ys_ToolTip), "", "", "Btn_ToolTip", "OpenToolTip", currentDictionary.btn_ToolTip)
-    
-    ; Add language toggle button next to reload
-    TestHover := AddBtn("Text", (93+xs_Language), (45+ys_Language), "", "", "Btn_Language", "SwitchLanguage", currentDictionary.btn_Language)
-    
-    ; Add reload button next to background toggle
-    TestHover := AddBtn("Text", (162+xs_Reload), (45+ys_Reload), "", "", "Btn_reload", "SaveReload", currentDictionary.btn_reload)
-    
-    ; Add background toggle button next to theme toggle
-    TestHover := AddBtn("Text", (216+xs_Background), (45+ys_Background), "", "", "BackgroundToggle", "ToggleBackground", currentDictionary.btn_bg_Off)
-    
-    ; Add theme toggle button
-    TestHover := AddBtn("Text", (316+xs_Theme), (45+ys_Theme), "", "", "ThemeToggle", "ToggleTheme", currentDictionary.btn_theme_Dark)
-    Gui, Font, norm
-    SetNormalFont()
-    ; Add Fast setting switch
-    TestHover := AddBtn("Picture", 260, 115, 88, 16, "Btn_ClassicMode", "OpenClassicMode", "Classic mode", btn_settingPage, "Txt_Btn_ClassicMode", 268, 113)
-    
-    global Txt_runMain, Txt_autoUseGPTest, Txt_slowMotion,
-    global Txt_autoLaunchMonitor, Txt_applyRoleFilters, Txt_debugMode, Txt_tesseractOption, Txt_statusMessage
-    global Txt_packMethod, Txt_nukeAccount, Txt_spendHourGlass, Txt_openExtraPack
-    global Txt_Buzzwole, Txt_Solgaleo, Txt_Lunala, Txt_Shining, Txt_Arceus, Txt_Palkia, Txt_Dialga, Txt_Pikachu, Txt_Charizard, Txt_Mewtwo, Txt_Mew
-    global Txt_FullArtCheck, Txt_TrainerCheck, Txt_RainbowCheck, Txt_PseudoGodPack, Txt_CrownCheck, Txt_ShinyCheck, Txt_ImmersiveCheck, Txt_CheckShinyPackOnly, Txt_InvalidCheck
-    global Txt_s4tEnabled, Txt_s4tSilent
-    global Txt_s4t3Dmnd, Txt_s4t4Dmnd, Txt_s4t1Star, s4tGholdengoArrow, Txt_s4tWP, Txt_s4tSendAccountXml
-    global Txt_sendAccountXml, Txt_heartBeat
-    global Txt_showcaseEnabled
-    global checkedPath, uncheckedPath
-    checkedPath := A_ScriptDir . "\GUI\Gui_checked.png"
-    uncheckedPath := A_ScriptDir . "\GUI\Gui_unchecked.png"
-    ;; Friend ID Section
-    SetInputFont()
-    Gui, Add, Text, x45 y150 vFriendIDLabel backgroundtrans Hidden, % currentDictionary.FriendIDLabel
-    if(FriendID = "ERROR" || FriendID = "") {
-        Gui, Add, Edit, vFriendID w275 x45 y175 h20 -E0x200 Center backgroundtrans Hidden
-    } else {
-        Gui, Add, Edit, vFriendID w275 x45 y175 h20 -E0x200 Center backgroundtrans Hidden, %FriendID%
-    }
-    
-    ; Add divider for Friend ID section
-    AddSectionDivider(45, 200, 285, "FriendID_Divider")
-    
-    ;; Instance Settings Section
-    SetNormalFont()
-    Gui, Add, Text, x45 y205 backgroundtrans Hidden vTxt_Instances, % currentDictionary.Txt_Instances
-    Gui, Add, Edit, vInstances cFDFDFD w40 x220 y205 h20 -E0x200 Center backgroundtrans Hidden, %Instances%
-    
-    Gui, Add, Text, x45 y230 backgroundtrans Hidden vTxt_InstanceStartDelay, % currentDictionary.Txt_InstanceStartDelay
-    Gui, Add, Edit, vinstanceStartDelay cFDFDFD w40 x220 y230 h20 -E0x200 Center backgroundtrans Hidden, %instanceStartDelay%
-    
-    Gui, Add, Text, x45 y255 backgroundtrans Hidden vTxt_Columns, % currentDictionary.Txt_Columns
-    Gui, Add, Edit, vColumns cFDFDFD w40 x220 y255 h20 -E0x200 Center backgroundtrans Hidden, %Columns%
-    
-    AddCheckBox(45, 282, 28, 13, "runMain", "mainSettings", checkedPath, uncheckedPath, runMain, "Txt_runMain", currentDictionary.Txt_runMain, 80, 280)
-    Gui, Add, Edit, % "vMains cFDFDFD w40 x220 y280 h20 -E0x200 Center Hidden " . (runMain ? "" : " backgroundtrans Hidden"), %Mains%
-    
-    Gui, Add, Text, x45 y330 backgroundtrans Hidden vTxt_AccountName, % currentDictionary.Txt_AccountName
-    Gui, Add, Edit, vAccountName cFDFDFD w100 x220 y330 h20 -E0x200 Center backgroundtrans Hidden, %AccountName%
-    
-    AddCheckBox(45, 306, 28, 13, "autoUseGPTest", "autoUseGPTestSettings", checkedPath, uncheckedPath, autoUseGPTest, "Txt_autoUseGPTest", currentDictionary.Txt_autoUseGPTest, 80, 305)
-    Gui, Add, Edit, % "vTestTime cFDFDFD w40 x220 y305 h20 -E0x200 Center Hidden " . (autoUseGPTest ? "" : " backgroundtrans Hidden"), %TestTime%
-    
-    ; Add dividers for Instance Settings section
-    AddSectionDivider(45, 355, 285, "Instance_Divider3")
-    ;; Time Settings Section
-    SetNormalFont()
-    Gui, Add, Text, x45 y360 backgroundtrans Hidden vTxt_Delay, % currentDictionary.Txt_Delay
-    Gui, Add, Edit, vDelay cFDFDFD w40 x220 y360 h20 -E0x200 Center backgroundtrans Hidden, %Delay%
-    
-    Gui, Add, Text, x45 y385 backgroundtrans Hidden vTxt_WaitTime, % currentDictionary.Txt_WaitTime
-    Gui, Add, Edit, vwaitTime cFDFDFD w40 x220 y385 h20 -E0x200 Center backgroundtrans Hidden, %waitTime%
-    
-    Gui, Add, Text, x45 y410 backgroundtrans Hidden vTxt_SwipeSpeed, % currentDictionary.Txt_SwipeSpeed
-    Gui, Add, Edit, vswipeSpeed cFDFDFD w40 x220 y410 h20 -E0x200 Center backgroundtrans Hidden, %swipeSpeed%
-    
-    AddCheckBox(45, 436, 28, 13, "slowMotion", "", checkedPath, uncheckedPath, slowMotion, "Txt_slowMotion", currentDictionary.Txt_slowMotion, 80, 435)
-    
-    ;; System Settings Section
-    SetNormalFont()
-    SysGet, MonitorCount, MonitorCount
-    MonitorOptions := ""
-    Loop, %MonitorCount% {
-        SysGet, MonitorName, MonitorName, %A_Index%
-        SysGet, Monitor, Monitor, %A_Index%
-        MonitorOptions .= (A_Index > 1 ? "|" : "") "" A_Index ": (" MonitorRight - MonitorLeft "x" MonitorBottom - MonitorTop ")"
-    }
-    SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
-    
-    Gui, Add, Text, x45 y150 backgroundtrans Hidden vTxt_Monitor, % currentDictionary.Txt_Monitor
-    Gui, Add, DropDownList, x190 y148 w110 vSelectedMonitorIndex Choose%SelectedMonitorIndex% -E0x200 Center BackgroundTrans Hidden, %MonitorOptions%
-    
-    Gui, Add, Text, x45 y175 backgroundtrans Hidden vTxt_Scale, % currentDictionary.Txt_Scale
-    if (defaultLanguage = "Scale125") {
-        defaultLang := 1
-        scaleParam := 277
-    } else if (defaultLanguage = "Scale100") {
-        defaultLang := 2
-        scaleParam := 287
-    }
-    
-    Gui, Add, DropDownList, x190 y173 w80 vdefaultLanguage gdefaultLangSetting choose%defaultLang% -E0x200 Center backgroundtrans Hidden, Scale125
-    
-    Gui, Add, Text, x45 y200 backgroundtrans Hidden vTxt_RowGap, % currentDictionary.Txt_RowGap
-    Gui, Add, Edit, vRowGap cFDFDFD w80 x190 y198 h20 -E0x200 Center backgroundtrans Hidden, %RowGap%
-    Gui, Add, Text, x45 y225 backgroundtrans Hidden vTxt_FolderPath, % currentDictionary.Txt_FolderPath
-    Gui, Add, Edit, vfolderPath cFDFDFD w140 x190 y223 h20 -E0x200 Center backgroundtrans Hidden, %folderPath%
-    Gui, Add, Text, x45 y250 backgroundtrans Hidden vTxt_OcrLanguage, % currentDictionary.Txt_OcrLanguage
-    ; ========== Language Pack list ==========
-    ocrLanguageList := "en|zh|es|de|fr|ja|ru|pt|ko|it|tr|pl|nl|sv|ar|uk|id|vi|th|he|cs|no|da|fi|hu|el|zh-TW"
-    if (ocrLanguage != "")
-    {
-        index := 0
-        Loop, Parse, ocrLanguageList, |
-        {
-            index++
-            if (A_LoopField = ocrLanguage)
-            {
-                defaultOcrLang := index
-                break
-            }
-        }
-    }
-    
-    Gui, Add, DropDownList, x190 y248 w60 vocrLanguage choose%defaultOcrLang% -E0x200 Center backgroundtrans Hidden, %ocrLanguageList%
-    
-    Gui, Add, Text, x45 y275 backgroundtrans Hidden vTxt_ClientLanguage, % currentDictionary.Txt_ClientLanguage
-    
-    ; ========== Client Language Pack list ==========
-    clientLanguageList := "en|es|fr|de|it|pt|jp|ko|cn"
-    
-    if (clientLanguage != "")
-    {
-        index := 0
-        Loop, Parse, clientLanguageList, |
-        {
-            index++
-            if (A_LoopField = clientLanguage)
-            {
-                defaultClientLang := index
-                break
-            }
-        }
-    }
-    Gui, Add, DropDownList, x190 y273 w60 vclientLanguage choose%defaultClientLang% -E0x200 Center backgroundtrans Hidden, %clientLanguageList%
-    
-    Gui, Add, Text, x45 y300 backgroundtrans Hidden vTxt_InstanceLaunchDelay, % currentDictionary.Txt_InstanceLaunchDelay
-    Gui, Add, Edit, vinstanceLaunchDelay cFDFDFD w40 x190 y300 h20 -E0x200 Center backgroundtrans Hidden, %instanceLaunchDelay%
-    
-    AddCheckBox(45, 326, 28, 13, "autoLaunchMonitor", "", checkedPath, uncheckedPath, autoLaunchMonitor, "Txt_autoLaunchMonitor", currentDictionary.Txt_autoLaunchMonitor, 80, 325)
-    
-    SetHeaderFont()
-    Gui, Add, Text, x45 y350 backgroundtrans Hidden vExtraSettingsHeading, % currentDictionary.ExtraSettingsHeading
-    SetNormalFont()
-    
-    ; First add Role-Based Filters
-    AddCheckBox(45, 376, 28, 13, "applyRoleFilters", "", checkedPath, uncheckedPath, applyRoleFilters, "Txt_applyRoleFilters", currentDictionary.Txt_applyRoleFilters, 80, 375)
-    
-    ; Then add Debug Mode
-    AddCheckBox(45, 401, 28, 13, "debugMode", "", checkedPath, uncheckedPath, debugMode, "Txt_debugMode", currentDictionary.Txt_debugMode, 80, 400)
-    
-    ; Then add the Use Tesseract checkbox
-    AddCheckBox(45, 426, 28, 13, "tesseractOption", "TesseractOptionSettings", checkedPath, uncheckedPath, tesseractOption, "Txt_tesseractOption", currentDictionary.Txt_tesseractOption, 80, 425)
-    
-    ; Then add status messages
-    AddCheckBox(45, 451, 28, 13, "statusMessage", "", checkedPath, uncheckedPath, statusMessage, "Txt_statusMessage", currentDictionary.Txt_statusMessage, 80, 450)
-    
-    ; Keep Tesseract Path at the end
-    Gui, Add, Text, x45 y475 backgroundtrans Hidden vTxt_TesseractPath, % currentDictionary.Txt_TesseractPath
-    Gui, Add, Edit, vtesseractPath cFDFDFD w280 x45 y500 h20 -E0x200 backgroundtrans Hidden, %tesseractPath%
-    
-    ;; Pack Settings Section
-    PackControlsShift(defaultBotLanguage)
-    SetNormalFont()
-    tempX := 110+xs_Min2star
-    Gui, Add, Text, x45 y150 backgroundtrans Hidden vTxt_MinStars, % currentDictionary.Txt_MinStars
-    Gui, Add, Edit, vminStars cFDFDFD w40 x%tempX% y149 h20 -E0x200 Center backgroundtrans Hidden, %minStars%
-    
-    tempX := 170+xs_MinShing
-    Gui, Add, Text, x%tempX% y150 backgroundtrans Hidden vTxt_ShinyMinStars, % currentDictionary.Txt_ShinyMinStars
-    Gui, Add, Edit, vminStarsShiny cFDFDFD w40 x290 y149 h20 -E0x200 Center backgroundtrans Hidden, %minStarsShiny%
-    
-    Gui, Add, Text, x45 y175 backgroundtrans Hidden vTxt_DeleteMethod, % currentDictionary.Txt_DeleteMethod
-    
-    Gui, Add, DropDownList, x110 y173 w120 vdeleteMethod gdeleteSettings choose%defaultDelete% -E0x200 backgroundtrans Hidden, 13 Pack|Inject|Inject Missions|Inject for Reroll
-    
-    ; FIXED: Determine correct selection index based on loaded deleteMethod value
-    defaultDelete := 1 ; Default to first option (13 Pack)
-    if (deleteMethod = "13 Pack")
-        defaultDelete := 1
-    else if (deleteMethod = "Inject")
-        defaultDelete := 2
-    else if (deleteMethod = "Inject Missions")
-        defaultDelete := 3
-    else if (deleteMethod = "Inject for Reroll")
-        defaultDelete := 4
-    
-    ; Apply the correct selection
-    GuiControl, Choose, deleteMethod, %defaultDelete%
-    
-    AddCheckBox(45, 201, 28, 13, "packMethod", "", checkedPath, uncheckedPath, packMethod, "Txt_packMethod", currentDictionary.Txt_packMethod, 80, 200)
-    AddCheckBox(185, 201, 28, 13, "nukeAccount", "", checkedPath, uncheckedPath, nukeAccount, "Txt_nukeAccount", currentDictionary.Txt_nukeAccount, 220, 200)
-    AddCheckBox(45, 226, 28, 13, "spendHourGlass", "spendHourGlassSettings", checkedPath, uncheckedPath, spendHourGlass, "Txt_spendHourGlass", currentDictionary.Txt_spendHourGlass, 80, 225)
-    AddCheckBox(200, 226, 28, 13, "openExtraPack", "openExtraPackSettings", checkedPath, uncheckedPath, openExtraPack, "Txt_openExtraPack", currentDictionary.Txt_openExtraPack, 235, 225)
-    ;AddCheckBox((185+xs_SpecialCheck), 226, 28, 13, "claimSpecialMissions", "", checkedPath, uncheckedPath, claimSpecialMissions, "Txt_claimSpecialMissions", currentDictionary.Txt_claimSpecialMissions, (220+xs_SpecialCheck), 225)
-    
-    ; Create Sort By label and dropdown
-    SetNormalFont()
-    
-    ; Determine which option to pre-select
-    sortOption := 1 ; Default (ModifiedAsc)
-    if (injectSortMethod = "ModifiedDesc")
-        sortOption := 2
-    else if (injectSortMethod = "PacksAsc")
-        sortOption := 3
-    else if (injectSortMethod = "PacksDesc")
-        sortOption := 4
-    
-    ; Create the controls with static positions but unique variable names
-    tempX := 110+xs_Sort
-    Gui, Add, Text, x45 y250 vSortByText BackgroundTrans Hidden, % currentDictionary.SortByText
-    Gui, Add, DropDownList, x%tempX% y248 w120 vSortByDropdown gSortByDropdownHandler Choose%sortOption% BackgroundTrans Hidden, Oldest First|Newest First|Fewest Packs First|Most Packs First
-    
-    ; Add divider for God Pack Settings section
-    AddSectionDivider(45, 275, 285, "Pack_Divider1")
-    
-    ; === Pack Selection Subsection ===
-    SetNormalFont()
-    ; Latest 4 Packs
-    AddCheckBox(45, 301, 28, 13, "Buzzwole", "", checkedPath, uncheckedPath, Buzzwole, "Txt_Buzzwole", currentDictionary.Txt_Buzzwole, 80, 300)
-    AddCheckBox(190, 301, 28, 13, "Solgaleo", "", checkedPath, uncheckedPath, Solgaleo, "Txt_Solgaleo", currentDictionary.Txt_Solgaleo, 225, 300)
-    AddCheckBox(45, 326, 28, 13, "Lunala", "", checkedPath, uncheckedPath, Lunala, "Txt_Lunala", currentDictionary.Txt_Lunala, 80, 325)
-    AddCheckBox(190, 326, 28, 13, "Shining", "", checkedPath, uncheckedPath, Shining, "Txt_Shining", currentDictionary.Txt_Shining, 225, 325)
-    ; Page for all pack settings
-    global AllPackSelection, Btn_returnPack, Txt_Btn_returnPack
-    global Page_Buzzwole, Page_Solgaleo, Page_Lunala, Page_Shining
-    global Txt_PageBuzzwole,Txt_PageSolgaleo, Txt_PageLunala, Txt_PageShining, Txt_PageArceus
-    SetSmallBtnFont()
-    TestHover := AddBtn("Text", 235, 360, "", "", "AllPackSelection", "GoPackSelect", currentDictionary.AllPack, "", "", "", "")
-    
-    SetSectionFont()
-    Gui, Add, Text, x45 y150 vTxt_PackHeading BackgroundTrans Hidden, % currentDictionary.PackHeading
-    
-    SetNormalFont()
-    Yline := 185
-    Xline := 55
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Page_Buzzwole", "PackCheck", checkedPath, uncheckedPath, Buzzwole, "Txt_PageBuzzwole", currentDictionary.Txt_Buzzwole, (Xline+35), Yline)
-    Xline += 155
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Page_Solgaleo", "PackCheck", checkedPath, uncheckedPath, Solgaleo, "Txt_PageSolgaleo", currentDictionary.Txt_Solgaleo, (Xline+35), Yline)
-    Xline -= 155
-    Yline += 25
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Page_Lunala", "PackCheck", checkedPath, uncheckedPath, Lunala, "Txt_PageLunala", currentDictionary.Txt_Lunala, (Xline+35), Yline)
-    Xline += 155
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Page_Shining", "PackCheck", checkedPath, uncheckedPath, Shining, "Txt_PageShining", currentDictionary.Txt_Shining, (Xline+35), Yline)
-    Xline -= 155
-    Yline += 25
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Arceus", "", checkedPath, uncheckedPath, Arceus, "Txt_Arceus", currentDictionary.Txt_Arceus, (Xline+35), Yline)
-    Xline += 155
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Palkia", "", checkedPath, uncheckedPath, Palkia, "Txt_Palkia", currentDictionary.Txt_Palkia, (Xline+35), Yline)
-    Xline -= 155
-    Yline += 25
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Dialga", "", checkedPath, uncheckedPath, Dialga, "Txt_Dialga", currentDictionary.Txt_Dialga, (Xline+35), Yline)
-    Xline += 155
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Pikachu", "", checkedPath, uncheckedPath, Pikachu, "Txt_Pikachu", currentDictionary.Txt_Pikachu, (Xline+35), Yline)
-    Xline -= 155
-    Yline += 25
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Charizard", "", checkedPath, uncheckedPath, Charizard, "Txt_Charizard", currentDictionary.Txt_Charizard, (Xline+35), Yline)
-    Xline += 155
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Mewtwo", "", checkedPath, uncheckedPath, Mewtwo, "Txt_Mewtwo", currentDictionary.Txt_Mewtwo, (Xline+35), Yline)
-    Xline -= 155
-    Yline += 25
-    AddCheckBox(Xline, (Yline+1), 28, 13, "Mew", "", checkedPath, uncheckedPath, Mew, "Txt_Mew", currentDictionary.Txt_Mew, (Xline+35), Yline)
-    
-    SetPageBtnFont()
-    ReturnPackBtn := AddBtn("Picture", 85, 590, 204, 68, "Btn_returnPack", "ReturnPackSettingsSection", currentDictionary.btn_return, btn_inset, "Txt_Btn_returnPack", (137+xs_Return), (604+ys_Return))
-    
-    ; Add divider for Pack Selection section
-    AddSectionDivider(45, 380, 285, "Pack_Divider2")
-    ; === Card Detection Subsection ===
-    SetNormalFont()
-    ; 2-Column Layout for Card Detection Subsection
-    AddCheckBox(45, 386, 28, 13, "FullArtCheck", "", checkedPath, uncheckedPath, FullArtCheck, "Txt_FullArtCheck", currentDictionary.Txt_FullArtCheck, 80, 385)
-    AddCheckBox(45, 411, 28, 13, "TrainerCheck", "", checkedPath, uncheckedPath, TrainerCheck, "Txt_TrainerCheck", currentDictionary.Txt_TrainerCheck, 80, 410)
-    AddCheckBox(45, 436, 28, 13, "RainbowCheck", "", checkedPath, uncheckedPath, RainbowCheck, "Txt_RainbowCheck", currentDictionary.Txt_RainbowCheck, 80, 435)
-    AddCheckBox(45, 461, 28, 13, "PseudoGodPack", "", checkedPath, uncheckedPath, PseudoGodPack, "Txt_PseudoGodPack", currentDictionary.Txt_PseudoGodPack, 80, 460)
-    AddCheckBox(45, 486, 28, 13, "CheckShinyPackOnly", "", checkedPath, uncheckedPath, CheckShinyPackOnly, "Txt_CheckShinyPackOnly", currentDictionary.Txt_CheckShinyPackOnly, 80, 485)
-    
-    AddCheckBox((190+xs_SaveCrown), 386, 28, 13, "CrownCheck", "", checkedPath, uncheckedPath, CrownCheck, "Txt_CrownCheck", currentDictionary.Txt_CrownCheck, (225+xs_SaveCrown), 385)
-    AddCheckBox((190+xs_SaveShing), 411, 28, 13, "ShinyCheck", "", checkedPath, uncheckedPath, ShinyCheck, "Txt_ShinyCheck", currentDictionary.Txt_ShinyCheck, (225+xs_SaveShing), 410)
-    AddCheckBox((190+xs_SaveImmer), 436, 28, 13, "ImmersiveCheck", "", checkedPath, uncheckedPath, ImmersiveCheck, "Txt_ImmersiveCheck", currentDictionary.Txt_ImmersiveCheck, (225+xs_SaveImmer), 435)
-    AddCheckBox((190+xs_invalid), 461, 28, 13, "InvalidCheck", "", checkedPath, uncheckedPath, InvalidCheck, "Txt_InvalidCheck", currentDictionary.Txt_InvalidCheck, (225+xs_invalid), 460)
-    
-    ; Add divider for Card Detection section
-    AddSectionDivider(45, 510, 285, "Pack_Divider3")
-    
-    ;; Save For Trade Section
-    SetNormalFont()
-    AddCheckBox(45, 151, 28, 13, "s4tEnabled", "s4tSettings", checkedPath, uncheckedPath, s4tEnabled, "Txt_s4tEnabled", currentDictionary.Txt_s4tEnabled, 80, 150)
-    
-    AddCheckBox(45, 181, 28, 13, "s4tSilent", "", checkedPath, uncheckedPath, s4tSilent, "Txt_s4tSilent", currentDictionary.Txt_s4tSilent, 80, 180)
-    
-    AddCheckBox(45, 206, 28, 13, "s4t3Dmnd", "", checkedPath, uncheckedPath, s4t3Dmnd, "Txt_s4t3Dmnd", "3 ◆◆◆", 80, 205)
-    AddCheckBox(45, 231, 28, 13, "s4t4Dmnd", "", checkedPath, uncheckedPath, s4t4Dmnd, "Txt_s4t4Dmnd", "4 ◆◆◆◆", 80, 230)
-    AddCheckBox(45, 256, 28, 13, "s4t1Star", "", checkedPath, uncheckedPath, s4t1Star, "Txt_s4t1Star", "1 ★", 80, 255)
-    
-    AddSectionDivider(45, 280, 285, "SaveForTradeDivider_1")
-    
-    AddCheckBox(185, 206, 28, 13, "s4tGholdengo", "", checkedPath, uncheckedPath, s4tGholdengo, "s4tGholdengoArrow", "➤", 220, 205)
-    Gui, Add, Picture, % ((!s4tEnabled || !Shining) ? "backgroundtrans backgroundtrans Hidden " : "") . "vs4tGholdengoEmblem w25 h25 x240 y201 backgroundtrans Hidden", % A_ScriptDir . "\Scripts\GuiImage\other\GholdengoEmblem.png"
-    
-    AddCheckBox(45, 286, 28, 13, "s4tWP", "s4tWPSettings", checkedPath, uncheckedPath, s4tWP, "Txt_s4tWP", currentDictionary.Txt_s4tWP, 80, 285)
-    
-    Gui, Add, Text, % "vs4tWPMinCardsLabel x45 y310 backgroundtrans Hidden " . (!s4tEnabled || !s4tWP ? "backgroundtrans Hidden " : ""), % currentDictionary.Txt_s4tWPMinCards
-    Gui, Add, Edit, % "vs4tWPMinCards cFDFDFD w40 x165 y310 h20 -E0x200 Center backgroundtrans Hidden gs4tWPMinCardsCheck " . (!s4tEnabled || !s4tWP ? "Center backgroundtrans Hidden" : ""), %s4tWPMinCards%    
-    
-    AddSectionDivider(45, 335, 285, "SaveForTradeDivider_2")
-    ; === S4T Discord Settings (now part of Save For Trade) ===
-    SetHeaderFont()
-    Gui, Add, Text, x45 y340 backgroundtrans Hidden vS4TDiscordSettingsSubHeading, % currentDictionary.S4TDiscordSettingsSubHeading
-    
-    SetNormalFont()
-    if(StrLen(s4tDiscordUserId) < 3)
-        s4tDiscordUserId =
-    if(StrLen(s4tDiscordWebhookURL) < 3)
-        s4tDiscordWebhookURL =
-    
-    Gui, Add, Text, x45 y365 backgroundtrans Hidden vTxt_S4T_DiscordID, Discord ID:
-    Gui, Add, Edit, vs4tDiscordUserId w220 x45 y390 h20 -E0x200 Center backgroundtrans Hidden, %s4tDiscordUserId%
-    Gui, Add, Text, x45 y415 backgroundtrans Hidden vTxt_S4T_DiscordWebhook, Webhook URL:
-    Gui, Add, Edit, vs4tDiscordWebhookURL w220 x45 y440 h20 -E0x200 Center backgroundtrans Hidden, %s4tDiscordWebhookURL%
-    AddCheckBox(45, 466, 28, 13, "s4tSendAccountXml", "", checkedPath, uncheckedPath, s4tSendAccountXml, "Txt_s4tSendAccountXml", currentDictionary.Txt_s4tSendAccountXml, 80, 465)
-    
-    ;; Discord Settings Section
-    SetSectionFont()
-    ; Add main heading for Discord Settings section
-    Gui, Add, Text, x45 y150 backgroundtrans Hidden vDiscordSettingsHeading, % currentDictionary.DiscordSettingsHeading
-    
-    SetNormalFont()
-    if(StrLen(discordUserID) < 3)
-        discordUserID =
-    if(StrLen(discordWebhookURL) < 3)
-        discordWebhookURL =
-    
-    Gui, Add, Text, x45 y175 backgroundtrans Hidden vTxt_DiscordID, Discord ID:
-    if(discordUserId = "" || discordUserId = "ERROR")
-        Gui, Add, Edit, vdiscordUserId cFDFDFD w280 x45 y200 h20 -E0x200 Center backgroundtrans Hidden,
-    else
-        Gui, Add, Edit, vdiscordUserId cFDFDFD w280 x45 y200 h20 -E0x200 Center backgroundtrans Hidden, %discordUserId%
-    
-    Gui, Add, Text, x45 y225 backgroundtrans Hidden vTxt_DiscordWebhook, Webhook URL:
-    if(discordWebhookURL = "" || discordWebhookURL = "ERROR")
-        Gui, Add, Edit, vdiscordWebhookURL cFDFDFD w280 x45 y250 h20 -E0x200 Center backgroundtrans Hidden,
-    else
-        Gui, Add, Edit, vdiscordWebhookURL cFDFDFD w280 x45 y250 h20 -E0x200 Center backgroundtrans Hidden, %discordWebhookURL%
-    
-    AddCheckBox(45, 276, 28, 13, "sendAccountXml", "", checkedPath, uncheckedPath, sendAccountXml, "Txt_sendAccountXml", currentDictionary.Txt_sendAccountXml, 80, 275)
-    
-    ; Add divider after heading
-    AddSectionDivider(45, 300, 285, "Discord_Divider3")
-    ; === Heartbeat Settings (now part of Discord) ===
-    SetHeaderFont()
-    Gui, Add, Text, x45 y305 backgroundtrans Hidden vHeartbeatSettingsSubHeading, % currentDictionary.HeartbeatSettingsSubHeading
-    
-    SetNormalFont()
-    AddCheckBox(45, 331, 28, 13, "heartBeat", "discordSettings", checkedPath, uncheckedPath, heartBeat, "Txt_heartBeat", currentDictionary.Txt_heartBeat, 80, 330)
-    
-    if(StrLen(heartBeatName) < 3)
-        heartBeatName =
-    if(StrLen(heartBeatWebhookURL) < 3)
-        heartBeatWebhookURL =
-    
-    Gui, Add, Text, vhbName x45 y355 backgroundtrans Hidden, % currentDictionary.hbName
-    Gui, Add, Edit, vheartBeatName cFDFDFD w280 x45 y380 h20 -E0x200 Center backgroundtrans Hidden, %heartBeatName%
-    Gui, Add, Text, vhbURL x45 y405 backgroundtrans Hidden, Webhook URL:
-    Gui, Add, Edit, vheartBeatWebhookURL cFDFDFD w280 x45 y430 h20 -E0x200 Center backgroundtrans Hidden, %heartBeatWebhookURL%
-    Gui, Add, Text, vhbDelay x45 y455 backgroundtrans Hidden, % currentDictionary.hbDelay
-    Gui, Add, Edit, vheartBeatDelay cFDFDFD w40 x220 y454 h20 -E0x200 Center backgroundtrans Hidden, %heartBeatDelay%
-    
-    ;; Download Settings Section
-    SetNormalFont()
-    if(StrLen(mainIdsURL) < 3)
-        mainIdsURL =
-    if(StrLen(vipIdsURL) < 3)
-        vipIdsURL =
-    
-    Gui, Add, Text, x45 y150 backgroundtrans Hidden vTxt_MainIdsURL, ids.txt API:
-    Gui, Add, Edit, vmainIdsURL cFDFDFD w280 x45 y175 h20 -E0x200 Center backgroundtrans Hidden, %mainIdsURL%
-    
-    Gui, Add, Text, x45 y200 backgroundtrans Hidden vTxt_VipIdsURL, vip_ids.txt API:
-    Gui, Add, Edit, vvipIdsURL cFDFDFD w280 x45 y225 h20 -E0x200 Center backgroundtrans Hidden, %vipIdsURL%
-    
-    ; Add Showcase options to Download Settings Section
-    AddCheckBox(45, 251, 28, 13, "showcaseEnabled", "showcaseSettings", checkedPath, uncheckedPath, showcaseEnabled, "Txt_showcaseEnabled", currentDictionary.Txt_showcaseEnabled, 80, 250)
-    
-    ;Gui, Add, Text, x45 y275 backgroundtrans Hidden vTxt_ShowcaseURL, Showcase.txt API:
-    ;Gui, Add, Edit, vshowcaseURL w280 x45 y300 h20 -E0x200 Center backgroundtrans Hidden, %showcaseURL%
-    
-    HoverSystem := new ToggleImageOnHover()
-    
-    HoverSystem.RegisterTextControl(ArrangeHover.textHwnd, ArrangeBtn.hwnd)
-    HoverSystem.RegisterTextControl(CoffeeHover.textHwnd, CoffeeBtn.hwnd)
-    HoverSystem.RegisterTextControl(JoinHover.textHwnd, JoinBtn.hwnd)
-    HoverSystem.RegisterTextControl(MumuHover.textHwnd, MumuBtn.hwnd)
-    HoverSystem.RegisterTextControl(BalanceXMLsHover.textHwnd, BalanceXMLsBtn.hwnd)
-    HoverSystem.RegisterTextControl(StartHover.textHwnd, StartBtn.hwnd)
-    HoverSystem.RegisterTextControl(UpdateHover.textHwnd, UpdateBtn.hwnd)
-    
-    HoverSystem.RegisterTextControl(RerollSettingsHover.textHwnd, RerollSettingsBtn.hwnd)
-    HoverSystem.RegisterTextControl(SystemSettingsHover.textHwnd, SystemSettingsBtn.hwnd)
-    HoverSystem.RegisterTextControl(PackSettingsHover.textHwnd, PackSettingsBtn.hwnd)
-    HoverSystem.RegisterTextControl(SaveForTradeHover.textHwnd, SaveForTradeBtn.hwnd)
-    HoverSystem.RegisterTextControl(DiscordSettingsHover.textHwnd, DiscordSettingsBtn.hwnd)
-    HoverSystem.RegisterTextControl(DownloadSettingsHover.textHwnd, DownloadSettingsBtn.hwnd)
-    
-    HoverSystem.CreateImagePair(ArrangeBtn.hwnd, ArrangeHover.hwnd)
-    HoverSystem.CreateImagePair(CoffeeBtn.hwnd, CoffeeHover.hwnd)
-    HoverSystem.CreateImagePair(JoinBtn.hwnd, JoinHover.hwnd)
-    HoverSystem.CreateImagePair(MumuBtn.hwnd, MumuHover.hwnd)
-    HoverSystem.CreateImagePair(BalanceXMLsBtn.hwnd, BalanceXMLsHover.hwnd)
-    HoverSystem.CreateImagePair(StartBtn.hwnd, StartHover.hwnd)
-    HoverSystem.CreateImagePair(UpdateBtn.hwnd, UpdateHover.hwnd)
-    
-    HoverSystem.CreateImagePair(RerollSettingsBtn.hwnd, RerollSettingsHover.hwnd)
-    HoverSystem.CreateImagePair(SystemSettingsBtn.hwnd, SystemSettingsHover.hwnd)
-    HoverSystem.CreateImagePair(PackSettingsBtn.hwnd, PackSettingsHover.hwnd)
-    HoverSystem.CreateImagePair(SaveForTradeBtn.hwnd, SaveForTradeHover.hwnd)
-    HoverSystem.CreateImagePair(DiscordSettingsBtn.hwnd, DiscordSettingsHover.hwnd)
-    HoverSystem.CreateImagePair(DownloadSettingsBtn.hwnd, DownloadSettingsHover.hwnd)
-    
-    HoverSystem.CreateImagePair(previousBtn.hwnd, previousHover.hwnd)
-    HoverSystem.CreateImagePair(nextBtn.hwnd, nextHover.hwnd)
-    ; Initialize GUI with no section selected
-    HideAllSections()
-    Gui, Show, w%GUI_WIDTH% h%GUI_HEIGHT%, PTCGPB Bot Setup [Non-Commercial 4.0 International License]
-    
-    ; Hide all sections on startup
-    CurrentVisibleSection := "MainPage"
-    fadeStartflag = False
-    ApplyTheme() ; Ensure everything is colored properly on startup
-    HideAllSections()
-    ShowInitail()
-    ToggleImageOnHover.CheckIfHover()
-; Update keyboard shortcuts for sections (updated to new structure)
-^1::HandleKeyboardShortcut(1) ; Reroll Settings
-^2::HandleKeyboardShortcut(2) ; System Settings
-^3::HandleKeyboardShortcut(3) ; Pack Settings
-^4::HandleKeyboardShortcut(4) ; Save For Trade
-^5::HandleKeyboardShortcut(5) ; Discord Settings
-^6::HandleKeyboardShortcut(6) ; Download Settings
-
-; Function key shortcuts with the requested mapping
-F1::HandleFunctionKeyShortcut(1) ; Launch All Mumu
-F2::HandleFunctionKeyShortcut(2) ; Arrange Windows
-F3::HandleFunctionKeyShortcut(3) ; Start Bot
-F4::ShowHelpMenu() ; Help Menu
-Return
-
-; NEW: Handle drop-down changes for sort method
-SortByDropdownHandler:
-    Gui, Submit, NoHide
-    GuiControlGet, selectedOption,, SortByDropdown
-    
-    ; Update injectSortMethod based on selected option
-    if (selectedOption = "Oldest First")
-        injectSortMethod := "ModifiedAsc"
-    else if (selectedOption = "Newest First")
-        injectSortMethod := "ModifiedDesc"
-    else if (selectedOption = "Fewest Packs First")
-        injectSortMethod := "PacksAsc"
-    else if (selectedOption = "Most Packs First")
-        injectSortMethod := "PacksDesc"
-    
-    ; Save the updated setting
-    IniWrite, %injectSortMethod%, Settings.ini, UserSettings, injectSortMethod
-    
-    ; Save all settings to ensure consistency
-    SaveAllSettings()
-return
-
-MainPage:
-    Showsettingpage()
-    CurrentVisibleSection := "SettingPage"
-return
-
-SettingPage:
-    Showmainpage()
-    CurrentVisibleSection := "MainPage"
-return
-
-GoBackPage:
-    Showsettingpage()
-    CurrentVisibleSection := "SettingPage"
-return
-
-Next:
-    if (CurrentVisibleSection = "RerollSettings") {
-        ShowSystemSettingsSection()
-    } else if (CurrentVisibleSection = "SystemSettings") {
-        ShowPackSettingsSection()
-    } else if (CurrentVisibleSection = "PackSettings") {
-        ShowSaveForTradeSection()
-    } else if (CurrentVisibleSection = "SaveForTrade") {
-        ShowDiscordSettingsSection()
-    } else if (CurrentVisibleSection = "DiscordSettings") {
-        ShowDownloadSettingsSection()
-    } else if (CurrentVisibleSection = "DownloadSettings") {
-        ShowRerollSettingsSection()
-    }
-    ToggleImageOnHover.ResetAllHoverStates()
-    ToggleImageOnHover.ForceRecheck()
-return
-
-Previous:
-    if (CurrentVisibleSection = "RerollSettings") {
-        ShowDownloadSettingsSection()
-    } else if (CurrentVisibleSection = "SystemSettings") {
-        ShowRerollSettingsSection()
-    } else if (CurrentVisibleSection = "PackSettings") {
-        ShowSystemSettingsSection()
-    } else if (CurrentVisibleSection = "SaveForTrade") {
-        ShowPackSettingsSection()
-    } else if (CurrentVisibleSection = "DiscordSettings") {
-        ShowSaveForTradeSection()
-    } else if (CurrentVisibleSection = "DownloadSettings") {
-        ShowDiscordSettingsSection()
-    }
-    ToggleImageOnHover.ResetAllHoverStates()
-    ToggleImageOnHover.ForceRecheck()
-return
-
-SwitchLanguage:
-    global IsLanguageSet
-    MsgBox, 4, Check Switch Language, % currentDictionary.languageNotice
-    IfMsgBox, No
-    {
-        return ; Return to GUI for user to modify settings
-    }
-    IsLanguageSet := 0
-    IniWrite, %IsLanguageSet%, Settings.ini, UserSettings, IsLanguageSet
-    IniWrite, 0, Settings.ini, UserSettings, shownLicense
-    Gosub, SaveReload
-return
-
-ToggleTheme:
-    ; Toggle the theme
-    global isDarkTheme
-    isDarkTheme := !isDarkTheme
-    
-    fadeStartflag := True
-    fadeStart()
-    Loop {
-        if FileExist(finishSignalFile)
+   Gui, Submit, NoHide
+   IniWrite, %BotLanguage%, Settings.ini, UserSettings, Botlanguage
+   IniRead, BotLanguage, Settings.ini, UserSettings, Botlanguage
+   IsLanguageSet := 1
+   langMap := { "English": 1, "中文": 2, "日本語": 3, "Deutsch": 4 }
+   defaultBotLanguage := langMap.HasKey(BotLanguage) ? langMap[BotLanguage] : 1
+   Gui, Destroy
+   ; Define Language Dictionary
+   global LicenseDictionary, ProxyDictionary, currentDictionary, SetUpDictionary, HelpDictionary
+   LicenseDictionary := CreateLicenseNoteLanguage(defaultBotLanguage)
+      ,ProxyDictionary := CreateProxyLanguage(defaultBotLanguage)
+      ,currentDictionary := CreateGUITextByLanguage(defaultBotLanguage, localVersion)
+      ,SetUpDictionary := CreateSetUpByLanguage(defaultBotLanguage)
+      ,HelpDictionary := CreateHelpByLanguage(defaultBotLanguage)
+   
+   ; ========== License/Proxy Notice ==========
+   RegRead, proxyEnabled, HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings, ProxyEnable
+   ; Check for debugMode and display license notification if not in debug mode
+   global saveSignalFile := A_ScriptDir "\Scripts\Include\save.signal"
+   if (!debugMode && !shownLicense && !FileExist(saveSignalFile)) {
+      MsgBox, 64, % LicenseDictionary.Title, % LicenseDictionary.Content
+      shownLicense := 1
+      if (proxyEnabled)
+         MsgBox, 64,, % ProxyDictionary.Notice
+   }
+   
+   ; ========== Handle save.signal ==========
+   if FileExist(saveSignalFile) {
+      ;KillADBProcesses()
+      FileDelete, %saveSignalFile%
+   } else {
+      ;KillADBProcesses()
+      CheckForUpdate()
+   }
+   
+   ; ========== Backup JSON Files ==========
+   scriptName := StrReplace(A_ScriptName, ".ahk")
+   winTitle := scriptName
+   showStatus := true
+   
+   ; Backup total.json
+   totalFile := A_ScriptDir . "\json\total.json"
+   backupFile := A_ScriptDir . "\json\total-backup.json"
+   if FileExist(totalFile) {
+      FileCopy, %totalFile%, %backupFile%, 1
+      if (ErrorLevel)
+         MsgBox, 0x40000,, Failed to create %backupFile%. Ensure permissions and paths are correct.
+      FileDelete, %totalFile%
+   }
+   
+   ; Backup Packs.json
+   packsFile := A_ScriptDir . "\json\Packs.json"
+   backupFile := A_ScriptDir . "\json\Packs-backup.json"
+   if FileExist(packsFile) {
+      FileCopy, %packsFile%, %backupFile%, 1
+      if (ErrorLevel)
+         MsgBox, 0x40000,, Failed to create %backupFile%. Ensure permissions and paths are correct.
+   }
+   InitializeJsonFile() ; Create or open the JSON file
+   ; ========== GUI Setup ==========
+   global MainGuiName
+   global checkedPath, uncheckedPath
+   checkedPath := A_ScriptDir . "\GUI\Gui_checked.png"
+   uncheckedPath := A_ScriptDir . "\GUI\Gui_unchecked.png"
+   Gui,+HWNDSGUI
+   if (CurrentTheme = "Dark") {
+      Gui, Color, e9f1f7, 7C8590
+   } else {
+      Gui, Color, e9f1f7, FFD1CD
+   }
+   Loop, 8 {
+      Gui, Add, Picture, % "x" (A_Index-1)*360 " y0 w360 h640 BackgroundTrans", %BackgroundImage%
+      Gui, Add, Picture, % "x" (A_Index-1)*360 + 20 " y90 w320 h480 BackgroundTrans", %PageImage%
+   }
+   OD_Colors.SetItemHeight("s10", currentfont)
+   ; ========== Page 1 ==========
+   xPos := 45
+   SetHeaderFont()
+   Gui, Add, Text, x%xPos% y110 backgroundtrans, % currentDictionary.btn_reroll
+   SetNormalFont()
+   ;; FriendID Section
+   Gui, Add, Text, x%xPos% y150 vFriendIDLabel backgroundtrans, % currentDictionary.FriendIDLabel
+   if(FriendID = "ERROR" || FriendID = "") {
+      Gui, Add, Edit, % "vFriendID w270 x" . xPos . " y175 h20 -E0x200 Center backgroundtrans" . (CurrentTheme = "Dark"? " cFDFDFD ": " cBC0000"),
+   } else {
+      Gui, Add, Edit, % "vFriendID w270 x" . xPos . " y175 h20 -E0x200 Center backgroundtrans" . (CurrentTheme = "Dark"? " cFDFDFD ": " cBC0000"), %FriendID%
+   }
+   
+   Gui, Add, Text, x%xPos% y200 w275 h1 +0x10 ; Creates a horizontal line
+   
+   ;; Instance Settings Section
+   Gui, Add, Text, x%xPos% y205 backgroundtrans vTxt_Instances, % currentDictionary.Txt_Instances
+   Gui, Add, Edit, % "vInstances w40 x" . xPos+185 . " y205 h20 -E0x200 Center backgroundtrans" . (CurrentTheme = "Dark"? " cFDFDFD ": " cBC0000"), %Instances%
+   
+   Gui, Add, Text, x%xPos% y230 backgroundtrans vTxt_InstanceStartDelay, % currentDictionary.Txt_InstanceStartDelay
+   Gui, Add, Edit, % "vinstanceStartDelay w40 x" . xPos+185 . " y230 h20 -E0x200 Center backgroundtrans" . (CurrentTheme = "Dark"? " cFDFDFD ": " cBC0000"), %instanceStartDelay%
+   
+   Gui, Add, Text, x%xPos% y255 backgroundtrans vTxt_Columns, % currentDictionary.Txt_Columns
+   Gui, Add, Edit, % "vColumns w40 x" . xPos+185 . " y255 h20 -E0x200 Center backgroundtrans" . (CurrentTheme = "Dark"? " cFDFDFD ": " cBC0000"), %Columns%
+   global Txt_runMain
+   CheckOptions := Object()
+      ,CheckOptions["x"] := xPos,CheckOptions["y"] := 282,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "runMain"
+      ,CheckOptions["gName"] := "runMainSettings"
+      ,CheckOptions["checkedImagePath"] := checkedPath,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := runMain
+      ,CheckOptions["vTextName"] := "Txt_runMain"
+      ,CheckOptions["text"] := currentDictionary.Txt_runMain
+      ,CheckOptions["textX"] := xPos+35,CheckOptions["textY"] := 280
+   AddCheckBox(CheckOptions)
+   Gui, Add, Edit, % "vMains w40 x" . xPos+185 . " y280 h20 -E0x200 Center backgroundtrans" . (runMain ? "" : " Hidden") . (CurrentTheme = "Dark"? " cFDFDFD ": " cBC0000"), %Mains%
+   global Txt_autoUseGPTest
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 306,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "autoUseGPTest"
+      ,CheckOptions["gName"] := "autoUseGPTestSettings"
+      ,CheckOptions["checkedImagePath"] := checkedPath,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := autoUseGPTest
+      ,CheckOptions["vTextName"] := "Txt_autoUseGPTest"
+      ,CheckOptions["text"] := currentDictionary.Txt_autoUseGPTest
+      ,CheckOptions["textX"] := xPos+35,CheckOptions["textY"] := 305
+   AddCheckBox(CheckOptions)
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vTestTime w40 x" . xPos+185 . " y305 h20 -E0x200 Center backgroundtrans" . (autoUseGPTest ? "" : " Hidden"), %TestTime%
+   Gui, Add, Text, x%xPos% y330 backgroundtrans vTxt_AccountName, % currentDictionary.Txt_AccountName
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vAccountName w85 x" . xPos+185 . " y330 h20 -E0x200 Center backgroundtrans", %AccountName%
+   
+   Gui, Add, Text, x%xPos% y355 w275 h1 +0x10 ; Creates a horizontal line
+   
+   ;; Time Settings Section
+   Gui, Add, Text, x%xPos% y360 backgroundtrans vTxt_Delay, % currentDictionary.Txt_Delay
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vDelay w40 x" . xPos+185 . " y360 h20 -E0x200 Center backgroundtrans", %Delay%
+   Gui, Add, Text, x%xPos% y385 backgroundtrans vTxt_WaitTime, % currentDictionary.Txt_WaitTime
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vwaitTime w40 x" . xPos+185 . " y385 h20 -E0x200 Center backgroundtrans", %waitTime%
+   
+   Gui, Add, Text, x%xPos% y410 backgroundtrans vTxt_SwipeSpeed, % currentDictionary.Txt_SwipeSpeed
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vswipeSpeed w40 x" . xPos+185 . " y410 h20 -E0x200 Center backgroundtrans", %swipeSpeed%
+   global Txt_slowMotion
+   CheckOptions := {}
+   CheckOptions["x"] := xPos ,CheckOptions["y"] := 436,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "slowMotion"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := slowMotion
+      ,CheckOptions["vTextName"] := "Txt_slowMotion"
+      ,CheckOptions["text"] := currentDictionary.Txt_slowMotion
+      ,CheckOptions["textX"] := xPos+35,CheckOptions["textY"] := 435
+   AddCheckBox(CheckOptions)
+   
+   ; ========== Page 2 ==========
+   xPos := 405
+   SetHeaderFont()
+   Gui, Add, Text, x%xPos% y110 backgroundtrans, % currentDictionary.btn_system
+   ;; System Settings Section
+   SetNormalFont()
+   SysGet, MonitorCount, MonitorCount
+   MonitorOptions := ""
+   Loop, %MonitorCount% {
+      SysGet, MonitorName, MonitorName, %A_Index%
+      SysGet, Monitor, Monitor, %A_Index%
+      MonitorOptions .= (A_Index > 1 ? "|" : "") "" A_Index ": (" MonitorRight - MonitorLeft "x" MonitorBottom - MonitorTop ")"
+   }
+   SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
+   Gui, Add, Text, x%xPos% y150 backgroundtrans vTxt_Monitor, % currentDictionary.Txt_Monitor
+   Gui, Add, DropDownList, % "x" . xPos+145 . " y146 w140 vSelectedMonitorIndex hwndMoitor +0x0210 Choose" . SelectedMonitorIndex . " -E0x200 Center BackgroundTrans", %MonitorOptions%
+   Gui, Add, Text, x%xPos% y200 backgroundtrans vTxt_Scale, % currentDictionary.Txt_Scale
+   if (defaultLanguage = "Scale125") {
+      defaultLang := 1
+      scaleParam := 277
+   } else if (defaultLanguage = "Scale100") {
+      defaultLang := 2
+      scaleParam := 287
+   }
+   
+   Gui, Add, DropDownList, % "x" . xPos+145 . " y197 w80 vdefaultLanguage hwndScale gdefaultLangSetting +0x0210 choose" . defaultLang . " -E0x200 Center backgroundtrans", Scale125
+   Gui, Add, Text, x%xPos% y225 backgroundtrans vTxt_RowGap, % currentDictionary.Txt_RowGap
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vRowGap w80 x" . xPos+145 . " y223 h20 -E0x200 Center backgroundtrans", %RowGap%
+   Gui, Add, Text, x%xPos% y175 backgroundtrans vTxt_FolderPath, % currentDictionary.Txt_FolderPath
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vfolderPath w140 x" . xPos+145 . " y173 h20 -E0x200 Center backgroundtrans", %folderPath%
+   Gui, Add, Text, x%xPos% y250 backgroundtrans vTxt_OcrLanguage, % currentDictionary.Txt_OcrLanguage
+   ; ========== Language Pack list ==========
+   ocrLanguageList := "en|zh|es|de|fr|ja|ru|pt|ko|it|tr|pl|nl|sv|ar|uk|id|vi|th|he|cs|no|da|fi|hu|el|zh-TW"
+   if (ocrLanguage != "")
+   {
+      index := 0
+      Loop, Parse, ocrLanguageList, |
+      {
+         index++
+         if (A_LoopField = ocrLanguage)
+         {
+            defaultOcrLang := index
             break
-        Sleep, 10
-    }
-    FileDelete, %finishSignalFile% ; delete signal
-    
-    ApplyTheme()
-    
-    ; Make sure current section is properly colored based on new structure
-    if (CurrentVisibleSection = "RerollSettings")
-        ShowRerollSettingsSection()
-    else if (CurrentVisibleSection = "SystemSettings")
-        ShowSystemSettingsSection()
-    else if (CurrentVisibleSection = "PackSettings")
-        ShowPackSettingsSection()
-    else if (CurrentVisibleSection = "PackSelection")
-        ShowPackSelectPage()
-    else if (CurrentVisibleSection = "SaveForTrade")
-        ShowSaveForTradeSection()
-    else if (CurrentVisibleSection = "DiscordSettings")
-        ShowDiscordSettingsSection()
-    else if (CurrentVisibleSection = "DownloadSettings")
-        ShowDownloadSettingsSection()
-    else if (CurrentVisibleSection = "SettingPage")
-        Showsettingpage()
-    else if (CurrentVisibleSection = "MainPage")
-        Showmainpage()
-    
-    ; Save the theme setting
-    IniWrite, %isDarkTheme%, Settings.ini, UserSettings, isDarkTheme
-    ; change image path to meet the theme
-    BuildImagePath(isDarkTheme, useBackgroundImage)
-    
-    FileAppend,, %A_ScriptDir%\Scripts\Include\go.signal
-    fadeStartflag := False
-Return
-
-ToggleBackground:
-    global useBackgroundImage
-    useBackgroundImage := !useBackgroundImage
-    
-    fadeStartflag := True
-    fadeStart()
-    Loop {
-        if FileExist(finishSignalFile)
+         }
+      }
+   }
+   
+   Gui, Add, DropDownList, % "x" . xPos+145 . " y247 w80 vocrLanguage hwndOCR +0x0210 choose" . defaultOcrLang . " -E0x200 Center backgroundtrans", %ocrLanguageList%
+   
+   Gui, Add, Text, x%xPos% y275 backgroundtrans vTxt_ClientLanguage, % currentDictionary.Txt_ClientLanguage
+   
+   ; ========== Client Language Pack list ==========
+   clientLanguageList := "en|es|fr|de|it|pt|jp|ko|cn"
+   
+   if (clientLanguage != "")
+   {
+      index := 0
+      Loop, Parse, clientLanguageList, |
+      {
+         index++
+         if (A_LoopField = clientLanguage)
+         {
+            defaultClientLang := index
             break
-        Sleep, 10
-    }
-    FileDelete, %finishSignalFile% ; delete signal
-    
-    SetSmallBtnText()
-    
-    ; Make sure current section is properly colored based on new structure
-    if (CurrentVisibleSection = "RerollSettings")
-        ShowRerollSettingsSection()
-    else if (CurrentVisibleSection = "SystemSettings")
-        ShowSystemSettingsSection()
-    else if (CurrentVisibleSection = "PackSettings")
-        ShowPackSettingsSection()
-    else if (CurrentVisibleSection = "PackSelection")
-        ShowPackSelectPage()
-    else if (CurrentVisibleSection = "SaveForTrade")
-        ShowSaveForTradeSection()
-    else if (CurrentVisibleSection = "DiscordSettings")
-        ShowDiscordSettingsSection()
-    else if (CurrentVisibleSection = "DownloadSettings")
-        ShowDownloadSettingsSection()
-    else if (CurrentVisibleSection = "SettingPage")
-        Showsettingpage()
-    else if (CurrentVisibleSection = "MainPage")
-        Showmainpage()
-    BuildImagePath(isDarkTheme, useBackgroundImage)
-    
-    FileAppend,, %A_ScriptDir%\Scripts\Include\go.signal
-    fadeStartflag := False
+         }
+      }
+   }
+   Gui, Add, DropDownList, % "x" . xPos+145 . " y273 w80 vclientLanguage hwndClient +0x0210 choose" . defaultClientLang . " -E0x200 Center backgroundtrans", %clientLanguageList%
+   
+   Gui, Add, Text, x%xPos% y300 backgroundtrans vTxt_InstanceLaunchDelay, % currentDictionary.Txt_InstanceLaunchDelay
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vinstanceLaunchDelay w80 x" . xPos+145 . " y300 h20 -E0x200 Center backgroundtrans", %instanceLaunchDelay%
+   global Txt_autoLaunchMonitor
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 326,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "autoLaunchMonitor"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := autoLaunchMonitor
+      ,CheckOptions["vTextName"] := "Txt_autoLaunchMonitor"
+      ,CheckOptions["text"] := currentDictionary.Txt_autoLaunchMonitor
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 325
+   AddCheckBox(CheckOptions)
+   Gui, Add, Text, x%xPos% y350 w275 h1 +0x10 ; Creates a horizontal line
+   SetSectionFont()
+   Gui, Add, Text, x%xPos% y355 backgroundtrans vExtraSettingsHeading, % currentDictionary.ExtraSettingsHeading
+   SetNormalFont()
+   ; ========= Extra Settings Section =========
+   global Txt_applyRoleFilters, Txt_debugMode, Txt_useTesseract, Txt_statusMessage
+   ; First add Role-Based Filters
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 381,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "applyRoleFilters"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := applyRoleFilters
+      ,CheckOptions["vTextName"] := "Txt_applyRoleFilters"
+      ,CheckOptions["text"] := currentDictionary.Txt_applyRoleFilters
+      ,CheckOptions["textX"] := xPos+35,CheckOptions["textY"] := 380
+   AddCheckBox(CheckOptions)
+   
+   ; Then add Debug Mode
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 406,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "debugMode"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := debugMode
+      ,CheckOptions["vTextName"] := "Txt_debugMode"
+      ,CheckOptions["text"] := currentDictionary.Txt_debugMode
+      ,CheckOptions["textX"] := xPos+35,CheckOptions["textY"] := 405
+   AddCheckBox(CheckOptions)
+   
+   ; Then add the Use Tesseract checkbox
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 431,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "useTesseract"
+      ,CheckOptions["gName"] := "useTesseractSettings"
+      ,CheckOptions["checkedImagePath"] := checkedPath,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := useTesseract
+      ,CheckOptions["vTextName"] := "Txt_useTesseract"
+      ,CheckOptions["text"] := currentDictionary.Txt_tesseractOption
+      ,CheckOptions["textX"] := xPos+35,CheckOptions["textY"] := 430
+   AddCheckBox(CheckOptions)
+   
+   ; Then add status messages
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 456,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "statusMessage"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := statusMessage
+      ,CheckOptions["vTextName"] := "Txt_statusMessage"
+      ,CheckOptions["text"] := currentDictionary.Txt_statusMessage
+      ,CheckOptions["textX"] := xPos+35,CheckOptions["textY"] := 455
+   AddCheckBox(CheckOptions)
+   
+   ; Keep Tesseract Path at the end
+   Gui, Add, Text, % "x" . xPos . " y480 backgroundtrans vTxt_TesseractPath" . (useTesseract ? "" : " Hidden"), % currentDictionary.Txt_TesseractPath
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vtesseractPath w280 x" . xPos . " y505 h20 -E0x200 backgroundtrans" . (useTesseract ? "" : " Hidden"), %tesseractPath%
+   
+   ;; Pack Settings Section
+   ; ========== Page 3 ==========
+   ; ========== Min Stars ==========
+   xPos := 765
+   SetHeaderFont()
+   Gui, Add, Text, x%xPos% y110 backgroundtrans, % currentDictionary.btn_pack
+   SetNormalFont()
+   Gui, Add, Text, x%xPos% y150 backgroundtrans vTxt_MinStars, % currentDictionary.Txt_MinStars
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vminStars w40 x" . xPos+120 . " y149 h20 -E0x200 Center backgroundtrans", %minStars%
+   
+   Gui, Add, Text, x%xPos% y175 backgroundtrans vTxt_ShinyMinStars, % currentDictionary.Txt_ShinyMinStars
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vminStarsShiny w40 x" . xPos+120 . " y174 h20 -E0x200 Center backgroundtrans", %minStarsShiny%
+   global Txt_minStarsEnabled
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 200, CheckOptions["w"] := 28, CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "minStarsEnabled"
+      ,CheckOptions["gName"] := "minStarsEnabledSettings"
+      ,CheckOptions["checkedImagePath"] := checkedPath, CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := minStarsEnabled
+      ,CheckOptions["vTextName"] := "Txt_minStarsEnabled"
+      ,CheckOptions["text"] := currentDictionary.Txt_minStarsEnabled
+      ,CheckOptions["textX"] := xPos+35, CheckOptions["textY"] := 199
+   AddCheckBox(CheckOptions)
+   Gui, Add, Text, % "x" . xPos . " y225 vTxt_minStarsA3a BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Buzzwole
+   defaultStars := MinStarCheck("minStarsA3a")
+   Gui, Add, DropDownList, % "x" . xPos+90 . " y225 w40 vminStarsA3a hwndMinA3a +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+   
+   Gui, Add, Text, % "x" . xPos+155 . " y225 vTxt_minStarsA3Solgaleo BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Solgaleo
+   defaultStars := MinStarCheck("minStarsA3Solgaleo")
+   Gui, Add, DropDownList, % "x" . xPos+245 . " y225 w40 vminStarsA3Solgaleo hwndMinA3S +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+   
+   Gui, Add, Text, % "x" . xPos . " y250 vTxt_minStarsA3Lunala BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Lunala
+   defaultStars := MinStarCheck("minStarsA3Lunala")
+   Gui, Add, DropDownList, % "x" . xPos+90 . " y250 w40 vminStarsA3Lunala hwndMinA3L +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+   
+   Gui, Add, Text, % "x" . xPos+155 . " y250 vTxt_minStarsA2b BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Shining
+   defaultStars := MinStarCheck("minStarsA2b")
+   Gui, Add, DropDownList, % "x" . xPos+245 . " y250 w40 vminStarsA2b hwndMinA2b +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+   
+   Gui, Add, Text, % "x" . xPos . " y275 vTxt_minStarsA2a BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Arceus
+   defaultStars := MinStarCheck("minStarsA2a")
+   Gui, Add, DropDownList, % "x" . xPos+90 . " y275 w40 vminStarsA2a hwndMinA2a +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+   
+   Gui, Add, Text, % "x" . xPos+155 . " y275 vTxt_minStarsA2Dialga BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Dialga
+   defaultStars := MinStarCheck("minStarsA2Dialga")
+   Gui, Add, DropDownList, % "x" . xPos+245 . " y275 w40 vminStarsA2Dialga +0x0210 hwndMinA2D choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+   
+   Gui, Add, Text, % "x" . xPos . " y300 vTxt_minStarsA2Palkia BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Palkia
+   defaultStars := MinStarCheck("minStarsA2Palkia")
+   Gui, Add, DropDownList, % "x" . xPos+90 . " y300 w40 vminStarsA2Palkia hwndMinA2P +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+   
+   Gui, Add, Text, % "x" . xPos+155 . " y300 vTxt_minStarsA1Mewtwo BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Mewtwo
+   defaultStars := MinStarCheck("minStarsA1Mewtwo")
+   Gui, Add, DropDownList, % "x" . xPos+245 . " y300 w40 vminStarsA1Mewtwo +0x0210 hwndMinA1MT choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+   
+   Gui, Add, Text, % "x" . xPos . " y325 vTxt_minStarsA1Charizard BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Charizard
+   defaultStars := MinStarCheck("minStarsA1Charizard")
+   Gui, Add, DropDownList, % "x" . xPos+90 . " y325 w40 vminStarsA1Charizard +0x0210 hwndMinA1C choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+   
+   Gui, Add, Text, % "x" . xPos+155 . " y325 vTxt_minStarsA1Pikachu BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Pikachu
+   defaultStars := MinStarCheck("minStarsA1Pikachu")
+   Gui, Add, DropDownList, % "x" . xPos+245 . " y325 w40 vminStarsA1Pikachu +0x0210 hwndMinA1P choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+   
+   Gui, Add, Text, % "x" . xPos . " y350 vTxt_minStarsA1a BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Mew
+   defaultStars := MinStarCheck("minStarsA1a")
+   Gui, Add, DropDownList, % "x" . xPos+90 . " y350 w40 vminStarsA1a +0x0210 hwndMinA1M choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+   ; ========== Page 4 ==========
+   ; ========== Delete Method ==========
+   xPos := 1125
+   SetHeaderFont()
+   Gui, Add, Text, x%xPos% y110 backgroundtrans, % currentDictionary.btn_pack
+   ; Create Sort By label and dropdown
+   SetNormalFont()
+   Gui, Add, Text, % "x" . xPos . " y150 backgroundtrans vTxt_DeleteMethod", % currentDictionary.Txt_DeleteMethod
+   defaultDelete := 1 ; Default to first option (13 Pack)
+   if (deleteMethod = "13 Pack")
+      defaultDelete := 1
+   else if (deleteMethod = "Inject")
+      defaultDelete := 2
+   else if (deleteMethod = "Inject Missions")
+      defaultDelete := 3
+   else if (deleteMethod = "Inject for Reroll")
+      defaultDelete := 4
+   Gui, Add, DropDownList, % "x" . xPos+65 . " y148 w120 vdeleteMethod gdeleteSettings hwndMethod +0x0210 choose" . defaultDelete . " -E0x200 backgroundtrans", 13 Pack|Inject|Inject Missions|Inject for Reroll
+   ; Apply the correct selection
+   GuiControl, Choose, deleteMethod, %defaultDelete%
+   global Txt_packMethod, Txt_nukeAccount, Txt_spendHourGlass, Txt_openExtraPack
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 182,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "packMethod"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := deleteMethodEnabled
+      ,CheckOptions["vTextName"] := "Txt_packMethod"
+      ,CheckOptions["text"] := currentDictionary.Txt_packMethod
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 181
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 182,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "nukeAccount"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := nukeAccount
+      ,CheckOptions["vTextName"] := "Txt_nukeAccount"
+      ,CheckOptions["text"] := currentDictionary.Txt_nukeAccount
+      ,CheckOptions["textX"] := xPos+190
+      ,CheckOptions["textY"] := 181
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 212,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "spendHourGlass"
+      ,CheckOptions["gName"] := "spendHourGlassSettings"
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := spendHourGlass
+      ,CheckOptions["vTextName"] := "Txt_spendHourGlass"
+      ,CheckOptions["text"] := currentDictionary.Txt_spendHourGlass
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 211
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 212,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "openExtraPack"
+      ,CheckOptions["gName"] := "openExtraPackSettings"
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := openExtraPack
+      ,CheckOptions["vTextName"] := "Txt_openExtraPack"
+      ,CheckOptions["text"] := currentDictionary.Txt_openExtraPack
+      ,CheckOptions["textX"] := xPos+190
+      ,CheckOptions["textY"] := 211
+   AddCheckBox(CheckOptions)
+   
+   ; Determine which option to pre-select
+   sortOption := 1 ; Default (ModifiedAsc)
+   if (injectSortMethod = "ModifiedDesc")
+      sortOption := 2
+   else if (injectSortMethod = "PacksAsc")
+      sortOption := 3
+   else if (injectSortMethod = "PacksDesc")
+      sortOption := 4
+   
+   Gui, Add, Text, x%xPos% y242 vSortByText BackgroundTrans, % currentDictionary.SortByText
+   Gui, Add, DropDownList, % "x" . xPos+110 . " y240 w120 vSortByDropdown gSortByDropdownHandler hwndSortby +0x0210 Choose" . sortOption . " BackgroundTrans", Oldest First|Newest First|Fewest Packs First|Most Packs First
+   if (deleteMethod != "Inject for Reroll") {
+      GuiControl, Hide, packMethod
+      GuiControl, Hide, Txt_packMethod
+      GuiControl, Hide, openExtraPack
+      GuiControl, Hide, Txt_openExtraPack
+   }
+   
+   if (deleteMethod != "13 Pack") {
+      GuiControl, Hide, nukeAccount
+      GuiControl, Hide, Txt_nukeAccount
+   } else {
+      GuiControl, Hide, spendHourGlass
+      GuiControl, Hide, Txt_spendHourGlass
+      GuiControl, Hide, SortByText
+      GuiControl, Hide, SortByDropdown
+   }
+   
+   ; Add divider for God Pack Settings section
+   Gui, Add, Text, x%xPos% y271 w275 h1 +0x10 BackgroundTrans ; Creates a horizontal line
+   ; === Card Detection Subsection ===
+   SetNormalFont()
+   global Txt_FullArtCheck, Txt_TrainerCheck, Txt_RainbowCheck, Txt_PseudoGodPack, Txt_CheckShinyPackOnly,
+   global Txt_CrownCheck, Txt_ShinyCheck, Txt_ImmersiveCheck, Txt_invalidCheck,
+   ; 2-Column Layout for Card Detection Subsection
+   CheckOptions := {}
+   CheckOptions["x"] :=xPos,CheckOptions["y"] := 281,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "FullArtCheck"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := CardDetectionCheck
+      ,CheckOptions["vTextName"] := "Txt_FullArtCheck"
+      ,CheckOptions["text"] := currentDictionary.Txt_FullArtCheck
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 280
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 306,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "TrainerCheck"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := TrainerCheck
+      ,CheckOptions["vTextName"] := "Txt_TrainerCheck"
+      ,CheckOptions["text"] := currentDictionary.Txt_TrainerCheck
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 305
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 331,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "RainbowCheck"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := RainbowCheck
+      ,CheckOptions["vTextName"] := "Txt_RainbowCheck"
+      ,CheckOptions["text"] := currentDictionary.Txt_RainbowCheck
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 330
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 356,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "PseudoGodPack"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := PseudoGodPack
+      ,CheckOptions["vTextName"] := "Txt_PseudoGodPack"
+      ,CheckOptions["text"] := currentDictionary.Txt_PseudoGodPack
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 355
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 381,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "CheckShinyPackOnly"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := CheckShinyPackOnly
+      ,CheckOptions["vTextName"] := "Txt_CheckShinyPackOnly"
+      ,CheckOptions["text"] := currentDictionary.Txt_CheckShinyPackOnly
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 380
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 281,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "CrownCheck"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := CrownCheck
+      ,CheckOptions["vTextName"] := "Txt_CrownCheck"
+      ,CheckOptions["text"] := currentDictionary.Txt_CrownCheck
+      ,CheckOptions["textX"] := xPos+190
+      ,CheckOptions["textY"] := 280
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 306,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "ShinyCheck"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := ShinyCheck
+      ,CheckOptions["vTextName"] := "Txt_ShinyCheck"
+      ,CheckOptions["text"] := currentDictionary.Txt_ShinyCheck
+      ,CheckOptions["textX"] := xPos+190
+      ,CheckOptions["textY"] := 305
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 331,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "ImmersiveCheck"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := ImmersiveCheck
+      ,CheckOptions["vTextName"] := "Txt_ImmersiveCheck"
+      ,CheckOptions["text"] := currentDictionary.Txt_ImmersiveCheck
+      ,CheckOptions["textX"] := xPos+190
+      ,CheckOptions["textY"] := 330
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 406,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "InvalidCheck"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := InvalidCheck
+      ,CheckOptions["vTextName"] := "Txt_InvalidCheck"
+      ,CheckOptions["text"] := currentDictionary.Txt_InvalidCheck
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 405
+   AddCheckBox(CheckOptions)
+   ; ========= Page 5 ==========
+   xPos := 1485
+   SetHeaderFont()
+   Gui, Add, Text, x%xPos% y110 backgroundtrans, % currentDictionary.btn_pack
+   global Txt_Buzzwole, Txt_Solgaleo, Txt_Lunala, Txt_Shining, Txt_Arceus, Txt_Palkia, Txt_Dialga
+   global Txt_Mewtwo, Txt_Charizard, Txt_Pikachu, Txt_Mew
+   SetNormalFont()
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 151,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "Buzzwole"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := Buzzwole
+      ,CheckOptions["vTextName"] := "Txt_Buzzwole"
+      ,CheckOptions["text"] := currentDictionary.Txt_Buzzwole
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 150
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 151,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "Solgaleo"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := Solgaleo
+      ,CheckOptions["vTextName"] := "Txt_Solgaleo"
+      ,CheckOptions["text"] := currentDictionary.Txt_Solgaleo
+      ,CheckOptions["textX"] := xPos+190
+      ,CheckOptions["textY"] := 150
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 176,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "Lunala"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := Lunala
+      ,CheckOptions["vTextName"] := "Txt_Lunala"
+      ,CheckOptions["text"] := currentDictionary.Txt_Lunala
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 175
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 176,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "Shining"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := Shining
+      ,CheckOptions["vTextName"] := "Txt_Shining"
+      ,CheckOptions["text"] := currentDictionary.Txt_Shining
+      ,CheckOptions["textX"] := xPos+190
+      ,CheckOptions["textY"] := 175
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 201,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "Arceus"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := Arceus
+      ,CheckOptions["vTextName"] := "Txt_Arceus"
+      ,CheckOptions["text"] := currentDictionary.Txt_Arceus
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 200
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 201,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "Palkia"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := Palkia
+      ,CheckOptions["vTextName"] := "Txt_Palkia"
+      ,CheckOptions["text"] := currentDictionary.Txt_Palkia
+      ,CheckOptions["textX"] := xPos+190
+      ,CheckOptions["textY"] := 200
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 226,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "Dialga"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := Dialga
+      ,CheckOptions["vTextName"] := "Txt_Dialga"
+      ,CheckOptions["text"] := currentDictionary.Txt_Dialga
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 225
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 226,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "Pikachu"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := Pikachu
+      ,CheckOptions["vTextName"] := "Txt_Pikachu"
+      ,CheckOptions["text"] := currentDictionary.Txt_Pikachu
+      ,CheckOptions["textX"] := xPos+190
+      ,CheckOptions["textY"] := 225
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 251,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "Charizard"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := Charizard
+      ,CheckOptions["vTextName"] := "Txt_Charizard"
+      ,CheckOptions["text"] := currentDictionary.Txt_Charizard
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 250
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 251,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "Mewtwo"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := Mewtwo
+      ,CheckOptions["vTextName"] := "Txt_Mewtwo"
+      ,CheckOptions["text"] := currentDictionary.Txt_Mewtwo
+      ,CheckOptions["textX"] := xPos+190
+      ,CheckOptions["textY"] := 250
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 276,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "Mew"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := Mew
+      ,CheckOptions["vTextName"] := "Txt_Mew"
+      ,CheckOptions["text"] := currentDictionary.Txt_Mew
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 275
+   AddCheckBox(CheckOptions)
+   ; ========== Page 6 ==========
+   ;; Save For Trade Section
+   xPos := 1845
+   SetHeaderFont()
+   Gui, Add, Text, x%xPos% y110 backgroundtrans, % currentDictionary.btn_save
+   SetNormalFont()
+   global Txt_s4tEnabled, Txt_s4tSilent, Txt_s4t3Dmnd, Txt_s4t4Dmnd, Txt_s4t1Star, s4tGholdengoArrow
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 151,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "s4tEnabled"
+      ,CheckOptions["gName"] := "s4tSettings"
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := s4tEnabled
+      ,CheckOptions["vTextName"] := "Txt_s4tEnabled"
+      ,CheckOptions["text"] := currentDictionary.Txt_s4tEnabled
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 150
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 181,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "s4tSilent"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := s4tSilent
+      ,CheckOptions["vTextName"] := "Txt_s4tSilent"
+      ,CheckOptions["text"] := currentDictionary.Txt_s4tSilent
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 180
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 206,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "s4t3Dmnd"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := s4t3Dmnd
+      ,CheckOptions["vTextName"] := "Txt_s4t3Dmnd"
+      ,CheckOptions["text"] := "3 ◆◆◆"
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 205
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 231,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "s4t4Dmnd"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := s4t4Dmnd
+      ,CheckOptions["vTextName"] := "Txt_s4t4Dmnd"
+      ,CheckOptions["text"] := "4 ◆◆◆◆"
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 230
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 256,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "s4t1Star"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := s4t1Star
+      ,CheckOptions["vTextName"] := "Txt_s4t1Star"
+      ,CheckOptions["text"] := "1 ★"
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 255
+   AddCheckBox(CheckOptions)
+   
+   Gui, Add, Text, % "x" . xPos . " y280 w275 h1 vS4T_Divider1 +0x10 BackgroundTrans" . (!s4tEnabled ? " Hidden" : "") ; Creates a horizontal line
+   
+   CheckOptions := {}
+   CheckOptions["x"] := xPos+140,CheckOptions["y"] := 181,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "s4tGholdengo"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := s4tGholdengo
+      ,CheckOptions["vTextName"] := "s4tGholdengoArrow"
+      ,CheckOptions["text"] := "➤"
+      ,CheckOptions["textX"] := xPos+175
+      ,CheckOptions["textY"] := 180
+   AddCheckBox(CheckOptions)
+   Gui, Add, Picture, % ((!s4tEnabled || !Shining) ? "Hidden " : "") . "vs4tGholdengoEmblem w25 h25 x" . xPos+195 . " y201 backgroundtrans", % A_ScriptDir . "\GUI\GuiImage\other\GholdengoEmblem.png"
+   
+   global Txt_s4tWP
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 286,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "s4tWP"
+      ,CheckOptions["gName"] := "s4tWPSettings"
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := s4tWP
+      ,CheckOptions["vTextName"] := "Txt_s4tWP"
+      ,CheckOptions["text"] := currentDictionary.Txt_s4tWP
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 285
+   AddCheckBox(CheckOptions)
+   
+   Gui, Add, Text, % "vs4tWPMinCardsLabel x" . xPos . " y310 BackgroundTrans" . (!s4tEnabled || !s4tWP ? " Hidden " : ""), % currentDictionary.Txt_s4tWPMinCards
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vs4tWPMinCards w40 x" . xPos+120 . " y310 h20 -E0x200 Center backgroundtrans gs4tWPMinCardsCheck " . (!s4tEnabled || !s4tWP ? "Hidden" : ""), %s4tWPMinCards%
+   
+   Gui, Add, Text, % "x" . xPos . " y335 w275 h1 vS4T_Divider2 +0x10 BackgroundTrans" . (!s4tEnabled ? " Hidden" : "") ; Creates a horizontal line
+   ; === S4T Discord Settings (now part of Save For Trade) ===
+   SetSectionFont()
+   Gui, Add, Text, % "x" . xPos . " y340 backgroundtrans vS4TDiscordSettingsSubHeading" . (!s4tEnabled? " Hidden" : ""), % currentDictionary.S4TDiscordSettingsSubHeading
+   
+   SetNormalFont()
+   if(StrLen(s4tDiscordUserId) < 3)
+      s4tDiscordUserId =
+   if(StrLen(s4tDiscordWebhookURL) < 3)
+      s4tDiscordWebhookURL =
+   
+   Gui, Add, Text, % "x" . xPos . " y365 backgroundtrans vTxt_S4T_DiscordID" . (!s4tEnabled ? " Hidden" : ""), Discord ID:
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vs4tDiscordUserId w220 x" . xPos . " y390 h20 -E0x200 Center backgroundtrans" . (!s4tEnabled ? " Hidden" : ""), %s4tDiscordUserId%
+   Gui, Add, Text, % "x" . xPos . " y415 backgroundtrans vTxt_S4T_DiscordWebhook" . (!s4tEnabled ? " Hidden" : ""), Webhook URL:
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vs4tDiscordWebhookURL w220 x" . xPos . " y440 h20 -E0x200 Center backgroundtrans" . (!s4tEnabled ? " Hidden" : ""), %s4tDiscordWebhookURL%
+   global Txt_s4tSendAccountXml
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 466,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "s4tSendAccountXml"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := s4tSendAccountXml
+      ,CheckOptions["vTextName"] := "Txt_s4tSendAccountXml"
+      ,CheckOptions["text"] := currentDictionary.Txt_s4tSendAccountXml
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 465
+   AddCheckBox(CheckOptions)
+   
+   if (!s4tEnabled) {
+      GuiControl, Hide, s4tSilent
+      GuiControl, Hide, Txt_s4tSilent
+      GuiControl, Hide, s4t3Dmnd
+      GuiControl, Hide, Txt_s4t3Dmnd
+      GuiControl, Hide, s4t4Dmnd
+      GuiControl, Hide, Txt_s4t4Dmnd
+      GuiControl, Hide, s4t1Star
+      GuiControl, Hide, Txt_s4t1Star
+      GuiControl, Hide, s4tGholdengo
+      GuiControl, Hide, s4tGholdengoArrow
+      GuiControl, Hide, s4tWP
+      GuiControl, Hide, Txt_s4tWP
+      GuiControl, Hide, s4tSendAccountXml
+      GuiControl, Hide, Txt_s4tSendAccountXml
+   }
+   ; ========== Page 7 ==========
+   xPos := 2205
+   SetHeaderFont()
+   Gui, Add, Text, x%xPos% y110 backgroundtrans, Discord && HeartBeat Settings
+   ;; Discord Settings Section
+   ; Add main heading for Discord Settings section
+   SetSectionFont()
+   Gui, Add, Text, x%xPos% y150 backgroundtrans vDiscordSettingsHeading, % currentDictionary.DiscordSettingsHeading
+   
+   SetNormalFont()
+   if(StrLen(discordUserID) < 3)
+      discordUserID := ""
+   if(StrLen(discordWebhookURL) < 3)
+      discordWebhookURL := ""
+   
+   Gui, Add, Text, x%xPos% y175 backgroundtrans vTxt_DiscordID, Discord ID:
+   if(discordUserId = "" || discordUserId = "ERROR")
+      Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vdiscordUserId w270 x" . xPos . " y200 h20 -E0x200 Center backgroundtrans",
+   else
+      Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vdiscordUserId w270 x" . xPos . " y200 h20 -E0x200 Center backgroundtrans", %discordUserId%
+   
+   Gui, Add, Text, x%xPos% y225 backgroundtrans vTxt_DiscordWebhook, Webhook URL:
+   if(discordWebhookURL = "" || discordWebhookURL = "ERROR")
+      Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vdiscordWebhookURL w270 x" . xPos . " y250 h20 -E0x200 Center backgroundtrans",
+   else
+      Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vdiscordWebhookURL w270 x" . xPos . " y250 h20 -E0x200 Center backgroundtrans", %discordWebhookURL%
+   global Txt_sendAccountXml
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 276,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "sendAccountXml"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := sendAccountXml
+      ,CheckOptions["vTextName"] := "Txt_sendAccountXml"
+      ,CheckOptions["text"] := currentDictionary.Txt_sendAccountXml
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 275
+   AddCheckBox(CheckOptions)
+   
+   ; Add divider after heading
+   Gui, Add, Text, x%xPos% y300 w275 h1 vDiscordSettingsDivider +0x10 BackgroundTrans ; Creates a horizontal line
+   ; === Heartbeat Settings (now part of Discord) ===
+   SetSectionFont()
+   Gui, Add, Text, x%xPos% y305 backgroundtrans vHeartbeatSettingsSubHeading, % currentDictionary.HeartbeatSettingsSubHeading
+   
+   SetNormalFont()
+   global Txt_heartBeat
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 331,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "heartBeat"
+      ,CheckOptions["gName"] := "discordSettings"
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := heartBeat
+      ,CheckOptions["vTextName"] := "Txt_heartBeat"
+      ,CheckOptions["text"] := currentDictionary.Txt_heartBeat
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 330
+   AddCheckBox(CheckOptions)
+   
+   if(StrLen(heartBeatName) < 3)
+      heartBeatName := ""
+   if(StrLen(heartBeatWebhookURL) < 3)
+      heartBeatWebhookURL := ""
+   
+   Gui, Add, Text, % "vhbName x" . xPos . " y355 backgroundtrans" . (heartBeat?"":" Hidden"), % currentDictionary.hbName
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vheartBeatName w270 x" . xPos . " y380 h20 -E0x200 Center backgroundtrans" . (heartBeat?"":" Hidden"), %heartBeatName%
+   Gui, Add, Text, % "vhbURL x" . xPos . " y405 backgroundtrans" . (heartBeat?"":" Hidden"), Webhook URL:
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vheartBeatWebhookURL w270 x" . xPos . " y430 h20 -E0x200 Center backgroundtrans" . (heartBeat?"":" Hidden"), %heartBeatWebhookURL%
+   Gui, Add, Text, % "vhbDelay x" . xPos . " y455 backgroundtrans" . (heartBeat?"":" Hidden"), % currentDictionary.hbDelay
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vheartBeatDelay w40 x" . xPos+175 . " y454 h20 -E0x200 Center backgroundtrans" . (heartBeat?"":" Hidden"), %heartBeatDelay%
+   ; =========== Page 8 ===========
+   xPos := 2565
+   SetHeaderFont()
+   Gui, Add, Text, x%xPos% y110 backgroundtrans, % currentDictionary.btn_download
+   ;; Download Settings Section
+   SetNormalFont()
+   if(StrLen(mainIdsURL) < 3)
+      mainIdsURL := ""
+   if(StrLen(vipIdsURL) < 3)
+      vipIdsURL := ""
+   
+   Gui, Add, Text, x%xPos% y150 backgroundtrans vTxt_MainIdsURL, ids.txt API:
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vmainIdsURL w270 x" . xPos . " y175 h20 -E0x200 Center backgroundtrans", %mainIdsURL%
+   
+   Gui, Add, Text, x%xPos% y200 backgroundtrans vTxt_VipIdsURL, vip_ids.txt API:
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vvipIdsURL w270 x" . xPos . " y225 h20 -E0x200 Center backgroundtrans", %vipIdsURL%
+   
+   ; Add Showcase options to Download Settings Section
+   global Txt_showcaseEnabled
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 251,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "showcaseEnabled"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := showcaseEnabled
+      ,CheckOptions["vTextName"] := "Txt_showcaseEnabled"
+      ,CheckOptions["text"] := currentDictionary.Txt_showcaseEnabled
+      ,CheckOptions["textX"] := xPos + 35
+      ,CheckOptions["textY"] := 250
+   AddCheckBox(CheckOptions)
+   Gui, Add, Button, x0 y0 w10 h10 vDummyFocusButton Hidden, Dummy
+   GuiControl, Focus, DummyFocusButton
+   
+   SG:= New ScrollGUI(SGUI, 450, 800, "-DPIScale", 1, 1)
+   SG.Show("Arturo's PTCGP BOT","ycenter xcenter")
+   if (CurrentTheme = "Dark") {
+      OD_Colors.Attach(Moitor,{T: 0XFDFDFD, B: 0X7C8590})
+      OD_Colors.Attach(Scale,{T: 0XFDFDFD, B: 0X7C8590})
+      OD_Colors.Attach(OCR,{T: 0XFDFDFD, B: 0X7C8590})
+      OD_Colors.Attach(Client,{T: 0XFDFDFD, B: 0X7C8590})
+      OD_Colors.Attach(MinA3a,{T: 0XFDFDFD, B: 0X7C8590})
+      OD_Colors.Attach(MinA3S,{T: 0XFDFDFD, B: 0X7C8590})
+      OD_Colors.Attach(MinA3L,{T: 0XFDFDFD, B: 0X7C8590})
+      OD_Colors.Attach(MinA2b,{T: 0XFDFDFD, B: 0X7C8590})
+      OD_Colors.Attach(MinA2a,{T: 0XFDFDFD, B: 0X7C8590})
+      OD_Colors.Attach(MinA2D,{T: 0XFDFDFD, B: 0X7C8590})
+      OD_Colors.Attach(MinA2P,{T: 0XFDFDFD, B: 0X7C8590})
+      OD_Colors.Attach(MinA1MT,{T: 0XFDFDFD, B: 0X7C8590})
+      OD_Colors.Attach(MinA1C,{T: 0XFDFDFD, B: 0X7C8590})
+      OD_Colors.Attach(MinA1P,{T: 0XFDFDFD, B: 0X7C8590})
+      OD_Colors.Attach(MinA1M,{T: 0XFDFDFD, B: 0X7C8590})
+      OD_Colors.Attach(Method,{T: 0XFDFDFD, B: 0X7C8590})
+      OD_Colors.Attach(Sortby,{T: 0XFDFDFD, B: 0X7C8590})
+   } else {
+      OD_Colors.Attach(Moitor,{T: 0XBC0000, B: 0XFFD1CD})
+      OD_Colors.Attach(Scale,{T: 0XBC0000, B: 0XFFD1CD})
+      OD_Colors.Attach(OCR,{T: 0XBC0000, B: 0XFFD1CD})
+      OD_Colors.Attach(Client,{T: 0XBC0000, B: 0XFFD1CD})
+      OD_Colors.Attach(MinA3a,{T: 0XBC0000, B: 0XFFD1CD})
+      OD_Colors.Attach(MinA3S,{T: 0XBC0000, B: 0XFFD1CD})
+      OD_Colors.Attach(MinA3L,{T: 0XBC0000, B: 0XFFD1CD})
+      OD_Colors.Attach(MinA2b,{T: 0XBC0000, B: 0XFFD1CD})
+      OD_Colors.Attach(MinA2a,{T: 0XBC0000, B: 0XFFD1CD})
+      OD_Colors.Attach(MinA2D,{T: 0XBC0000, B: 0XFFD1CD})
+      OD_Colors.Attach(MinA2P,{T: 0XBC0000, B: 0XFFD1CD})
+      OD_Colors.Attach(MinA1MT,{T: 0XBC0000, B: 0XFFD1CD})
+      OD_Colors.Attach(MinA1C,{T: 0XBC0000, B: 0XFFD1CD})
+      OD_Colors.Attach(MinA1P,{T: 0XBC0000, B: 0XFFD1CD})
+      OD_Colors.Attach(MinA1M,{T: 0XBC0000, B: 0XFFD1CD})
+      OD_Colors.Attach(Method,{T: 0XBC0000, B: 0XFFD1CD})
+      OD_Colors.Attach(Sortby,{T: 0XBC0000, B: 0XFFD1CD})
+   }
+   
+   WinGet, mainHwnd, ID, Arturo's PTCGP BOT
+   WinGetPos, mainX, mainY, mainW, mainH, ahk_id %mainHwnd%
+   ;; ========== Menu ==========
+   global menuW := 260
+   global menuH := 683
+   global menuExpanded
+   if (!menuExpanded) {
+      menuX := mainX + mainW - menuW - 35
+      menuExpanded := False
+   } else {
+      menuX := mainX + mainW - 5
+      menuExpanded := True
+   }
+   menuY := mainY
+   xPos := 18
+   Gui, Menu:New
+   ;Gui, Menu:+Owner%MainGuiName%
+   Gui, Menu:-Caption
+   Gui, Menu:+HWNDmenuHwnd
+   Gui, Menu:Add, Picture, x0 y0 w%menuW% h%menuH%, %MenuBackground%
+   Gui, Menu:Add, Picture, x18 y12 w200 h60 BackgroundTrans, %titleImage%
+   if (menuExpanded)
+      menuPic := MenuClose
+   else
+      menuPic := MenuOpen
+   Gui, Menu:Add, Picture, x240 y310 w20 h80 vMenuSwitch gMenuSwitchHandler BackgroundTrans, %menuPic%
+   SetMenuBtnFont()
+   Gui, Menu:Add, Text, x32 y23 BackgroundTrans, % currentDictionary.title_main . "`n" . localVersion . " " . intro
+   global Btn_ToolTip, Txt_Btn_ToolTip
+   global Btn_Mumu, Btn_Arrange, Btn_BalanceXMLs, Btn_Update, Btn_Join, Btn_Coffee, Btn_Start, Btn_XMLSortTool, Btn_XMLDuplicateTool
+   global Txt_Btn_Mumu, Txt_Btn_Arrange, Txt_Btn_BalanceXMLs, Txt_Btn_Update, Txt_Btn_Join, Txt_Btn_Coffee, Txt_Btn_Start, Txt_XMLSortTool, Txt_XMLDuplicateTool
+   PageBtnShift(defaultBotLanguage)
+   ButtonOptions := Object()
+   if (CurrentTheme = "Dark") {
+      Gui, Menu:Font, s12 cBC1111, %currentfont%
+   } else {
+      Gui, Menu:Font, s12 c007700, %currentfont%
+   }
+   ButtonOptions["type"] := "Picture"
+      ,ButtonOptions["x"] := xPos
+      ,ButtonOptions["y"] := 94
+      ,ButtonOptions["w"] := 200
+      ,ButtonOptions["h"] := 44
+      ,ButtonOptions["vName"] := "Btn_ToolTip"
+      ,ButtonOptions["gName"] := "OpenToolTip"
+      ,ButtonOptions["text"] := currentDictionary.btn_ToolTip
+      ,ButtonOptions["imagePath"] := ToolTipImage
+      ,ButtonOptions["vTextName"] := "Txt_Btn_ToolTip"
+      ,ButtonOptions["textX"] := xPos
+      ,ButtonOptions["textY"] := (106 + ys)
+   AddBtn(ButtonOptions)
+   SetMenuBtnFont()
+   ButtonOptions["type"] := "Picture"
+      ,ButtonOptions["x"] := xPos
+      ,ButtonOptions["y"] := 157
+      ,ButtonOptions["w"] := 200
+      ,ButtonOptions["h"] := 36
+      ,ButtonOptions["vName"] := "Btn_Mumu"
+      ,ButtonOptions["gName"] := "LaunchAllMumu"
+      ,ButtonOptions["text"] := currentDictionary.btn_mumu
+      ,ButtonOptions["imagePath"] := btn_mainPage
+      ,ButtonOptions["vTextName"] := "Txt_Btn_Mumu"
+      ,ButtonOptions["textX"] := xPos
+      ,ButtonOptions["textY"] := (167 + ys)
+   AddBtn(ButtonOptions)
+   ButtonOptions["type"] := "Picture"
+      ,ButtonOptions["x"] := xPos
+      ,ButtonOptions["y"] := 211
+      ,ButtonOptions["w"] := 200
+      ,ButtonOptions["h"] := 36
+      ,ButtonOptions["vName"] := "Btn_Arrange"
+      ,ButtonOptions["gName"] := "ArrangeWindows"
+      ,ButtonOptions["text"] := currentDictionary.btn_arrange
+      ,ButtonOptions["imagePath"] := btn_mainPage
+      ,ButtonOptions["vTextName"] := "Txt_Btn_Arrange"
+      ,ButtonOptions["textX"] := xPos
+      ,ButtonOptions["textY"] := (221 + ys)
+   AddBtn(ButtonOptions)
+   ButtonOptions["type"] := "Picture"
+      ,ButtonOptions["x"] := xPos
+      ,ButtonOptions["y"] := 268
+      ,ButtonOptions["w"] := 200
+      ,ButtonOptions["h"] := 36
+      ,ButtonOptions["vName"] := "Btn_BalanceXMLs"
+      ,ButtonOptions["gName"] := "BalanceXMLs"
+      ,ButtonOptions["text"] := currentDictionary.btn_balance
+      ,ButtonOptions["imagePath"] := btn_mainPage
+      ,ButtonOptions["vTextName"] := "Txt_Btn_BalanceXMLs"
+      ,ButtonOptions["textX"] := xPos
+      ,ButtonOptions["textY"] := (278 + ys)
+   AddBtn(ButtonOptions)
+   ButtonOptions["type"] := "Picture"
+      ,ButtonOptions["x"] := xPos
+      ,ButtonOptions["y"] := 324
+      ,ButtonOptions["w"] := 200
+      ,ButtonOptions["h"] := 36
+      ,ButtonOptions["vName"] := "Btn_Update"
+      ,ButtonOptions["gName"] := "CheckForUpdates"
+      ,ButtonOptions["text"] := currentDictionary.btn_update
+      ,ButtonOptions["imagePath"] := btn_mainPage
+      ,ButtonOptions["vTextName"] := "Txt_Btn_Update"
+      ,ButtonOptions["textX"] := xPos
+      ,ButtonOptions["textY"] := (334 + ys)
+   AddBtn(ButtonOptions)
+   ButtonOptions["type"] := "Picture"
+      ,ButtonOptions["x"] := xPos
+      ,ButtonOptions["y"] := 379
+      ,ButtonOptions["w"] := 200
+      ,ButtonOptions["h"] := 36
+      ,ButtonOptions["vName"] := "Btn_Join"
+      ,ButtonOptions["gName"] := "OpenDiscord"
+      ,ButtonOptions["text"] := currentDictionary.btn_join
+      ,ButtonOptions["imagePath"] := btn_mainPage
+      ,ButtonOptions["vTextName"] := "Txt_Btn_Join"
+      ,ButtonOptions["textX"] := xPos
+      ,ButtonOptions["textY"] := (389 + ys)
+   AddBtn(ButtonOptions)
+   ButtonOptions["type"] := "Picture"
+      ,ButtonOptions["x"] := xPos
+      ,ButtonOptions["y"] := 436
+      ,ButtonOptions["w"] := 200
+      ,ButtonOptions["h"] := 36
+      ,ButtonOptions["vName"] := "Btn_Coffee"
+      ,ButtonOptions["gName"] := "OpenLink"
+      ,ButtonOptions["text"] := currentDictionary.btn_coffee
+      ,ButtonOptions["imagePath"] := btn_mainPage
+      ,ButtonOptions["vTextName"] := "Txt_Btn_Coffee"
+      ,ButtonOptions["textX"] := xPos
+      ,ButtonOptions["textY"] := (446 + ys)
+   AddBtn(ButtonOptions)
+   ButtonOptions["type"] := "Picture"
+      ,ButtonOptions["x"] := xPos
+      ,ButtonOptions["y"] := 491
+      ,ButtonOptions["w"] := 200
+      ,ButtonOptions["h"] := 36
+      ,ButtonOptions["vName"] := "Btn_Start"
+      ,ButtonOptions["gName"] := "StartBot"
+      ,ButtonOptions["text"] := currentDictionary.btn_start
+      ,ButtonOptions["imagePath"] := btn_mainPage
+      ,ButtonOptions["vTextName"] := "Txt_Btn_Start"
+      ,ButtonOptions["textX"] := xPos
+      ,ButtonOptions["textY"] := (501 + ys)
+   AddBtn(ButtonOptions)
+   ButtonOptions["type"] := "Picture"
+      ,ButtonOptions["x"] := xPos
+      ,ButtonOptions["y"] := 546
+      ,ButtonOptions["w"] := 200
+      ,ButtonOptions["h"] := 36
+      ,ButtonOptions["vName"] := "Btn_XMLSortTool"
+      ,ButtonOptions["gName"] := "RunXMLSortTool"
+      ,ButtonOptions["text"] := "XML Sort Tool"
+      ,ButtonOptions["imagePath"] := btn_mainPage
+      ,ButtonOptions["vTextName"] := "Txt_XMLSortTool"
+      ,ButtonOptions["textX"] := xPos
+      ,ButtonOptions["textY"] := (556 + ys)
+   AddBtn(ButtonOptions)
+   ButtonOptions["type"] := "Picture"
+      ,ButtonOptions["x"] := xPos
+      ,ButtonOptions["y"] := 601
+      ,ButtonOptions["w"] := 200
+      ,ButtonOptions["h"] := 36
+      ,ButtonOptions["vName"] := "Btn_XMLDuplicateTool"
+      ,ButtonOptions["gName"] := "RunXMLDuplicateTool"
+      ,ButtonOptions["text"] := "XML Duplicate Tool"
+      ,ButtonOptions["imagePath"] := btn_mainPage
+      ,ButtonOptions["vTextName"] := "Txt_XMLDuplicateTool"
+      ,ButtonOptions["textX"] := xPos
+      ,ButtonOptions["textY"] := (611 + ys)
+   AddBtn(ButtonOptions)
+   setMenuNormalFont()
+   Gui, Menu:Add, Text, x8 y660 w220 Center BackgroundTrans, ● CC BY-NC 4.0 international license
+   Gui, Menu:Show, w%menuW% h%menuH% x%menuX% y%menuY% NoActivate
+   WinSet, AlwaysOnTop, On, ahk_id %mainHwnd%
+   WinSet, AlwaysOnTop, Off, ahk_id %mainHwnd%
+   ;; ========== Top Bar GUI ==========
+   global topBarW := 340
+   global topBarH := 440
+   Gui, TopBar:New
+   Gui, TopBar:+Owner%MainGuiName%
+   Gui, TopBar:-Caption
+   Gui, TopBar:+HWNDtopBarHwnd
+   if (CurrentTheme = "Dark") {
+      Gui, Color, e9f1f7, 7C8590
+   } else {
+      Gui, Color, e9f1f7, FFD1CD
+   }
+   Gui, TopBar:Add, Picture, x0 y0 w%topBarW% h%topBarH% vTopBarBackground, %TopBarSmall%
+   SetTopBarNormalFont()
+   global Btn_ToolTip, Btn_reload, BackgroundToggle, ThemeToggle, Btn_ClassicMode
+   global Txt_Btn_reload, Txt_Btn_ClassicMode
+   global CallOthers := 0
+   SetTopBarBtnFont()
+   TopBarBtnOptions := Object()
+   ; first row
+   TopBarBtnOptions := {}
+      ,TopBarBtnOptions["type"] := "Picture"
+      ,TopBarBtnOptions["x"] := 35
+      ,TopBarBtnOptions["y"] := 10
+      ,TopBarBtnOptions["w"] := 121
+      ,TopBarBtnOptions["h"] := 25
+      ,TopBarBtnOptions["vName"] := "Btn_reload"
+      ,TopBarBtnOptions["gName"] := "SaveReload"
+      ,TopBarBtnOptions["imagePath"] := btn_mainPage
+      ,TopBarBtnOptions["text"] := currentDictionary.btn_reload
+      ,TopBarBtnOptions["vTextName"] := "Txt_Btn_reload"
+      ,TopBarBtnOptions["textX"] := 35
+      ,TopBarBtnOptions["textY"] := 12
+   AddBtnforTop(TopBarBtnOptions)
+   ; Clean up the options object for the next button
+   TopBarBtnOptions := {}
+   TopBarBtnOptions["type"] := "Picture"
+      ,TopBarBtnOptions["x"] := 185
+      ,TopBarBtnOptions["y"] := 10
+      ,TopBarBtnOptions["w"] := 121
+      ,TopBarBtnOptions["h"] := 25
+      ,TopBarBtnOptions["vName"] := "Btn_ClassicMode"
+      ,TopBarBtnOptions["gName"] := "OpenClassicMode"
+      ,TopBarBtnOptions["text"] := "Classic Mode"
+      ,TopBarBtnOptions["imagePath"] := btn_mainPage
+      ,TopBarBtnOptions["vTextName"] := "Txt_Btn_ClassicMode"
+      ,TopBarBtnOptions["textX"] := 185
+      ,TopBarBtnOptions["textY"] := 12
+   AddBtnforTop(TopBarBtnOptions)
+   SetTopBarNormalFont()
+   Gui, TopBar:Add, Text, x35 y60 BackgroundTrans, % currentDictionary.btn_Language . " :"
+   BotLanguagelist := "English|中文|日本語|Deutsch"
+   defaultChooseLang := 1
+   if (BotLanguage != "") {
+      Loop, Parse, BotLanguagelist, |
+         if (A_LoopField = BotLanguage) {
+            defaultChooseLang := A_Index
+            break
+         }
+   }
+   Gui, TopBar:Add, DropDownList, x150 y58 w80 vTopBotLanguage gLanguageControl hwndBotLan +0x0210 Choose%defaultChooseLang% BackgroundTrans Center, English|中文|日本語|Deutsch
+   global Btn_Font, Btn_FontColor, Btn_BackgroundToggle, Btn_PageToggle, Btn_MenuToggle, Btn_Theme, SaveTopBar
+   global Txt_Btn_Font, Txt_Btn_FontColor, Txt_Btn_BackgroundToggle, Txt_Btn_PageToggle, Txt_Btn_MenuToggle, Txt_Btn_Theme, Txt_saveTopBar
+   SetTopBarBtnFont()
+   TopBarBtnOptions := {}
+      ,TopBarBtnOptions["type"] := "Picture"
+      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 95 ,TopBarBtnOptions["w"] := 100,TopBarBtnOptions["h"] := 25
+      ,TopBarBtnOptions["vName"] := "Btn_Font" ,TopBarBtnOptions["gName"] := "ChooseFont"
+      ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_topbar2.png" : A_ScriptDir . "\GUI\Images\panel_topbar1.png")
+      ,TopBarBtnOptions["text"] := "Choose Font" ,TopBarBtnOptions["vTextName"] := "Txt_Btn_Font"
+      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 97
+   AddBtnforTop(TopBarBtnOptions)
+   SetTopBarNormalFont()
+   Gui, TopBar:Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "x150 y97 w147 h20 vcurrentfont -E0x200 Center backgroundtrans", %currentfont%
+   
+   Gui, TopBar:Add, Text, X35 y130 BackgroundTrans, Set Font Color << current：
+   Gui, TopBar:Add, Text, X238 y130 BackgroundTrans, >>
+   SetTopBarBtnFont()
+   TopBarBtnOptions := {}
+      ,TopBarBtnOptions["type"] := "Picture"
+      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 155 ,TopBarBtnOptions["w"] := 100,TopBarBtnOptions["h"] := 25
+      ,TopBarBtnOptions["vName"] := "Btn_FontColor" ,TopBarBtnOptions["gName"] := "ChooseFontColor"
+      ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_topbar2.png" : A_ScriptDir . "\GUI\Images\panel_topbar1.png")
+      ,TopBarBtnOptions["text"] := "Choose Color" ,TopBarBtnOptions["vTextName"] := "Txt_Btn_FontColor"
+      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 157
+   AddBtnforTop(TopBarBtnOptions)
+   SetTopBarNormalFont()
+   Gui, TopBar:Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "x150 y157 w147 h20 vFontColor BackgroundTrans -E0x200 Center backgroundtrans", %FontColor%
+   
+   Gui, TopBar:Add, Text, x35 y190 BackgroundTrans, Choose Background Image（9：16）：
+   SetTopBarBtnFont()
+   TopBarBtnOptions := {}
+      ,TopBarBtnOptions["type"] := "Picture"
+      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 215 ,TopBarBtnOptions["w"] := 60,TopBarBtnOptions["h"] := 25
+      ,TopBarBtnOptions["vName"] := "Btn_BackgroundToggle" ,TopBarBtnOptions["gName"] := "ChooseBackground"
+      ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_small2.png" : A_ScriptDir . "\GUI\Images\panel_small1.png")
+      ,TopBarBtnOptions["text"] := "Search" ,TopBarBtnOptions["vTextName"] := "Txt_Btn_BackgroundToggle"
+      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 217
+   AddBtnforTop(TopBarBtnOptions)
+   SetTopBarNormalFont()
+   Gui, TopBar:Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "x100 y217 w200 h20 vBackgroundImage -E0x200 Center backgroundtrans", %BackgroundImage%
+   
+   Gui, TopBar:Add, Text, x35 y250 BackgroundTrans, Choose Page Image（8：11）：
+   SetTopBarBtnFont()
+   TopBarBtnOptions := {}
+      ,TopBarBtnOptions["type"] := "Picture"
+      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 275 ,TopBarBtnOptions["w"] := 60,TopBarBtnOptions["h"] := 25
+      ,TopBarBtnOptions["vName"] := "Btn_PageToggle" ,TopBarBtnOptions["gName"] := "ChoosePage"
+      ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_small2.png" : A_ScriptDir . "\GUI\Images\panel_small1.png")
+      ,TopBarBtnOptions["text"] := "Search" ,TopBarBtnOptions["vTextName"] := "Txt_Btn_PageToggle"
+      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 277
+   AddBtnforTop(TopBarBtnOptions)
+   SetTopBarNormalFont()
+   Gui, TopBar:Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "x100 y277 w200 h20 vPageImage -E0x200 Center backgroundtrans", %PageImage%
+   
+   Gui, TopBar:Add, Text, x35 y310 BackgroundTrans, Choose Menu Image（2：5）：
+   SetTopBarBtnFont()
+   TopBarBtnOptions := {}
+      ,TopBarBtnOptions["type"] := "Picture"
+      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 335 ,TopBarBtnOptions["w"] := 60,TopBarBtnOptions["h"] := 25
+      ,TopBarBtnOptions["vName"] := "Btn_MenuToggle" ,TopBarBtnOptions["gName"] := "ChooseMenu"
+      ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_small2.png" : A_ScriptDir . "\GUI\Images\panel_small1.png")
+      ,TopBarBtnOptions["text"] := "Search" ,TopBarBtnOptions["vTextName"] := "Txt_Btn_MenuToggle"
+      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 337
+   AddBtnforTop(TopBarBtnOptions)
+   SetTopBarNormalFont()
+   Gui, TopBar:Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "x100 y337 w200 h20 vMenuBackground -E0x200 Center backgroundtrans", %MenuBackground%
+   SetTopBarBtnFont()
+   TopBarBtnOptions := {}
+      ,TopBarBtnOptions["type"] := "Picture"
+      ,TopBarBtnOptions["x"] := 35 ,TopBarBtnOptions["y"] := 370 ,TopBarBtnOptions["w"] := 100,TopBarBtnOptions["h"] := 25
+      ,TopBarBtnOptions["vName"] := "Btn_Theme" ,TopBarBtnOptions["gName"] := "ToggleTheme"
+      ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_topbar2.png" : A_ScriptDir . "\GUI\Images\panel_topbar1.png")
+      ,TopBarBtnOptions["text"] := "Toggle Theme" ,TopBarBtnOptions["vTextName"] := "Txt_Btn_Theme"
+      ,TopBarBtnOptions["textX"] := 35 ,TopBarBtnOptions["textY"] := 372
+   AddBtnforTop(TopBarBtnOptions)
+   TopBarBtnOptions := {}
+      ,TopBarBtnOptions["type"] := "Picture"
+      ,TopBarBtnOptions["x"] := 140 ,TopBarBtnOptions["y"] := 400 ,TopBarBtnOptions["w"] := 60,TopBarBtnOptions["h"] := 28
+      ,TopBarBtnOptions["vName"] := "saveTopBar" ,TopBarBtnOptions["gName"] := "SaveTopBarSettings"
+      ,TopBarBtnOptions["imagePath"] := (CurrentTheme = "Dark" ? A_ScriptDir . "\GUI\Images\panel_small2.png" : A_ScriptDir . "\GUI\Images\panel_small1.png")
+      ,TopBarBtnOptions["text"] := "Save" ,TopBarBtnOptions["vTextName"] := "Txt_saveTopBar"
+      ,TopBarBtnOptions["textX"] := 138,TopBarBtnOptions["textY"] := 402
+   AddBtnforTop(TopBarBtnOptions)
+   SetTopBarNormalFont()
+   Gui, Font, norm
+   SetTopBarNormalFont()
+   Gui, TopBar:Show, % "x" . mainX+15 . " y" . mainY+32 . " w" . topBarW . " h36 NoActivate"
+   if (CurrentTheme = "Dark") {
+      OD_Colors.Attach(BotLan,{T: 0XFDFDFD, B: 0X7C8590})
+   } else {
+      OD_Colors.Attach(BotLan,{T: 0XFF5555, B: 0XFFD1CD})
+   }
+   ; ColorBlock
+   Gui, TopBarColor:New
+   Gui, TopBarColor:+Owner%MainGuiName%
+   Gui, TopBarColor:-Caption -Border
+   Gui, TopBarColor:+HWNDtopBarColorHwnd
+   Gui, TopBarColor:Color, 0xeeeeee
+   Gui, TopBarColor:Add, Edit, x0 y0 w15 h15 vColorBlock Hidden, % " "
+   Gui, TopBarColor:Show, % "x" . mainX+274 . " y" . mainY+195 . " w0 h0 NoActivate"
+   WinSet, TransColor, 0xeeeeee
+   ; TopBarSwitch
+   Gui, TopBarSwitch:New
+   Gui, TopBarSwitch:+Owner%MainGuiName%
+   Gui, TopBarSwitch:-Caption -Border
+   Gui, TopBarSwitch:+HWNDtopBarSwitchHwnd
+   Gui, TopBarSwitch:Color, 0xeeeeee
+   Gui, TopBarSwitch:Add, Picture, x0 y0 w%topBarW% h20 vSwitchPic gTopBarSwitchHandler BackgroundTrans, %TopBarOpen%
+   Gui, TopBarSwitch:Show, % "x" . mainX+15 . " y" . mainY+77 . " w" . topBarW . " h20 NoActivate"
+   Gui, TopBarSwitch:+LastFound
+   WinSet, TransColor, 0xeeeeee
+   ApplyInputStyle()
+   WinSet, Redraw,, A
+   OnMessage(0x0003, "OnGuiMove") ; WM_MOVE
+   OnMessage(0x0006, "OnMainGuiActivate")
 Return
 
-ToggleSection:
-    ; Get clicked button name
-    ClickedButton := A_GuiControl
-    
-    ; Extract just the section name without the "Btn_" prefix
-    StringTrimLeft, SectionName, ClickedButton, 6
-    
-    ; Show section based on new structure
-    if (SectionName = "RerollSettings") {
-        ShowRerollSettingsSection()
-    } else if (SectionName = "SystemSettings") {
-        ShowSystemSettingsSection()
-    } else if (SectionName = "PackSettings") {
-        ShowPackSettingsSection()
-    } else if (SectionName = "SaveForTrade") {
-        ShowSaveForTradeSection()
-    } else if (SectionName = "DiscordSettings") {
-        ShowDiscordSettingsSection()
-    } else if (SectionName = "DownloadSettings") {
-        ShowDownloadSettingsSection()
-    }
-    ; Enable previous & next btn when in setting
-    picList := "Btn_previous,Btn_next"
-    hovList := "Hover_previous,Hover_next"
-    EnableImageButtonToMultiple(picList, hovList)
-    
-    ; Update current section and tab highlighting
-    CurrentVisibleSection := SectionName
-    ; Update section headers with appropriate colors
-    UpdateSectionHeaders()
-    ToggleImageOnHover.ResetAllHoverStates()
-    ToggleImageOnHover.ForceRecheck()
-Return
+;;========== Class_ScrollGUI ==========
+; ======================================================================================================================
+; Namepace:       ScrollGUI
+; Function:       Creates a scrollable GUI as a parent for GUI windows.
+; Tested with:    AHK 1.1.20.03 (1.1.20+ required)
+; Tested on:      Win 8.1 (x64)
+; License:        The Unlicense -> http://unlicense.org
+; Change log:
+;                 1.0.00.00/2015-02-06/just me        -  initial release on ahkscript.org
+;                 1.0.01.00/2015-02-08/just me        -  bug fixes
+;                 1.1.00.00/2015-02-13/just me        -  bug fixes, mouse wheel handling, AutoSize method
+;                 1.2.00.00/2015-03-12/just me        -  mouse wheel handling, resizing, OnMessage, bug fixes
+; ======================================================================================================================
+Class ScrollGUI {
+   Static Instances := []
+   ; ===================================================================================================================
+   ; __New          Creates a scrollable parent window (ScrollGUI) for the passed GUI.
+   ; Parameters:
+   ;    HGUI        -  HWND of the GUI child window.
+   ;    Width       -  Width of the client area of the ScrollGUI.
+   ;                   Pass 0 to set the client area to the width of the child GUI.
+   ;    Height      -  Height of the client area of the ScrollGUI.
+   ;                   Pass 0 to set the client area to the height of the child GUI.
+   ;    ----------- Optional:
+   ;    GuiOptions  -  GUI options to be used when creating the ScrollGUI (e.g. +LabelMyLabel).
+   ;                   Default: empty (no options)
+   ;    ScrollBars  -  Scroll bars to register:
+   ;                   1 : horizontal
+   ;                   2 : vertical
+   ;                   3 : both
+   ;                   Default: 3
+   ;    Wheel       -  Register WM_MOUSEWHEEL / WM_MOUSEHWHEEL messages:
+   ;                   1 : register WM_MOUSEHWHEEL for horizontal scrolling (reqires Win Vista+)
+   ;                   2 : register WM_MOUSEWHEEL for vertical scrolling
+   ;                   3 : register both
+   ;                   4 : register WM_MOUSEWHEEL for vertical and Shift+WM_MOUSEWHEEL for horizontal scrolling
+   ;                   Default: 0
+   ; Return values:
+   ;    On failure:    False
+   ; Remarks:
+   ;    The dimensions of the child GUI are determined internally according to the visible children.
+   ;    The maximum width and height of the parent GUI will be restricted to the dimensions of the child GUI.
+   ;    If you register mouse wheel messages, the messages will be passed to the focused control, unless the mouse
+   ;    is hovering on one of the ScrollGUI's scroll bars. If the control doesn't process the message, it will be
+   ;    returned back to the ScrollGUI.
+   ;    Common controls seem to ignore wheel messages whenever the CTRL is down. So you can use this modifier to
+   ;    scroll the ScrollGUI even if a scrollable control has the focus.
+   ; ===================================================================================================================
+   __New(HGUI, Width, Height, GuiOptions := "", ScrollBars := 3, Wheel := 0) {
+      Static WS_HSCROLL := "0x100000", WS_VSCROLL := "0x200000"
+      Static FN_SCROLL := ObjBindMethod(ScrollGui, "On_WM_Scroll")
+      Static FN_SIZE := ObjBindMethod(ScrollGui, "On_WM_Size")
+      Static FN_WHEEL := ObjBindMethod(ScrollGUI, "On_WM_Wheel")
+      ScrollBars &= 3
+      Wheel &= 7
+      If ((ScrollBars <> 1) && (ScrollBars <> 2) && (ScrollBars <> 3))
+         || ((Wheel <> 0) && (Wheel <> 1) && (Wheel <> 2) && (Wheel <> 3) && (Wheel <> 4))
+         Return False
+      If !DllCall("User32.dll\IsWindow", "Ptr", HGUI, "UInt")
+         Return False
+      VarSetCapacity(RC, 16, 0)
+      ; Child GUI
+      If !This.AutoSize(HGUI, GuiW, GuiH)
+         Return False
+      Gui, %HGUI%:-Caption -Resize
+      Gui, %HGUI%:Show, w%GuiW% h%GuiH% Hide
+      MaxH := GuiW
+      MaxV := GuiH
+      LineH := 450
+      LineV := Ceil(MaxV / 20)
+      ; ScrollGUI
+      If (Width = 0) || (Width > MaxH)
+         Width := MaxH
+      If (Height = 0) || (Height > MaxV)
+         Height := MaxV
+      Styles := (ScrollBars & 1 ? " +" . WS_HSCROLL : "") . (ScrollBars & 2 ? " +" . WS_VSCROLL : "")
+      Gui, New, %GuiOptions% %Styles% +hwndHWND
+      Gui, %HWND%:Show, w%Width% h%Height% Hide
+      Gui, %HWND%:+MaxSize%MaxH%x%MaxV%
+      PageH := Width + 1
+      PageV := Height + 1
+      ; Instance variables
+      This.HWND := HWND + 0
+      This.HGUI := HGUI
+      This.Width := Width
+      This.Height := Height
+      This.UseShift := False
+      If (ScrollBars & 1) {
+         This.SetScrollInfo(0, {Max: MaxH, Page: PageH, Pos: 0}) ; SB_HORZ = 0
+         OnMessage(0x0114, FN_SCROLL) ; WM_HSCROLL = 0x0114
+         If (Wheel & 1)
+            OnMessage(0x020E, FN_WHEEL) ; WM_MOUSEHWHEEL = 0x020E
+         Else If (Wheel & 4) {
+            OnMessage(0x020A, FN_WHEEL) ; WM_MOUSEWHEEL = 0x020A
+            This.UseShift := True
+         }
+         This.MaxH := MaxH
+         This.LineH := LineH
+         This.PageH := PageH
+         This.PosH := 0
+         This.ScrollH := True
+         If (Wheel & 5)
+            This.WheelH := True
+      }
+      If (ScrollBars & 2) {
+         This.SetScrollInfo(1, {Max: MaxV, Page: PageV, Pos: 0}) ; SB_VERT = 1
+         OnMessage(0x0115, FN_SCROLL) ; WM_VSCROLL = 0x0115
+         If (Wheel & 6)
+            OnMessage(0x020A, FN_WHEEL) ; WM_MOUSEWHEEL = 0x020A
+         This.MaxV := MaxV
+         This.LineV := LineV
+         This.PageV := PageV
+         This.PosV := 0
+         This.ScrollV := True
+         If (Wheel & 6)
+            This.WheelV := True
+      }
+      ; Set the position of the child GUI
+      Gui, %HGUI%:+Parent%HWND%
+      Gui, %HGUI%:Show, x0 y0
+      ; Adjust the scroll bars
+      This.Instances[This.HWND] := &This
+      This.Size()
+      OnMessage(0x0005, FN_SIZE) ; WM_SIZE = 0x0005
+   }
+   ; ===================================================================================================================
+   ; __Delete       Destroy the GUIs, if they still exist.
+   ; ===================================================================================================================
+   __Delete() {
+      This.Destroy()
+   }
+   ; ===================================================================================================================
+   ; Show           Shows the ScrollGUI.
+   ; Parameters:
+   ;    Title       -  Title of the ScrollGUI window
+   ;    ShowOptions -  Gui, Show command options, width or height options are ignored
+   ; Return values:
+   ;    On success: True
+   ;    On failure: False
+   ; ===================================================================================================================
+   Show(Title := "", ShowOptions := "") {
+      ShowOptions := RegExReplace(ShowOptions, "i)\+?AutoSize")
+      W := This.Width
+      H := This.Height
+      Gui, % This.HWND . ":Show",NA %ShowOptions% w%W% h%H%, %Title%
+      if (Title == "Arturo's PTCGP BOT")
+         MainGuiName := % This.HGUI
+      Return True
+   }
+   hide(Title := "") {
+      Gui, % This.HWND . ":Hide"
+      Return True
+   }
+   ; ===================================================================================================================
+   ; Destroy        Destroys the ScrollGUI and the associated child GUI.
+   ; Parameters:
+   ;    None.
+   ; Return values:
+   ;    On success: True
+   ;    On failure: False
+   ; Remarks:
+   ;    Use this method instead of 'Gui, Destroy' to remove the ScrollGUI from the 'Instances' object.
+   ; ===================================================================================================================
+   Destroy() {
+      If This.Instances.HasKey(This.HWND) {
+         Gui, % This.HWND . ":Destroy"
+         This.Instances.Remove(This.HWND, "")
+         Return True
+      }
+   }
+   ; ===================================================================================================================
+   ; AdjustToChild  Adjust the scroll bars to the new child dimensions.
+   ; Parameters:
+   ;    None
+   ; Return values:
+   ;    On success: True
+   ;    On failure: False
+   ; Remarks:
+   ;    Call this method whenever the visible area of the child GUI has to be changed, e.g. after adding, hiding,
+   ;    unhiding, resizing, or repositioning controls.
+   ;    The dimensions of the child GUI are determined internally according to the visible children.
+   ; ===================================================================================================================
+   AdjustToChild() {
+      VarSetCapacity(RC, 16, 0)
+      DllCall("User32.dll\GetWindowRect", "Ptr", This.HGUI, "Ptr", &RC)
+      PrevW := NumGet(RC, 8, "Int") - NumGet(RC, 0, "Int")
+      PrevH := Numget(RC, 12, "Int") - NumGet(RC, 4, "Int")
+      DllCall("User32.dll\ScreenToClient", "Ptr", This.HWND, "Ptr", &RC)
+      XC := XN := NumGet(RC, 0, "Int")
+      YC := YN := NumGet(RC, 4, "Int")
+      If !This.AutoSize(This.HGUI, GuiW, GuiH)
+         Return False
+      Gui, % This.HGUI . ":Show", x%XC% y%YC% w%GuiW% h%GuiH%
+      MaxH := GuiW
+      MaxV := GuiH
+      Gui, % This.HWND . ":+MaxSize" . MaxH . "x" . MaxV
+      If (GuiW < This.Width) || (GuiH < This.Height) {
+         Gui, % This.HWND . ":Show", w%GuiW% h%GuiH%
+         This.Width := GuiW
+         This.SetPage(1, MaxH + 1)
+         This.Height := GuiH
+         This.SetPage(2, MaxV + 1)
+      }
+      LineH := Ceil(MaxH / 20)
+      LineV := Ceil(MaxV / 20)
+      If This.ScrollH {
+         This.SetMax(1, MaxH)
+         This.LineH := LineH
+         If (XC + MaxH) < This.Width {
+            XN += This.Width - (XC + MaxH)
+            If (XN > 0)
+               XN := 0
+            This.SetScrollInfo(0, {Pos: XN * -1})
+            This.GetScrollInfo(0, SI)
+            This.PosH := NumGet(SI, 20, "Int")
+         }
+      }
+      If This.ScrollV {
+         This.SetMax(2, MaxV)
+         This.LineV := LineV
+         If (YC + MaxV) < This.Height {
+            YN += This.Height - (YC + MaxV)
+            If (YN > 0)
+               YN := 0
+            This.SetScrollInfo(1, {Pos: YN * -1})
+            This.GetScrollInfo(1, SI)
+            This.PosV := NumGet(SI, 20, "Int")
+         }
+      }
+      If (XC <> XN) || (YC <> YN)
+         DllCall("User32.dll\ScrollWindow", "Ptr", This.HWND, "Int", XN - XC, "Int", YN - YC, "Ptr", 0, "Ptr", 0)
+      Return True
+   }
+   ; ===================================================================================================================
+   ; SetMax         Sets the width or height of the scrolling area.
+   ; Parameters:
+   ;    SB          -  Scroll bar to set the value for:
+   ;                   1 = horizontal
+   ;                   2 = vertical
+   ;    Max         -  Width respectively height of the scrolling area in pixels
+   ; Return values:
+   ;    On success: True
+   ;    On failure: False
+   ; ===================================================================================================================
+   SetMax(SB, Max) {
+      ; SB_HORZ = 0, SB_VERT = 1
+      SB--
+      If (SB <> 0) && (SB <> 1)
+         Return False
+      If (SB = 0)
+         This.MaxH := Max
+      Else
+         This.MaxV := Max
+      Return This.SetScrollInfo(SB, {Max: Max})
+   }
+   ; ===================================================================================================================
+   ; SetLine        Sets the number of pixels to scroll by line.
+   ; Parameters:
+   ;    SB          -  Scroll bar to set the value for:
+   ;                   1 = horizontal
+   ;                   2 = vertical
+   ;    Line        -  Number of pixels.
+   ; Return values:
+   ;    On success: True
+   ;    On failure: False
+   ; ===================================================================================================================
+   SetLine(SB, Line) {
+      ; SB_HORZ = 0, SB_VERT = 1
+      SB--
+      If (SB <> 0) && (SB <> 1)
+         Return False
+      If (SB = 0)
+         This.LineH := Line
+      Else
+         This.LineV := Line
+      Return True
+   }
+   ; ===================================================================================================================
+   ; SetPage        Sets the number of pixels to scroll by page.
+   ; Parameters:
+   ;    SB          -  Scroll bar to set the value for:
+   ;                   1 = horizontal
+   ;                   2 = vertical
+   ;    Page        -  Number of pixels.
+   ; Return values:
+   ;    On success: True
+   ;    On failure: False
+   ; Remarks:
+   ;    If the ScrollGUI is resizable, the page size will be recalculated automatically while resizing.
+   ; ===================================================================================================================
+   SetPage(SB, Page) {
+      ; SB_HORZ = 0, SB_VERT = 1
+      SB--
+      If (SB <> 0) && (SB <> 1)
+         Return False
+      If (SB = 0)
+         This.PageH := Page
+      Else
+         This.PageV := Page
+      Return This.SetScrollInfo(SB, {Page: Page})
+   }
+   ; ===================================================================================================================
+   ; Methods for internal or system use!!!
+   ; ===================================================================================================================
+   AutoSize(HGUI, ByRef Width, ByRef Height) {
+      DHW := A_DetectHiddenWindows
+      DetectHiddenWindows, On
+      VarSetCapacity(RECT, 16, 0)
+      Width := Height := 0
+      HWND := HGUI
+      CMD := 5 ; GW_CHILD
+      L := T := R := B := LH := TH := ""
+      While (HWND := DllCall("GetWindow", "Ptr", HWND, "UInt", CMD, "UPtr")) && (CMD := 2) {
+         WinGetPos, X, Y, W, H, ahk_id %HWND%
+         W += X, H += Y
+         WinGet, Styles, Style, ahk_id %HWND%
+         If (Styles & 0x10000000) { ; WS_VISIBLE
+            If (L = "") || (X < L)
+               L := X
+            If (T = "") || (Y < T)
+               T := Y
+            If (R = "") || (W > R)
+               R := W
+            If (B = "") || (H > B)
+               B := H
+         }
+         Else {
+            If (LH = "") || (X < LH)
+               LH := X
+            If (TH = "") || (Y < TH)
+               TH := Y
+         }
+      }
+      DetectHiddenWindows, %DHW%
+      If (LH <> "") {
+         VarSetCapacity(POINT, 8, 0)
+         NumPut(LH, POINT, 0, "Int")
+         DllCall("ScreenToClient", "Ptr", HGUI, "Ptr", &POINT)
+         LH := NumGet(POINT, 0, "Int")
+      }
+      If (TH <> "") {
+         VarSetCapacity(POINT, 8, 0)
+         NumPut(TH, POINT, 4, "Int")
+         DllCall("ScreenToClient", "Ptr", HGUI, "Ptr", &POINT)
+         TH := NumGet(POINT, 4, "Int")
+      }
+      NumPut(L, RECT, 0, "Int"), NumPut(T, RECT, 4, "Int")
+      NumPut(R, RECT, 8, "Int"), NumPut(B, RECT, 12, "Int")
+      DllCall("MapWindowPoints", "Ptr", 0, "Ptr", HGUI, "Ptr", &RECT, "UInt", 2)
+      Width := NumGet(RECT, 8, "Int") + (LH <> "" ? LH : NumGet(RECT, 0, "Int"))
+      Height := NumGet(RECT, 12, "Int") + (TH <> "" ? TH : NumGet(RECT, 4, "Int"))
+      Return True
+   }
+   ; ===================================================================================================================
+   GetScrollInfo(SB, ByRef SI) {
+      VarSetCapacity(SI, 28, 0) ; SCROLLINFO
+      NumPut(28, SI, 0, "UInt")
+      NumPut(0x17, SI, 4, "UInt") ; SIF_ALL = 0x17
+      Return DllCall("User32.dll\GetScrollInfo", "Ptr", This.HWND, "Int", SB, "Ptr", &SI, "UInt")
+   }
+   ; ===================================================================================================================
+   SetScrollInfo(SB, Values) {
+      Static SIF := {Max: 0x01, Page: 0x02, Pos: 0x04}
+      Static Off := {Max: 12, Page: 16, Pos: 20}
+      Mask := 0
+      VarSetCapacity(SI, 28, 0) ; SCROLLINFO
+      NumPut(28, SI, 0, "UInt")
+      For Key, Value In Values {
+         If SIF.HasKey(Key) {
+            Mask |= SIF[Key]
+            NumPut(Value, SI, Off[Key], "UInt")
+         }
+      }
+      If (Mask) {
+         NumPut(Mask | 0x08, SI, 4, "UInt") ; SIF_DISABLENOSCROLL = 0x08
+         Return DllCall("User32.dll\SetScrollInfo", "Ptr", This.HWND, "Int", SB, "Ptr", &SI, "UInt", 1, "UInt")
+      }
+      Return False
+   }
+   ; ===================================================================================================================
+   On_WM_Scroll(WP, LP, Msg, HWND) {
+      ; WM_HSCROLL = 0x0114, WM_VSCROLL = 0x0115
+      If (Instance := Object(This.Instances[HWND]))
+         If ((Msg = 0x0114) && Instance.ScrollH)
+            || ((Msg = 0x0115) && Instance.ScrollV)
+            Return Instance.Scroll(WP, LP, Msg, HWND)
+   }
+   ; ==================================================================================================================
+   SnapToPage(SB := 1) {
+      ;ToolTip, InSnap, 50, 20
+      pos := (SB=1) ? This.PosH : This.PosV
+      page := (SB=1) ? This.Width : This.Height
+      target := Round(pos / page) * page
+      This.SetScrollInfo(SB-1, {Pos: target})
+      This.GetScrollInfo(SB-1, SI)
+      if (SB=1)
+         This.PosH := NumGet(SI, 20, "Int")
+      else
+         This.PosV := NumGet(SI, 20, "Int")
+      ; refresh immediately
+      DllCall("User32.dll\ScrollWindow", "Ptr", This.HWND, "Int", (SB=1) ? pos-target : 0, "Int", (SB=2) ? pos-target : 0, "Ptr", 0, "Ptr", 0)
+   }
+   ; ===================================================================================================================
+   Scroll(WP, LP, Msg, HWND) {
+      
+      ; WM_HSCROLL = 0x0114, WM_VSCROLL = 0x0115
+      Static SB_LINEMINUS := 0, SB_LINEPLUS := 1, SB_PAGEMINUS := 2, SB_PAGEPLUS := 3, SB_THUMBTRACK := 5
+      If (LP <> 0)
+         Return
+      SB := (Msg = 0x0114 ? 0 : 1) ; SB_HORZ : SB_VERT
+      SC := WP & 0xFFFF
+      if (SC = 8) {
+         ;ToolTip, SC = %SC%, 50, 50
+         This.SnapToPage(1)
+      }
+      SD := (Msg = 0x0114 ? This.LineH : This.LineV)
+      SI := 0
+      If !This.GetScrollInfo(SB, SI)
+         Return
+      PA := PN := NumGet(SI, 20, "Int")
+      PN := (SC = 0) ? PA - SD ; SB_LINEMINUS
+         : (SC = 1) ? PA + SD ; SB_LINEPLUS
+         : (SC = 2) ? PA - NumGet(SI, 16, "UInt") ; SB_PAGEMINUS
+         : (SC = 3) ? PA + NumGet(SI, 16, "UInt") ; SB_PAGEPLUS
+         : (SC = 5) ? NumGet(SI, 24, "Int") ; SB_THUMBTRACK
+         : PA
+      If (PA = PN)
+         Return 0
+      This.SetScrollInfo(SB, {Pos: PN})
+      This.GetScrollInfo(SB, SI)
+      PN := NumGet(SI, 20, "Int")
+      If (SB = 0)
+         This.PosH := PN
+      Else
+         This.PosV := PN
+      If (PA <> PN) {
+         HS := (Msg = 0x0114) ? PA - PN : 0
+         VS := (Msg = 0x0115) ? PA - PN : 0
+         DllCall("User32.dll\ScrollWindow", "Ptr", This.HWND, "Int", HS, "Int", VS, "Ptr", 0, "Ptr", 0)
+      }
+      Return 0
+   }
+   ; ===================================================================================================================
+   On_WM_Size(WP, LP, Msg, HWND) {
+      If ((WP = 0) || (WP = 2)) && (Instance := Object(This.Instances[HWND]))
+         Return Instance.Size(LP & 0xFFFF, (LP >> 16) & 0xFFFF)
+   }
+   ; ===================================================================================================================
+   Size(Width := 0, Height := 0) {
+      If (Width = 0) || (Height = 0) {
+         VarSetCapacity(RC, 16, 0)
+         DllCall("User32.dll\GetClientRect", "Ptr", This.HWND, "Ptr", &RC)
+         Width := NumGet(RC, 8, "Int")
+         Height := Numget(RC, 12, "Int")
+      }
+      SH := SV := 0
+      If This.ScrollH {
+         If (Width <> This.Width) {
+            This.SetScrollInfo(0, {Page: Width + 1})
+            This.Width := Width
+            This.GetScrollInfo(0, SI)
+            PosH := NumGet(SI, 20, "Int")
+            SH := This.PosH - PosH
+            This.PosH := PosH
+         }
+      }
+      If This.ScrollV {
+         If (Height <> This.Height) {
+            This.SetScrollInfo(1, {Page: Height + 1})
+            This.Height := Height
+            This.GetScrollInfo(1, SI)
+            PosV := NumGet(SI, 20, "Int")
+            SV := This.PosV - PosV
+            This.PosV := PosV
+         }
+      }
+      If (SH) || (SV)
+         DllCall("User32.dll\ScrollWindow", "Ptr", This.HWND, "Int", SH, "Int", SV, "Ptr", 0, "Ptr", 0)
+      Return 0
+   }
+   ; ===================================================================================================================
+   On_WM_Wheel(WP, LP, Msg, HWND) {
+      ; MK_SHIFT = 0x0004, WM_MOUSEWHEEL = 0x020A, WM_MOUSEHWHEEL = 0x020E, WM_NCHITTEST = 0x0084
+      HACT := WinActive("A") + 0
+      If (HACT <> HWND) && (Instance := Object(This.Instances[HACT])) {
+         SendMessage, 0x0084, 0, % (LP & 0xFFFFFFFF), , ahk_id %HACT%
+         OnBar := ErrorLevel
+         If (OnBar = 6) && Instance.WheelH ; HTHSCROLL = 6
+            Return Instance.Wheel(WP, LP, 0x020E, HACT)
+         If (OnBar = 7) && Instance.WheelV ; HTVSCROLL = 7
+            Return Instance.Wheel(WP, LP, 0x020A, HACT)
+      }
+      If (Instance := Object(This.Instances[HWND])) {
+         If ((Msg = 0x020E) && Instance.WheelH)
+            || ((Msg = 0x020A) && (Instance.WheelV || (Instance.WheelH && Instance.UseShift && (WP & 0x0004))))
+            Return Instance.Wheel(WP, LP, Msg, HWND)
+      }
+   }
+   ; ===================================================================================================================
+   Wheel(WP, LP, Msg, HWND) {
+      ; MK_SHIFT = 0x0004, WM_MOUSEWHEEL = 0x020A, WM_MOUSEHWHEEL = 0x020E, WM_HSCROLL = 0x0114, WM_VSCROLL = 0x0115
+      ; SB_LINEMINUS = 0, SB_LINEPLUS = 1
+      If (Msg = 0x020A) && This.UseShift && (WP & 0x0004)
+         Msg := 0x020E
+      Msg := (Msg = 0x020A ? 0x0115 : 0x0114)
+      SB := ((WP >> 16) > 0x7FFF) || (WP < 0) ? 1 : 0
+      Return This.Scroll(SB, 0, Msg, HWND)
+   }
+}
 
-GoPackSelect:
-    DisableAllImageButton()
-    ; Show Pack Select Page
-    ShowPackSelectPage()
+UpdateTopBarSwitchPos(barX, barBottomY) {
+   global topBarW
+   Gui, TopBarSwitch:Show, % "x" . barX . " y" . barBottomY . " w" . topBarW . " NoActivate"
+}
+
+OnGuiMove(wParam, lParam, msg, hwnd) {
+   global mainHwnd, menuHwnd, menuW, menuH, menuExpanded
+   global topBarW, topBarH, topBarExpanded, topBarHwnd, topBarSwitchHwnd
+   if (hwnd != mainHwnd)
+      return
+   WinGetPos, mainX, mainY, mainW, mainH, ahk_id %mainHwnd%
+   
+   ; Menu position
+   if (menuExpanded)
+      menuX := mainX + mainW - 5
+   else
+      menuX := mainX + mainW - menuW - 35
+   menuY := mainY
+   Gui, Menu:Show, x%menuX% y%menuY% NoActivate
+   
+   ; TopBar position
+   TopBarX := mainX + 15
+      ,TopBarY := mainY + 32
+   Gui, TopBar:Show, % "x" . TopBarX . " y" . TopBarY . " NoActivate"
+   
+   ; TopColor position
+   TopColorX := mainX + 274
+      ,TopColorY := mainY + 195
+   Gui, TopBarColor:Show, % "x" . TopColorX . " y" . TopColorY . " NoActivate"
+   
+   ; TopBarSwitch position
+   TopBarSwitchX := TopBarX
+   if (!topBarExpanded) {
+      TopBarSwitchY := TopBarY + 45
+   } else {
+      TopBarSwitchY := TopBarY + topBarH + 107
+   }
+   Gui, TopBarSwitch:Show, % "x" . TopBarSwitchX . " y" . TopBarSwitchY . " NoActivate"
+}
+
+OnMainGuiActivate(wParam, lParam, msg, hwnd) {
+   global mainHwnd, menuHwnd, topBarHwnd, topBarSwitchHwnd, topBarColorHwnd, CallOthers
+   if (!CallOthers)
+   {
+      WinSet, AlwaysOnTop, On, ahk_id %menuHwnd%
+      WinSet, AlwaysOnTop, On, ahk_id %mainHwnd%
+      WinSet, AlwaysOnTop, On, ahk_id %topBarHwnd%
+      WinSet, AlwaysOnTop, On, ahk_id %topBarSwitchHwnd%
+      WinSet, AlwaysOnTop, On, ahk_id %topBarColorHwnd%
+   }
+}
+
+GuiRemoveAlwaysOnTop() {
+   WinSet, AlwaysOnTop, Off, ahk_id %menuHwnd%
+   WinSet, AlwaysOnTop, Off, ahk_id %mainHwnd%
+   WinSet, AlwaysOnTop, Off, ahk_id %topBarHwnd%
+   WinSet, AlwaysOnTop, Off, ahk_id %topBarSwitchHwnd%
+   WinSet, AlwaysOnTop, Off, ahk_id %topBarColorHwnd%
+}
+
+; Function to load settings from INI file
+LoadSettingsFromIni() {
+   global
+   ; Check if Settings.ini exists
+   if (FileExist("Settings.ini")) {
+      IniRead, IsLanguageSet, Settings.ini, UserSettings, IsLanguageSet, 1
+      IniRead, defaultBotLanguage, Settings.ini, UserSettings, defaultBotLanguage, 1
+      IniRead, BotLanguage, Settings.ini, UserSettings, BotLanguage, English
+      
+      IniRead, shownLicense, Settings.ini, UserSettings, shownLicense, 0
+      ; Read basic settings with default values if they don't exist in the file
+      IniRead, currentfont, Settings.ini, UserSettings, currentfont, segoe UI
+      defaultBg := A_ScriptDir . "\\GUI\\Images\background2.png"
+      defaultPage := A_ScriptDir . "\\GUI\\Images\Page2.png"
+      defaultMenu := A_ScriptDir . "\GUI\Images\Menu2.png"
+      defaultBtn := A_ScriptDir . "\GUI\Images\panel2.png"
+      defaultTitle := A_ScriptDir . "\GUI\Images\title2.png"
+      defaultTopBarBig := A_ScriptDir . "\GUI\Images\TopBarBig2.png"
+      defaultTopBarSmall := A_ScriptDir . "\GUI\Images\TopBarSmall2.png"
+      defaultTopBarOpen := A_ScriptDir . "\GUI\Images\TopBarOpen2.png"
+      defaultTopBarClose := A_ScriptDir . "\GUI\Images\TopBarClose2.png"
+      defaultMenuOpen := A_ScriptDir . "\GUI\Images\MenuOpen2.png"
+      defaultMenuClose := A_ScriptDir . "\GUI\Images\MenuClose2.png"
+      defaultToolTip := A_ScriptDir . "\GUI\Images\ToolTip2.png"
+      IniRead, BackgroundImage, Settings.ini, UserSettings, BackgroundImage, %defaultBg%
+      IniRead, PageImage, Settings.ini, UserSettings, PageImage, %defaultPage%
+      IniRead, MenuBackground, Settings.ini, UserSettings, MenuBackground, %defaultMenu%
+      IniRead, FontColor, Settings.ini, UserSettings, FontColor, FDFDFD
+      IniRead, CurrentTheme, Settings.ini, UserSettings, CurrentTheme, Dark
+      IniRead, btn_mainPage, Settings.ini, UserSettings, btn_mainPage, %defaultBtn%
+      IniRead, btn_fontColor, Settings.ini, UserSettings, btn_fontColor, FDFDFD
+      IniRead, titleImage, Settings.ini, UserSettings, titleImage, %defaultTitle%
+      IniRead, TopBarBig, Settings.ini, UserSettings, TopBarBig, %defaultTopBarBig%
+      IniRead, TopBarSmall, Settings.ini, UserSettings, TopBarSmall, %defaultTopBarSmall%
+      IniRead, TopBarOpen, Settings.ini, UserSettings, TopBarOpen, %defaultTopBarOpen%
+      IniRead, TopBarClose, Settings.ini, UserSettings, TopBarClose, %defaultTopBarClose%
+      IniRead, MenuOpen, Settings.ini, UserSettings, MenuOpen, %defaultMenuOpen%
+      IniRead, MenuClose, Settings.ini, UserSettings, MenuClose, %defaultMenuClose%
+      IniRead, ToolTipImage, Settings.ini, UserSettings, ToolTipImage, %defaultToolTip%
+      ;friend id
+      IniRead, FriendID, Settings.ini, UserSettings, FriendID, ""
+      ;instance settings
+      IniRead, Instances, Settings.ini, UserSettings, Instances, 1
+      IniRead, instanceStartDelay, Settings.ini, UserSettings, instanceStartDelay, 0
+      IniRead, Columns, Settings.ini, UserSettings, Columns, 5
+      IniRead, runMain, Settings.ini, UserSettings, runMain, 1
+      IniRead, Mains, Settings.ini, UserSettings, Mains, 1
+      IniRead, AccountName, Settings.ini, UserSettings, AccountName, ""
+      IniRead, autoLaunchMonitor, Settings.ini, UserSettings, autoLaunchMonitor, 1
+      IniRead, autoUseGPTest, Settings.ini, UserSettings, autoUseGPTest, 0
+      IniRead, TestTime, Settings.ini, UserSettings, TestTime, 3600
+      ;Time settings
+      IniRead, Delay, Settings.ini, UserSettings, Delay, 250
+      IniRead, waitTime, Settings.ini, UserSettings, waitTime, 5
+      IniRead, swipeSpeed, Settings.ini, UserSettings, swipeSpeed, 300
+      IniRead, slowMotion, Settings.ini, UserSettings, slowMotion, 0
+      
+      ;system settings
+      IniRead, SelectedMonitorIndex, Settings.ini, UserSettings, SelectedMonitorIndex, 1
+      IniRead, defaultLanguage, Settings.ini, UserSettings, defaultLanguage, Scale125
+      IniRead, rowGap, Settings.ini, UserSettings, rowGap, 100
+      IniRead, folderPath, Settings.ini, UserSettings, folderPath, C:\Program Files\Netease
+      IniRead, ocrLanguage, Settings.ini, UserSettings, ocrLanguage, en
+      IniRead, clientLanguage, Settings.ini, UserSettings, clientLanguage, en
+      IniRead, instanceLaunchDelay, Settings.ini, UserSettings, instanceLaunchDelay, 5
+      
+      ; Extra Settings
+      IniRead, tesseractPath, Settings.ini, UserSettings, tesseractPath, C:\Program Files\Tesseract-OCR\tesseract.exe
+      IniRead, applyRoleFilters, Settings.ini, UserSettings, applyRoleFilters, 0
+      IniRead, debugMode, Settings.ini, UserSettings, debugMode, 0
+      IniRead, tesseractOption, Settings.ini, UserSettings, tesseractOption, 0
+      IniRead, statusMessage, Settings.ini, UserSettings, statusMessage, 1
+      
+      ;pack settings
+      IniRead, minStars, Settings.ini, UserSettings, minStars, 0
+      IniRead, minStarsShiny, Settings.ini, UserSettings, minStarsShiny, 0
+      IniRead, minStarsEnabled, Settings.ini, UserSettings, minStarsEnabled, 0
+      IniRead, deleteMethod, Settings.ini, UserSettings, deleteMethod, 13 Pack
+      IniRead, packMethod, Settings.ini, UserSettings, packMethod, 0
+      IniRead, nukeAccount, Settings.ini, UserSettings, nukeAccount, 0
+      IniRead, spendHourGlass, Settings.ini, UserSettings, spendHourGlass, 0
+      IniRead, openExtraPack, Settings.ini, UserSettings, openExtraPack, 0
+      IniRead, injectSortMethod, Settings.ini, UserSettings, injectSortMethod, ModifiedAsc
+      IniRead, godPack, Settings.ini, UserSettings, godPack, Continue
+      
+      IniRead, Palkia, Settings.ini, UserSettings, Palkia, 0
+      IniRead, Dialga, Settings.ini, UserSettings, Dialga, 0
+      IniRead, Arceus, Settings.ini, UserSettings, Arceus, 0
+      IniRead, Shining, Settings.ini, UserSettings, Shining, 0
+      IniRead, Mew, Settings.ini, UserSettings, Mew, 0
+      IniRead, Pikachu, Settings.ini, UserSettings, Pikachu, 0
+      IniRead, Charizard, Settings.ini, UserSettings, Charizard, 0
+      IniRead, Mewtwo, Settings.ini, UserSettings, Mewtwo, 0
+      IniRead, Solgaleo, Settings.ini, UserSettings, Solgaleo, 0
+      IniRead, Lunala, Settings.ini, UserSettings, Lunala, 0
+      IniRead, Buzzwole, Settings.ini, UserSettings, Buzzwole, 1
+      
+      IniRead, CheckShinyPackOnly, Settings.ini, UserSettings, CheckShinyPackOnly, 0
+      IniRead, TrainerCheck, Settings.ini, UserSettings, TrainerCheck, 0
+      IniRead, FullArtCheck, Settings.ini, UserSettings, FullArtCheck, 0
+      IniRead, RainbowCheck, Settings.ini, UserSettings, RainbowCheck, 0
+      IniRead, ShinyCheck, Settings.ini, UserSettings, ShinyCheck, 0
+      IniRead, CrownCheck, Settings.ini, UserSettings, CrownCheck, 0
+      IniRead, ImmersiveCheck, Settings.ini, UserSettings, ImmersiveCheck, 0
+      IniRead, InvalidCheck, Settings.ini, UserSettings, InvalidCheck, 0
+      IniRead, PseudoGodPack, Settings.ini, UserSettings, PseudoGodPack, 0
+      
+      ; Read S4T settings
+      IniRead, s4tEnabled, Settings.ini, UserSettings, s4tEnabled, 0
+      IniRead, s4tSilent, Settings.ini, UserSettings, s4tSilent, 1
+      IniRead, s4t3Dmnd, Settings.ini, UserSettings, s4t3Dmnd, 0
+      IniRead, s4t4Dmnd, Settings.ini, UserSettings, s4t4Dmnd, 0
+      IniRead, s4t1Star, Settings.ini, UserSettings, s4t1Star, 0
+      IniRead, s4tGholdengo, Settings.ini, UserSettings, s4tGholdengo, 0
+      IniRead, s4tWP, Settings.ini, UserSettings, s4tWP, 0
+      IniRead, s4tWPMinCards, Settings.ini, UserSettings, s4tWPMinCards, 1
+      IniRead, s4tDiscordWebhookURL, Settings.ini, UserSettings, s4tDiscordWebhookURL, ""
+      
+      ;discord settings
+      IniRead, DiscordWebhookURL, Settings.ini, UserSettings, DiscordWebhookURL, ""
+      IniRead, DiscordUserId, Settings.ini, UserSettings, DiscordUserId, ""
+      IniRead, heartBeat, Settings.ini, UserSettings, heartBeat, 0
+      IniRead, heartBeatWebhookURL, Settings.ini, UserSettings, heartBeatWebhookURL, ""
+      IniRead, heartBeatName, Settings.ini, UserSettings, heartBeatName, ""
+      IniRead, heartBeatDelay, Settings.ini, UserSettings, heartBeatDelay, 30
+      IniRead, sendAccountXml, Settings.ini, UserSettings, sendAccountXml, 0
+      
+      ;download settings
+      IniRead, mainIdsURL, Settings.ini, UserSettings, mainIdsURL, ""
+      IniRead, vipIdsURL, Settings.ini, UserSettings, vipIdsURL, ""
+      IniRead, showcaseEnabled, Settings.ini, UserSettings, showcaseEnabled, 0
+      IniRead, showcaseLikes, Settings.ini, UserSettings, showcaseLikes, 5
+      
+      ; Advanced settings
+      IniRead, minStarsA1Charizard, Settings.ini, UserSettings, minStarsA1Charizard, 0
+      IniRead, minStarsA1Mewtwo, Settings.ini, UserSettings, minStarsA1Mewtwo, 0
+      IniRead, minStarsA1Pikachu, Settings.ini, UserSettings, minStarsA1Pikachu, 0
+      IniRead, minStarsA1a, Settings.ini, UserSettings, minStarsA1a, 0
+      IniRead, minStarsA2Dialga, Settings.ini, UserSettings, minStarsA2Dialga, 0
+      IniRead, minStarsA2Palkia, Settings.ini, UserSettings, minStarsA2Palkia, 0
+      IniRead, minStarsA2a, Settings.ini, UserSettings, minStarsA2a, 0
+      IniRead, minStarsA3Solgaleo, Settings.ini, UserSettings, minStarsA3Solgaleo, 0
+      IniRead, minStarsA3Lunala, Settings.ini, UserSettings, minStarsA3Lunala, 0
+      IniRead, minStarsA3a, Settings.ini, UserSettings, minStarA3aBuzzwole, 0
+      
+      IniRead, waitForEligibleAccounts, Settings.ini, UserSettings, waitForEligibleAccounts, 1
+      IniRead, maxWaitHours, Settings.ini, UserSettings, maxWaitHours, 24
+      /*
+      IniRead, isDarkTheme, Settings.ini, UserSettings, isDarkTheme, 1
+      IniRead, useBackgroundImage, Settings.ini, UserSettings, useBackgroundImage, 1
+      */
+      IniRead, menuExpanded, Settings.ini, UserSettings, menuExpanded, True
+      
+      ; Validate numeric values
+      if (!IsNumeric(Instances))
+         Instances := 1
+      if (!IsNumeric(Columns) || Columns < 1)
+         Columns := 5
+      if (!IsNumeric(waitTime))
+         waitTime := 5
+      if (!IsNumeric(Delay) || Delay < 10)
+         Delay := 250
+      if (s4tWPMinCards < 1 || s4tWPMinCards > 2)
+         s4tWPMinCards := 1
+      
+      ; Return success
+      return true
+   } else {
+      ; Settings file doesn't exist, will use defaults
+      return false
+   }
+}
+
+; Function to create the default settings file if it doesn't exist
+CreateDefaultSettingsFile() {
+   if (!FileExist("Settings.ini")) {
+      defaultBg := A_ScriptDir . "\\GUI\\Images\background2.png"
+      defaultPage := A_ScriptDir . "\\GUI\\Images\Page2.png"
+      defaultMenu := A_ScriptDir . "\GUI\Images\Menu2.png"
+      defaultBtn := A_ScriptDir . "\GUI\Images\panel2.png"
+      defaultTitle := A_ScriptDir . "\GUI\Images\title2.png"
+      defaultTopBarBig := A_ScriptDir . "\GUI\Images\TopBarBig2.png"
+      defaultTopBarSmall := A_ScriptDir . "\GUI\Images\TopBarSmall2.png"
+      defaultTopBarOpen := A_ScriptDir . "\GUI\Images\TopBarOpen2.png"
+      defaultTopBarClose := A_ScriptDir . "\GUI\Images\TopBarClose2.png"
+      defaultMenuOpen := A_ScriptDir . "\GUI\Images\MenuOpen2.png"
+      defaultMenuClose := A_ScriptDir . "\GUI\Images\MenuClose2.png"
+      defaultToolTip := A_ScriptDir . "\GUI\Images\ToolTip2.png"
+      iniContent := "[UserSettings]`n"
+      iniContent .= "IsLanguageSet=0`n"
+      iniContent .= "defaultBotLanguage=1`n"
+      iniContent .= "BotLanguage=English`n"
+      iniContent .= "shownLicense=0`n"
+      iniContent .= "currentfont=Segoe UI`n"
+      iniContent .= "BackgroundImage=" defaultBg "`n"
+      iniContent .= "PageImage=" defaultPage "`n"
+      iniContent .= "MenuBackground=" defaultMenu "`n"
+      iniContent .= "FontColor=FDFDFD`n"
+      iniContent .= "CurrentTheme=Dark`n"
+      iniContent .= "btn_mainPage=" defaultBtn "`n"
+      iniContent .= "btn_fontColor=FDFDFD`n"
+      iniContent .= "titleImage=" defaultTitle "`n"
+      iniContent .= "TopBarBig=" defaultTopBarBig "`n"
+      iniContent .= "TopBarSmall=" defaultTopBarSmall "`n"
+      iniContent .= "TopBarOpen=" defaultTopBarOpen "`n"
+      iniContent .= "TopBarClose=" defaultTopBarClose "`n"
+      iniContent .= "MenuOpen=" defaultMenuOpen "`n"
+      iniContent .= "MenuClose=" defaultMenuClose "`n"
+      iniContent .= "ToolTipImage=" defaultToolTip "`n"
+      iniContent .= "FriendID=`n"
+      iniContent .= "AccountName=`n"
+      iniContent .= "waitTime=5`n"
+      iniContent .= "Delay=250`n"
+      iniContent .= "folderPath=C:\Program Files\Netease`n"
+      iniContent .= "Columns=5`n"
+      iniContent .= "godPack=Continue`n"
+      iniContent .= "Instances=1`n"
+      iniContent .= "instanceStartDelay=0`n"
+      iniContent .= "defaultLanguage=Scale125`n"
+      iniContent .= "SelectedMonitorIndex=1`n"
+      iniContent .= "swipeSpeed=300`n"
+      iniContent .= "runMain=1`n"
+      iniContent .= "Mains=1`n"
+      iniContent .= "autoUseGPTest=0`n"
+      iniContent .= "TestTime=3600`n"
+      iniContent .= "heartBeat=0`n"
+      iniContent .= "heartBeatWebhookURL=`n"
+      iniContent .= "heartBeatName=`n"
+      iniContent .= "heartBeatDelay=30`n"
+      iniContent .= "tesseractPath=C:\Program Files\Tesseract-OCR\tesseract.exe`n"
+      iniContent .= "applyRoleFilters=0`n"
+      iniContent .= "debugMode=0`n"
+      iniContent .= "tesseractOption=0`n"
+      iniContent .= "statusMessage=1`n"
+      iniContent .= "minStarsEnabled=0`n"
+      iniContent .= "showcaseEnabled=0`n"
+      iniContent .= "showcaseURL=`n"
+      iniContent .= "showcaseLikes=5`n"
+      iniContent .= "isDarkTheme=1`n"
+      iniContent .= "useBackgroundImage=1`n"
+      iniContent .= "rowGap=100`n"
+      iniContent .= "variablePackCount=15`n"
+      iniContent .= "claimSpecialMissions=0`n"
+      iniContent .= "spendHourGlass=0`n"
+      iniContent .= "injectSortMethod=ModifiedAsc`n"
+      iniContent .= "waitForEligibleAccounts=1`n"
+      iniContent .= "maxWaitHours=24`n"
+      iniContent .= "menuExpanded=True`n"
+      
+      FileAppend, %iniContent%, Settings.ini
+      return true
+   }
+   return false
+}
+
+SaveAllSettings() {
+   global IsLanguageSet, defaultBotLanguage, BotLanguage, currentfont, BackgroundImage, PageImage, MenuBackground, FontColor
+   global CurrentTheme, btn_mainPage, btn_fontColor, titleImage, ToolTipImage
+   global TopBarBig, TopBarSmall, TopBarOpen, TopBarClose, MenuOpen, MenuClose
+   global shownLicense
+   global FriendID, AccountName, waitTime, Delay, folderPath, discordWebhookURL, discordUserId, Columns, godPack
+   global Instances, instanceStartDelay, defaultLanguage, SelectedMonitorIndex, swipeSpeed, deleteMethod
+   global runMain, Mains, heartBeat, heartBeatWebhookURL, heartBeatName, nukeAccount, packMethod
+   global autoLaunchMonitor, autoUseGPTest, TestTime
+   global CheckShinyPackOnly, TrainerCheck, FullArtCheck, RainbowCheck, ShinyCheck, CrownCheck
+   global InvalidCheck, ImmersiveCheck, PseudoGodPack, minStars, Palkia, Dialga, Arceus, Shining
+   global Mew, Pikachu, Charizard, Mewtwo, Solgaleo, Lunala, Buzzwole, slowMotion, ocrLanguage, clientLanguage
+   global CurrentVisibleSection, heartBeatDelay, sendAccountXml, showcaseEnabled, showcaseURL, isDarkTheme
+   global useBackgroundImage, tesseractPath, applyRoleFilters, debugMode, tesseractOption, statusMessage
+   global s4tEnabled, s4tSilent, s4t3Dmnd, s4t4Dmnd, s4t1Star, s4tGholdengo, s4tWP, s4tWPMinCards
+   global s4tDiscordUserId, s4tDiscordWebhookURL, s4tSendAccountXml, minStarsShiny, instanceLaunchDelay, mainIdsURL, vipIdsURL
+   global spendHourGlass, openExtraPack, injectSortMethod, rowGap, SortByDropdown
+   global waitForEligibleAccounts, maxWaitHours, skipMissionsInjectMissions
+   global minStarsEnabled, minStarsA1Mewtwo, minStarsA1Charizard, minStarsA1Pikachu, minStarsA1a
+   global minStarsA2Dialga, minStarsA2Palkia, minStarsA2a, minStarsA2b
+   global minStarsA3Solgaleo, minStarsA3Lunala, minStarsA3a
+   global menuExpanded
+   
+   iniContent := "[UserSettings]`n"
+   iniContent .= "isLanguageSet=" IsLanguageSet "`n"
+   iniContent .= "defaultBotLanguage=" defaultBotLanguage "`n"
+   iniContent .= "BotLanguage=" BotLanguage "`n"
+   iniContent .= "shownLicense=" shownLicense "`n"
+   iniContent .= "CurrentTheme=" CurrentTheme "`n"
+   iniContent .= "btn_mainPage=" btn_mainPage "`n"
+   iniContent .= "btn_fontColor=" btn_fontColor "`n"
+   iniContent .= "titleImage=" titleImage "`n"
+   iniContent .= "TopBarBig=" TopBarBig "`n"
+   iniContent .= "TopBarSmall=" TopBarSmall "`n"
+   iniContent .= "TopBarOpen=" TopBarOpen "`n"
+   iniContent .= "TopBarClose=" TopBarClose "`n"
+   iniContent .= "MenuOpen=" MenuOpen "`n"
+   iniContent .= "MenuClose=" MenuClose "`n"
+   iniContent .= "ToolTipImage=" ToolTipImage "`n"
+   ;CheckBox
+   iniContent .= "runMain=" runMain "`n"
+   iniContent .= "autoUseGPTest=" autoUseGPTest "`n"
+   iniContent .= "slowMotion=" slowMotion "`n"
+   iniContent .= "autoLaunchMonitor=" autoLaunchMonitor "`n"
+   iniContent .= "applyRoleFilters=" applyRoleFilters "`n"
+   iniContent .= "debugMode=" debugMode "`n"
+   iniContent .= "tesseractOption=" tesseractOption "`n"
+   iniContent .= "statusMessage=" statusMessage "`n"
+   iniContent .= "minStarsEnabled=" minStarsEnabled "`n"
+   iniContent .= "nukeAccount=" nukeAccount "`n"
+   iniContent .= "packMethod=" packMethod "`n"
+   iniContent .= "spendHourGlass=" spendHourGlass "`n"
+   iniContent .= "openExtraPack=" openExtraPack "`n"
+   iniContent .= "Palkia=" Palkia "`n"
+   iniContent .= "Dialga=" Dialga "`n"
+   iniContent .= "Arceus=" Arceus "`n"
+   iniContent .= "Shining=" Shining "`n"
+   iniContent .= "Mew=" Mew "`n"
+   iniContent .= "Pikachu=" Pikachu "`n"
+   iniContent .= "Charizard=" Charizard "`n"
+   iniContent .= "Mewtwo=" Mewtwo "`n"
+   iniContent .= "Solgaleo=" Solgaleo "`n"
+   iniContent .= "Lunala=" Lunala "`n"
+   iniContent .= "Buzzwole=" Buzzwole "`n"
+   iniContent .= "CheckShinyPackOnly=" CheckShinyPackOnly "`n"
+   iniContent .= "TrainerCheck=" TrainerCheck "`n"
+   iniContent .= "FullArtCheck=" FullArtCheck "`n"
+   iniContent .= "RainbowCheck=" RainbowCheck "`n"
+   iniContent .= "ShinyCheck=" ShinyCheck "`n"
+   iniContent .= "CrownCheck=" CrownCheck "`n"
+   iniContent .= "InvalidCheck=" InvalidCheck "`n"
+   iniContent .= "ImmersiveCheck=" ImmersiveCheck "`n"
+   iniContent .= "PseudoGodPack=" PseudoGodPack "`n"
+   iniContent .= "s4tEnabled=" s4tEnabled "`n"
+   iniContent .= "s4tSilent=" s4tSilent "`n"
+   iniContent .= "s4t3Dmnd=" s4t3Dmnd "`n"
+   iniContent .= "s4t4Dmnd=" s4t4Dmnd "`n"
+   iniContent .= "s4t1Star=" s4t1Star "`n"
+   iniContent .= "s4tGholdengo=" s4tGholdengo "`n"
+   iniContent .= "s4tWP=" s4tWP "`n"
+   iniContent .= "s4tSendAccountXml=" s4tSendAccountXml "`n"
+   iniContent .= "sendAccountXml=" sendAccountXml "`n"
+   iniContent .= "heartBeat=" heartBeat "`n"
+   
+   iniContent .= "menuExpanded=" menuExpanded "`n"
+   
+   Gui, % MainGuiName . ":Submit", NoHide
+   if (deleteMethod = "" || deleteMethod = "ERROR") {
+      deleteMethod := "13 Pack"
+   }
+   validMethods := "13 Pack|Inject|Inject Missions|Inject for Reroll"
+   if (!InStr(validMethods, deleteMethod)) {
+      deleteMethod := "13 Pack"
+   }
+   
+   if (SortByDropdown = "Oldest First")
+      injectSortMethod := "ModifiedAsc"
+   else if (SortByDropdown = "Newest First")
+      injectSortMethod := "ModifiedDesc"
+   else if (SortByDropdown = "Fewest Packs First")
+      injectSortMethod := "PacksAsc"
+   else if (SortByDropdown = "Most Packs First")
+      injectSortMethod := "PacksDesc"
+   iniContent_Second := "deleteMethod=" deleteMethod "`n"
+   if (deleteMethod = "Inject for Reroll" || deleteMethod = "13 Pack") {
+      iniContent_Second .= "FriendID=" FriendID "`n"
+      iniContent_Second .= "mainIdsURL=" mainIdsURL "`n"
+   } else {
+      iniContent_Second .= "FriendID=`n"
+      iniContent_Second .= "mainIdsURL=`n"
+      mainIdsURL := ""
+      FriendID := ""
+   }
+   
+   iniContent_Second .= "AccountName=" AccountName "`n"
+   iniContent_Second .= "waitTime=" waitTime "`n"
+   iniContent_Second .= "Delay=" Delay "`n"
+   iniContent_Second .= "folderPath=" folderPath "`n"
+   iniContent_Second .= "discordWebhookURL=" discordWebhookURL "`n"
+   iniContent_Second .= "discordUserId=" discordUserId "`n"
+   iniContent_Second .= "Columns=" Columns "`n"
+   iniContent_Second .= "godPack=" godPack "`n"
+   iniContent_Second .= "Instances=" Instances "`n"
+   iniContent_Second .= "instanceStartDelay=" instanceStartDelay "`n"
+   iniContent_Second .= "defaultLanguage=" defaultLanguage "`n"
+   iniContent_Second .= "rowGap=" rowGap "`n"
+   iniContent_Second .= "SelectedMonitorIndex=" SelectedMonitorIndex "`n"
+   iniContent_Second .= "swipeSpeed=" swipeSpeed "`n"
+   iniContent_Second .= "Mains=" Mains "`n"
+   iniContent_Second .= "TestTime=" TestTime "`n"
+   iniContent_Second .= "heartBeatWebhookURL=" heartBeatWebhookURL "`n"
+   iniContent_Second .= "heartBeatName=" heartBeatName "`n"
+   iniContent_Second .= "heartBeatDelay=" heartBeatDelay "`n"
+   iniContent_Second .= "minStars=" minStars "`n"
+   iniContent_Second .= "ocrLanguage=" ocrLanguage "`n"
+   iniContent_Second .= "clientLanguage=" clientLanguage "`n"
+   iniContent_Second .= "vipIdsURL=" vipIdsURL "`n"
+   iniContent_Second .= "instanceLaunchDelay=" instanceLaunchDelay "`n"
+   iniContent_Second .= "injectSortMethod=" injectSortMethod "`n"
+   iniContent_Second .= "waitForEligibleAccounts=" waitForEligibleAccounts "`n"
+   iniContent_Second .= "maxWaitHours=" maxWaitHours "`n"
+   iniContent_Second .= "showcaseURL=" showcaseURL "`n"
+   iniContent_Second .= "skipMissionsInjectMissions=" skipMissionsInjectMissions "`n"
+   iniContent_Second .= "showcaseEnabled=" showcaseEnabled "`n"
+   iniContent_Second .= "showcaseLikes=5`n"
+   iniContent_Second .= "minStarsA1Mewtwo=" minStarsA1Mewtwo "`n"
+   iniContent_Second .= "minStarsA1Charizard=" minStarsA1Charizard "`n"
+   iniContent_Second .= "minStarsA1Pikachu=" minStarsA1Pikachu "`n"
+   iniContent_Second .= "minStarsA1a=" minStarsA1a "`n"
+   iniContent_Second .= "minStarsA2Dialga=" minStarsA2Dialga "`n"
+   iniContent_Second .= "minStarsA2Palkia=" minStarsA2Palkia "`n"
+   iniContent_Second .= "minStarsA2a=" minStarsA2a "`n"
+   iniContent_Second .= "minStarsA2b=" minStarsA2b "`n"
+   iniContent_Second .= "minStarsA3Solgaleo=" minStarsA3Solgaleo "`n"
+   iniContent_Second .= "minStarsA3Lunala=" minStarsA3Lunala "`n"
+   iniContent_Second .= "minStarsA3a=" minStarsA3a "`n"
+   iniContent_Second .= "s4tWPMinCards=" s4tWPMinCards "`n"
+   iniContent_Second .= "s4tDiscordUserId=" s4tDiscordUserId "`n"
+   iniContent_Second .= "s4tDiscordWebhookURL=" s4tDiscordWebhookURL "`n"
+   iniContent_Second .= "minStarsShiny=" minStarsShiny "`n"
+   iniContent_Second .= "tesseractPath=" tesseractPath "`n"
+   
+   Gui, TopBar:Submit, NoHide
+   iniContent_third := "currentfont=" currentfont "`n"
+   iniContent_third .= "BackgroundImage=" BackgroundImage "`n"
+   iniContent_third .= "PageImage=" PageImage "`n"
+   iniContent_third .= "MenuBackground=" MenuBackground "`n"
+   iniContent_third .= "FontColor=" FontColor "`n"
+   ;iniContent .= "isDarkTheme=" isDarkTheme "`n"
+   ;iniContent .= "useBackgroundImage=" useBackgroundImage "`n"
+   iniFull := iniContent . iniContent_Second . iniContent_third
+   FileDelete, Settings.ini
+   FileAppend, %iniFull%, Settings.ini
+   
+   if (debugMode) {
+      FileAppend, % A_Now . " - Settings saved. DeleteMethod: " . deleteMethod . "`n", %A_ScriptDir%\debug_settings.log
+   }
+}
+
+IsNumeric(var) {
+   if var is number
+      return true
+   return false
+}
+
+SetNormalFont() {
+   global currentfont, FontColor
+   Gui, Font, norm s9 c%FontColor%, %currentfont%
+}
+
+SetMenuBtnFont() {
+   global currentfont, btn_fontColor
+   Gui, Font, norm s10 c%btn_fontColor%, %currentfont%
+}
+
+SetTopBarBtnFont() {
+   global currentfont, btn_fontColor
+   Gui, Font, norm s9 c%btn_fontColor%, %currentfont%
+}
+
+SetHeaderFont() {
+   global currentfont, FontColor
+   Gui, Font, norm s11 c%FontColor%, %currentfont%
+}
+
+SetSectionFont() {
+   global currentfont, FontColor
+   Gui, Font, norm s10 c%FontColor%, %currentfont%
+}
+
+setMenuNormalFont() {
+   global currentfont
+   Gui, Menu:Font, norm s8 c%btn_fontColor%, %currentfont%
+}
+
+SetTopBarSmallBtnFont() { ;For toolbar e.g. background,theme
+   global currentfont
+   Gui, TopBar:Font, norm s9 c000000, %currentfont%
+}
+
+setTopBarNormalFont() {
+   global currentfont
+   Gui, TopBar:Font, norm s9 c000000, %currentfont%
+}
+
+ApplyInputStyle() {
+   global FontColor
+   Gui, TopBarColor:Color,, %FontColor%
+   GuiControl, TopBarColor:MoveDraw, ColorBlock
+   GuiControl, TopBarColor:, ColorBlock, % " "
+}
+
+AddCheckBox(options) {
+   ; options: {x, y, w, h, vName, gName, checkedImagePath, uncheckedImagePath, isChecked, vTextName, text, textX, textY}
+   imagePath := options.isChecked ? options.checkedImagePath : options.uncheckedImagePath
+   gName := (options.gName = "" ? "CheckBoxToggle" : options.gName)
+   
+   Gui, Add, Picture
+      , % "x" . options.x . " y" . options.y . " w" . options.w . " h" . options.h . " v" . options.vName
+      . " g" . gName
+      . " BackgroundTrans"
+      , %imagePath%
+   
+   if (options.HasKey("vTextName") && options.HasKey("textX") && options.HasKey("textY")) {
+      Gui, Add, Text, % "x" . options.textX . " y" . options.textY . " v" . options.vTextName . " BackgroundTrans", % options.text
+   }
+}
+
+AddBtn(options) {
+   type := options.type ? Trim(options.type) : "Button"
+   GuiOptions := ""
+   if (options.HasKey("x"))
+      GuiOptions .= "x" . options.x . " "
+   if (options.HasKey("y"))
+      GuiOptions .= "y" . options.y . " "
+   if (options.HasKey("w"))
+      GuiOptions .= "w" . options.w . " "
+   if (options.HasKey("h"))
+      GuiOptions .= "h" . options.h . " "
+   if (options.HasKey("vName"))
+      GuiOptions .= "v" . options.vName . " "
+   if (options.HasKey("gName") && options.gName != "")
+      GuiOptions .= "g" . options.gName . " "
+   GuiOptions .= "BackgroundTrans"
+   Gui, Menu:Add, %type%, %GuiOptions%, % options.imagePath
+   
+   if (options.HasKey("vTextName") && options.HasKey("text")) {
+      TextOptions := ""
+      if (options.HasKey("textX"))
+         TextOptions .= "x" . options.textX . " "
+      if (options.HasKey("textY"))
+         TextOptions .= "y" . options.textY . " "
+      if (options.HasKey("w"))
+         TextOptions .= "w" . options.w . " "
+      if (options.HasKey("h"))
+         TextOptions .= "h" . options.h . " "
+      TextOptions .= "v" . options.vTextName . " BackgroundTrans Center"
+      Gui, Menu:Add, Text, %TextOptions%, % options.text
+   }
+}
+
+AddBtnforTop(options) {
+   type := options.type ? Trim(options.type) : "Button"
+   GuiOptions := ""
+   if (options.HasKey("x"))
+      GuiOptions .= "x" . options.x . " "
+   if (options.HasKey("y"))
+      GuiOptions .= "y" . options.y . " "
+   if (options.HasKey("w"))
+      GuiOptions .= "w" . options.w . " "
+   if (options.HasKey("h"))
+      GuiOptions .= "h" . options.h . " "
+   if (options.HasKey("vName"))
+      GuiOptions .= "v" . options.vName . " "
+   if (options.HasKey("gName") && options.gName != "")
+      GuiOptions .= "g" . options.gName . " "
+   GuiOptions .= "BackgroundTrans"
+   Gui, TopBar:Add, %type%, %GuiOptions%, % options.imagePath
+   
+   if (options.HasKey("vTextName") && options.HasKey("text")) {
+      TextOptions := ""
+      if (options.HasKey("textX"))
+         TextOptions .= "x" . options.textX . " "
+      if (options.HasKey("textY"))
+         TextOptions .= "y" . options.textY . " "
+      if (options.HasKey("w"))
+         TextOptions .= "w" . options.w . " "
+      if (options.HasKey("h"))
+         TextOptions .= "h" . options.h . " "
+      TextOptions .= "v" . options.vTextName . " BackgroundTrans Center"
+      Gui, TopBar:Add, Text, %TextOptions%, % options.text
+   }
+}
+
+ShowControls(controlList) {
+   Loop, Parse, controlList, `,
+   {
+      if (A_LoopField)
+         GuiControl, Show, %A_LoopField%
+   }
+}
+
+; Function to hide multiple controls at once
+HideControls(controlList) {
+   Loop, Parse, controlList, `,
+   {
+      if (A_LoopField)
+         GuiControl, Hide, %A_LoopField%
+   }
+}
+
+MinStarCheck(vName) {
+   value := %vName%
+   if (value = "" || value = 0)
+      return 1
+   if (value >= 1 && value <= 5)
+      return value + 1
+   return 0
+}
+
+ExpandTopBar() {
+   global
+   ; get current x, y
+   GuiControlGet, reloadPos, TopBar:Pos, Btn_reload
+   GuiControlGet, classicPos, TopBar:Pos, Btn_ClassicMode
+   GuiControlGet, TxtReloadPos, TopBar:Pos, Txt_Btn_reload
+   GuiControlGet, TxtClassicPos, TopBar:Pos, Txt_Btn_ClassicMode
+   
+   GuiControl, TopBar:Move, Btn_reload, % "y" . (reloadPosY + 15)
+   GuiControl, TopBar:Move, Btn_ClassicMode, % "y" . (classicPosY + 15)
+   
+   GuiControl, TopBar:Move, Txt_Btn_reload, % "y" . (TxtreloadPosY + 15)
+   GuiControl, TopBar:Move, Txt_Btn_ClassicMode, % "y" . (TxtclassicPosY + 15)
+}
+
+CloseTopBar() {
+   global
+   GuiControlGet, reloadPos, TopBar:Pos, Btn_reload
+   GuiControlGet, classicPos, TopBar:Pos, Btn_ClassicMode
+   GuiControlGet, TxtReloadPos, TopBar:Pos, Txt_Btn_reload
+   GuiControlGet, TxtClassicPos, TopBar:Pos, Txt_Btn_ClassicMode
+   
+   GuiControl, TopBar:Move, Btn_reload, % "y" . (reloadPosY - 15)
+   GuiControl, TopBar:Move, Btn_ClassicMode, % "y" . (classicPosY - 15)
+   
+   GuiControl, TopBar:Move, Txt_Btn_reload, % "y" . (TxtReloadPosY - 15)
+   GuiControl, TopBar:Move, Txt_Btn_ClassicMode, % "y" . (TxtclassicPosY - 15)
+}
+
+MenuSwitchHandler:
+   WinSet, AlwaysOnTop, On, ahk_id %menuHwnd%
+   WinSet, AlwaysOnTop, On, ahk_id %mainHwnd%
+   WinSet, AlwaysOnTop, Off, ahk_id %menuHwnd%
+   WinSet, AlwaysOnTop, Off, ahk_id %mainHwnd%
+   global menuExpanded, mainHwnd, menuW, menuH
+   WinGetPos, mainX, mainY, mainW, mainH, ahk_id %mainHwnd%
+   steps := 20
+   stepSize := Ceil(menuW / steps) + 5
+   if (!menuExpanded) {
+      ; open
+      Loop, %steps%
+      {
+         menuX := mainX + mainW - menuW + (A_Index * stepSize)
+         if (menuX > mainX + mainW - 5)
+            menuX := mainX + mainW - 5
+         Gui, Menu:Show, % "x" . menuX . " y" . mainY . " NoActivate"
+         
+         Sleep, 15
+      }
+      GuiControl, Menu:, MenuSwitch, %MenuClose%
+      menuExpanded := true
+   } else {
+      ; close
+      Loop, %steps%
+      {
+         menuX := mainX + mainW - (A_Index * stepSize)
+         if (menuX < mainX + mainW - menuW - 35)
+            menuX := mainX + mainW - menuW - 35
+         Gui, Menu:Show, % "x" . menuX . " y" . mainY . " NoActivate"
+         
+         Sleep, 15
+      }
+      GuiControl, Menu:, MenuSwitch, %MenuOpen%
+      menuExpanded := false
+   }
 return
 
-PackCheck:
-    ; Get clicked button name
-    ClickedButton := A_GuiControl
-    
-    ; Extract just the section name without the "Page_" prefix
-    StringTrimLeft, CheckBoxName, ClickedButton, 5
-    
-    ToggleCheckbox(CheckBoxName)
-    
-    GuiControl,, %ClickedButton%, % newValue ? checkedPath : uncheckedPath
+TopBarSwitchHandler:
+   global topBarExpanded, topBarW, topBarH, topBarHwnd
+   steps := 15
+   minH := 36
+   maxH := 440
+   additionalCount := 15
+   WinGetPos, barX, barY, , , ahk_id %topBarHwnd%
+   if (!topBarExpanded) {
+      ; open
+      ExpandTopBar()
+      GuiControl, TopBar:, TopBarBackground, %TopBarBig%
+      Loop, %steps%
+      {
+         curH := minH + Ceil((maxH - minH) * (A_Index / steps))
+         if (curH > maxH)
+            curH := maxH
+         Gui, TopBar:Show, % "x" . barX . " y" . barY . " w" . topBarW . " h" . curH . " NoActivate"
+         additionalCount := additionalCount + 6
+         UpdateTopBarSwitchPos(barX, barY + curH + additionalCount)
+         Sleep, 15
+      }
+      GuiControl, TopBarColor:Show, ColorBlock
+      GuiControl, TopBarSwitch:, SwitchPic, %TopBarClose%
+      UpdateTopBarSwitchPos(barX, barY + maxH + 107)
+      Gui, TopBarColor:Show, w15 h15 NoActivate
+      topBarExpanded := true
+   } else {
+      Gui, TopBarColor:Show, w0 h0 NoActivate
+      ; close
+      additionalCount := 107
+      CloseTopBar()
+      GuiControl, TopBar:, TopBarBackground, %TopBarSmall%
+      Loop, %steps%
+      {
+         curH := maxH - Ceil((maxH - minH) * (A_Index / steps))
+         if(curH < minH)
+            curH := minH
+         Gui, TopBar:Show, % "x" . barX . " y" . barY . " w" . topBarW . " h" . curH . " NoActivate"
+         additionalCount := additionalCount - 7
+         UpdateTopBarSwitchPos(barX, barY + curH + additionalCount)
+         Sleep, 15
+      }
+      GuiControl, TopBarColor:Hide, ColorBlock
+      GuiControl, TopBarSwitch:, SwitchPic, %TopBarOpen%
+      UpdateTopBarSwitchPos(barX, barY + minH + 9)
+      topBarExpanded := false
+   }
 return
 
-ReturnPackSettingsSection:
-    pictureList := "Btn_previous,Btn_next"
-    hoverList := "Hover_previous,Hover_next"
-    EnableImageButtonToMultiple(pictureList, hoverList)
-    ShowPackSettingsSection()
-return
-
-CheckForUpdates:
-    CheckForUpdate()
-return
-
-; ========== For prototype check box ===========
-; gLabel not required for this checkbox
 CheckBoxToggle:
-    varName := A_GuiControl
-    ToggleCheckbox(varName)
-    if (varName = "Buzzwole" || varName = "Solgaleo" || varName = "Lunala" || varName = "Shining") {
-        PageVarName := "Page_" . varName
-        newValue := %varName%
-        GuiControl,, %PageVarName%, % newValue ? checkedPath : uncheckedPath
-    }
+   varName := A_GuiControl
+   newValue := !%varName%
+   %varName% := newValue
+   GuiControl,, %varName%, % newValue ? checkedPath : uncheckedPath
 return
 
-mainSettings:
-    Gui, Submit, NoHide
-    global isDarkTheme, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
-    
-    runMain := !runMain
-    ifEqual, runMain, 1, GuiControl,, runMain, %checkedPath%
-    else GuiControl,, runMain, %uncheckedPath%
-        
-        IniWrite, %runMain%, Settings.ini, UserSettings, runMain
-    
-    if (runMain) {
-        GuiControl, Show, Mains
-        
-        ; Apply theme-specific styling
-        if (isDarkTheme) {
-            GuiControl, +Background%DARK_INPUT_BG% +c%DARK_INPUT_TEXT%, Mains
-        } else {
-            GuiControl, +Background%LIGHT_INPUT_BG% +c%LIGHT_INPUT_TEXT%, Mains
-        }
-    }
-    else {
-        GuiControl, Hide, Mains
-    }
+runMainSettings:
+   runMain := !runMain
+   if (runMain) {
+      GuiControl,, runMain, %checkedPath%
+   } else {
+      GuiControl,, runMain, %uncheckedPath%
+   }
+   
+   if (runMain) {
+      GuiControl, Show, Mains
+   } else {
+      GuiControl, Hide, Mains
+   }
 return
 
 autoUseGPTestSettings:
-    Gui, Submit, NoHide
-    global isDarkTheme, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
-    
-    autoUseGPTest := !autoUseGPTest
-    ifEqual, autoUseGPTest, 1, GuiControl,, autoUseGPTest, %checkedPath%
-    else GuiControl,, autoUseGPTest, %uncheckedPath%
-        
-        IniWrite, %autoUseGPTest%, Settings.ini, UserSettings, autoUseGPTest
-    if (autoUseGPTest) {
-        GuiControl, Show, TestTime
-        
-        if (isDarkTheme) {
-            GuiControl, +Background%DARK_INPUT_BG% +c%DARK_INPUT_TEXT%, TestTime
-        } else {
-            GuiControl, +Background%LIGHT_INPUT_BG% +c%LIGHT_INPUT_TEXT%, TestTime
-        }
-    } else {
-        GuiControl, Hide, TestTime
-    }
-return
-
-spendHourGlassSettings:
-    Gui, Submit, NoHide
-    spendHourGlass := !spendHourGlass
-    ifEqual, spendHourGlass, 1, GuiControl,, spendHourGlass, %checkedPath%
-    else GuiControl,, spendHourGlass, %uncheckedPath%
-    openExtraPack := 0
-    GuiControl,, openExtraPack, %uncheckedPath%
-return
-
-openExtraPackSettings:
-    Gui, Submit, NoHide
-    openExtraPack := !openExtraPack
-    ifEqual, openExtraPack, 1, GuiControl,, openExtraPack, %checkedPath%
-    else GuiControl,, openExtraPack, %uncheckedPath%
-    spendHourGlass := 0
-    GuiControl,, spendHourGlass, %uncheckedPath%
-return
-
-discordSettings:
-    Gui, Submit, NoHide
-    global isDarkTheme, DARK_TEXT, LIGHT_TEXT, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
-    
-    heartBeat := !heartBeat
-    ifEqual, heartBeat, 1, GuiControl,, heartBeat, %checkedPath%
-    else GuiControl,, heartBeat, %uncheckedPath%
-        
-        IniWrite, %heartBeat%, Settings.ini, UserSettings, heartBeat
-    
-    if (heartBeat) {
-        heartbeatControls := "heartBeatName,heartBeatWebhookURL,heartBeatDelay,hbName,hbURL,hbDelay"
-        ShowControls(heartbeatControls)
-        
-        ; Apply theme-specific styling using helper functions
-        textControls := "hbName,hbURL,hbDelay"
-        ApplyTextColorToMultiple(textControls)
-        
-        inputControls := "heartBeatName,heartBeatWebhookURL,heartBeatDelay"
-        ApplyInputStyleToMultiple(inputControls)
-    }
-    else {
-        heartbeatControls := "heartBeatName,heartBeatWebhookURL,heartBeatDelay,hbName,hbURL,hbDelay"
-        HideControls(heartbeatControls)
-    }
-return
-
-s4tSettings:
-    Gui, Submit, NoHide
-    global isDarkTheme, DARK_TEXT, LIGHT_TEXT, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
-    global SaveForTradeDivider_1, SaveForTradeDivider_2
-    s4tEnabled := !s4tEnabled
-    ifEqual, s4tEnabled, 1, GuiControl,, s4tEnabled, %checkedPath%
-    else GuiControl,, s4tEnabled, %uncheckedPath%
-        
-        IniWrite, %s4tEnabled%, Settings.ini, UserSettings, s4tEnabled
-    
-    if (s4tEnabled) {
-        ; Show main S4T controls
-        s4tMainControls := "s4tSilent,s4t3Dmnd,s4t4Dmnd,s4t1Star,Txt_S4TSeparator,s4tWP,"
-        s4tMainControls .= "Txt_s4tEnabled,Txt_s4tSilent,Txt_s4t3Dmnd,Txt_s4t4Dmnd,Txt_s4t1Star,Txt_s4tWP,Txt_s4tSendAccountXml,"
-        s4tMainControls .= "S4TDiscordSettingsSubHeading,Txt_S4T_DiscordID,s4tDiscordUserId,"
-        s4tMainControls .= "Txt_S4T_DiscordWebhook,s4tDiscordWebhookURL,s4tSendAccountXml,"
-        s4tMainControls .= "SaveForTradeDivider_1,SaveForTradeDivider_2"
-        ShowControls(s4tMainControls)
-        
-        ; Apply theme styling using helper functions
-        textControls := "Txt_s4tEnabled,Txt_s4tSilent,Txt_s4t3Dmnd,Txt_s4t4Dmnd,Txt_s4t1Star,s4tGholdengoArrow,Txt_s4tWP,Txt_S4T_DiscordID,"
-        textControls .= "Txt_S4T_DiscordWebhook,Txt_s4tSendAccountXml"
-        ApplyTextColorToMultiple(textControls)
-        
-        inputControls := "s4tDiscordUserId,s4tDiscordWebhookURL"
-        ApplyInputStyleToMultiple(inputControls)
-        
-        ; Apply section color to sub-heading
-        sectionColor := isDarkTheme ? DARK_SECTION_COLORS["SaveForTrade"] : LIGHT_SECTION_COLORS["SaveForTrade"]
-        GuiControl, +c%sectionColor%, S4TDiscordSettingsSubHeading
-        
-        ; Check if Shining is enabled to show Gholdengo - Important logic from PTCGPB.ahk
-        IniRead, Shining, Settings.ini, UserSettings, Shining, 0
-        if (Shining) {
-            GuiControl, Show, s4tGholdengo
-            GuiControl, Show, s4tGholdengoEmblem
-            GuiControl, Show, s4tGholdengoArrow
-            
-            ; Apply text styling
-            if (isDarkTheme) {
-                GuiControl, +c%DARK_TEXT%, s4tGholdengo
-                GuiControl, +c%DARK_TEXT%, s4tGholdengoArrow
-            } else {
-                GuiControl, +c%LIGHT_TEXT%, s4tGholdengo
-                GuiControl, +c%LIGHT_TEXT%, s4tGholdengoArrow
-            }
-        } else {
-            GuiControl, Hide, s4tGholdengo
-            GuiControl, Hide, s4tGholdengoEmblem
-            GuiControl, Hide, s4tGholdengoArrow
-        }
-        
-        ; Check if s4tWP is enabled
-        if (s4tWP) {
-            GuiControl, Show, s4tWPMinCardsLabel
-            GuiControl, Show, s4tWPMinCards
-            
-            ; Apply styling
-            ApplyTextColor("s4tWPMinCardsLabel")
-            ApplyInputStyle("s4tWPMinCards")
-        } else {
-            GuiControl, Hide, s4tWPMinCardsLabel
-            GuiControl, Hide, s4tWPMinCards
-        }
-    } else {
-        ; Hide all S4T controls
-        s4tAllControls := "s4tSilent,s4t3Dmnd,s4t4Dmnd,s4t1Star,s4tGholdengo,s4tGholdengoEmblem,"
-        s4tAllControls .= "Txt_s4tSilent,Txt_s4t3Dmnd,Txt_s4t4Dmnd,Txt_s4t1Star,Txt_s4tWP,Txt_s4tSendAccountXml,"
-        s4tAllControls .= "s4tGholdengoArrow,Txt_S4TSeparator,s4tWP,s4tWPMinCardsLabel,s4tWPMinCards,"
-        s4tAllControls .= "S4TDiscordSettingsSubHeading,Txt_S4T_DiscordID,s4tDiscordUserId,"
-        s4tAllControls .= "Txt_S4T_DiscordWebhook,s4tDiscordWebhookURL,s4tSendAccountXml,"
-        s4tAllControls .= "SaveForTradeDivider_1,SaveForTradeDivider_2"
-        HideControls(s4tAllControls)
-    }
-return
-
-s4tWPSettings:
-    Gui, Submit, NoHide
-    global isDarkTheme, DARK_TEXT, LIGHT_TEXT, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
-    
-    s4tWP := !s4tWP
-    ifEqual, s4tWP, 1, GuiControl,, s4tWP, %checkedPath%
-    else GuiControl,, s4tWP, %uncheckedPath%
-        
-        IniWrite, %s4tWP%, settings.ini, UserSettings, s4tWP
-    
-    if (s4tWP) {
-        GuiControl, Show, s4tWPMinCardsLabel
-        GuiControl, Show, s4tWPMinCards
-        
-        ; Apply styling using helper functions
-        ApplyTextColor("s4tWPMinCardsLabel")
-        ApplyInputStyle("s4tWPMinCards")
-    } else {
-        GuiControl, Hide, s4tWPMinCardsLabel
-        GuiControl, Hide, s4tWPMinCards
-    }
-return
-
-    s4tWPMinCardsCheck:
-        Gui, Submit, NoHide
-        GuiControlGet, s4tWPMinCards
-        if (s4tWPMinCards < 1)
-            s4tWPMinCards := 1
-        if (s4tWPMinCards > 2)
-            s4tWPMinCards := 2
-        GuiControl,, s4tWPMinCards, %s4tWPMinCards%
-    return
-
-TesseractOptionSettings:
-    Gui, Submit, NoHide
-    global isDarkTheme, DARK_TEXT, LIGHT_TEXT, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
-    
-    tesseractOption := !tesseractOption
-    ifEqual, tesseractOption, 1, GuiControl,, tesseractOption, %checkedPath%
-    else GuiControl,, tesseractOption, %uncheckedPath%
-        
-        IniWrite, %tesseractOption%, settings.ini, UserSettings, tesseractOption
-    
-    if (tesseractOption) {
-        GuiControl, Show, Txt_TesseractPath
-        GuiControl, Show, tesseractPath
-        
-        ; Apply styling using helper functions
-        ApplyTextColor("Txt_TesseractPath")
-        ApplyInputStyle("tesseractPath")
-    } else {
-        GuiControl, Hide, Txt_TesseractPath
-        GuiControl, Hide, tesseractPath
-    }
-return
-
-deleteSettings:
-    Gui, Submit, NoHide
-    global scaleParam, defaultLanguage, sortByCreated
-    
-    ; Store the current scaleParam value
-    currentScaleParam := scaleParam
-    
-    ; Get the current value of deleteMethod control
-    GuiControlGet, currentMethod,, deleteMethod
-    
-    deleteMethod := currentMethod
-    ; Immediately save to prevent loss
-    IniWrite, %deleteMethod%, Settings.ini, UserSettings, deleteMethod
-    if(InStr(currentMethod, "Inject")) {
-        ; Hide nukeAccount checkbox
-        GuiControl, Hide, nukeAccount
-        GuiControl, Hide, Txt_nukeAccount
-        nukeAccount := 0
-        IniWrite, %nukeAccount%, settings.ini, UserSettings, nukeAccount
-        
-        ifEqual, spendHourGlass, 1, GuiControl,, spendHourGlass, %checkedPath%
-        else GuiControl,, spendHourGlass, %uncheckedPath%
-        GuiControl, Show, spendHourGlass
-        GuiControl, Show, Txt_spendHourGlass
-        ApplyTextColor("Txt_spendHourGlass")
-        
-        ; Show existing controls
-        GuiControl, Show, SortByText
-        GuiControl, Show, SortByDropdown
-        ApplyTextColor("SortByText")
-        if (currentMethod = "Inject for Reroll") {
-            ifEqual, openExtraPack, 1, GuiControl,, openExtraPack, %checkedPath%
-            else GuiControl,, openExtraPack, %uncheckedPath%
-            GuiControl, Show, openExtraPack
-            GuiControl, Show, Txt_openExtraPack
-            ifEqual, packMethod, 1, GuiControl,, packMethod, %checkedPath%
-            else GuiControl,, packMethod, %uncheckedPath%
-            GuiControl, Show, packMethod
-            GuiControl, Show, Txt_packMethod
-        } else {
-            GuiControl, Hide, openExtraPack
-            GuiControl, Hide, Txt_openExtraPack
-            GuiControl, Hide, packMethod
-            GuiControl, Hide, Txt_packMethod
-            openExtraPack := 0
-            packMethod := 0
-            IniWrite, %openExtraPack%, Settings.ini, UserSettings, openExtraPack 
-            IniWrite, %packMethod%, Settings.ini, UserSettings, packMethod 
-        }
-    }
-    else {
-        ifEqual, nukeAccount, 1, GuiControl,, nukeAccount, %checkedPath%
-        else GuiControl,, nukeAccount, %uncheckedPath%
-        GuiControl, Show, nukeAccount
-        GuiControl, Show, Txt_nukeAccount
-        ApplyTextColor("Txt_nukeAccount")
-        
-        GuiControl, Hide, spendHourGlass
-        GuiControl, Hide, Txt_spendHourGlass
-        GuiControl, Hide, openExtraPack
-        GuiControl, Hide, Txt_openExtraPack
-        GuiControl, Hide, packMethod
-        GuiControl, Hide, Txt_packMethod
-        spendHourGlass := 0
-        openExtraPack := 0
-        IniWrite, %spendHourGlass%, Settings.ini, UserSettings, spendHourGlass
-        IniWrite, %openExtraPack%, Settings.ini, UserSettings, openExtraPack
-        
-        ; Hide Sort By controls if they exist
-        GuiControl, Hide, SortByText
-        GuiControl, Hide, SortByDropdown
-    }
-    
-    ; Ensure scaleParam value is preserved based on the currentLanguage
-    if (defaultLanguage = "Scale125") {
-        scaleParam := 277
-    } else if (defaultLanguage = "Scale100") {
-        scaleParam := 287
-    }
-    
-    ; Only show a message if debugging is needed
-    if (debugMode && scaleParam != currentScaleParam) {
-        MsgBox, Scale parameter updated: %scaleParam% (Was: %currentScaleParam%)
-    }
-    
-    ; Save settings after changing delete method
-    SaveAllSettings()
-return
-
-; Add a new function for showcase settings toggle
-showcaseSettings:
-    Gui, Submit, NoHide
-    global isDarkTheme, DARK_TEXT, LIGHT_TEXT, DARK_INPUT_BG, DARK_INPUT_TEXT, LIGHT_INPUT_BG, LIGHT_INPUT_TEXT
-    
-    showcaseEnabled := !showcaseEnabled
-    ifEqual, showcaseEnabled, 1, GuiControl,, showcaseEnabled, %checkedPath%
-    else GuiControl,, showcaseEnabled, %uncheckedPath%
-        
-        IniWrite, %showcaseEnabled%, settings.ini, UserSettings, showcaseEnabled
-    
-    /*
-    if (showcaseEnabled) {
-        GuiControl, Show, Txt_ShowcaseURL
-        GuiControl, Show, showcaseURL
-        
-        ; Apply styling using helper functions
-        ApplyTextColor("Txt_ShowcaseURL")
-        ApplyInputStyle("showcaseURL")
-    } else {
-        GuiControl, Hide, Txt_ShowcaseURL
-        GuiControl, Hide, showcaseURL
-    }
-    */
+   autoUseGPTest := !autoUseGPTest
+   if (autoUseGPTest) {
+      GuiControl,, autoUseGPTest, %checkedPath%
+   } else {
+      GuiControl,, autoUseGPTest, %uncheckedPath%
+   }
+   
+   if (autoUseGPTest) {
+      GuiControl, Show, TestTime
+   } else {
+      GuiControl, Hide, TestTime
+   }
 return
 
 defaultLangSetting:
-    global scaleParam
-    GuiControlGet, defaultLanguage,, defaultLanguage
-    if (defaultLanguage = "Scale125") {
-        scaleParam := 277
-        MsgBox, Scale set to 125`% with scaleParam = %scaleParam%
-    } else if (defaultLanguage = "Scale100") {
-        scaleParam := 287
-        MsgBox, Scale set to 100`% with scaleParam = %scaleParam%
-    }
-    
-    ; Save settings after changing language
-    SaveAllSettings()
+   global scaleParam
+   if (defaultLanguage = "Scale125") {
+      scaleParam := 277
+      MsgBox, 0x40000,, Scale set to 125`% with scaleParam = %scaleParam%
+   } else if (defaultLanguage = "Scale100") {
+      scaleParam := 287
+      MsgBox, 0x40000,, Scale set to 100`% with scaleParam = %scaleParam%
+   }
+return
+
+useTesseractSettings:
+   tesseractOption := !tesseractOption
+   if (tesseractOption) {
+      GuiControl,, tesseractOption, %checkedPath%
+   } else {
+      GuiControl,, tesseractOption, %uncheckedPath%
+   }
+   
+   if (tesseractOption) {
+      GuiControl, Show, Txt_TesseractPath
+      GuiControl, Show, tesseractPath
+   } else {
+      GuiControl, Hide, Txt_TesseractPath
+      GuiControl, Hide, tesseractPath
+   }
+return
+
+minStarsEnabledSettings:
+   minStarsEnabled := !minStarsEnabled
+   controlsList := "Txt_minStarsA3a,minStarsA3a,Txt_minStarsA3Lunala,minStarsA3Lunala,"
+   controlsList .= "Txt_minStarsA3Solgaleo,minStarsA3Solgaleo,Txt_minStarsA2b,minStarsA2b,"
+   controlsList .= "Txt_minStarsA2a,minStarsA2a,Txt_minStarsA2Palkia,minStarsA2Palkia,"
+   controlsList .= "Txt_minStarsA2Dialga,minStarsA2Dialga,Txt_minStarsA1a,minStarsA1a,"
+   controlsList .= "Txt_minStarsA1Pikachu,minStarsA1Pikachu,Txt_minStarsA1Mewtwo,minStarsA1Mewtwo,"
+   controlsList .= "Txt_minStarsA1Charizard,minStarsA1Charizard"
+   if (minStarsEnabled) {
+      GuiControl,, minStarsEnabled, %checkedPath%
+      ShowControls(controlsList)
+   } else {
+      GuiControl,, minStarsEnabled, %uncheckedPath%
+      HideControls(controlsList)
+   }
+return
+
+deleteSettings:
+   global scaleParam, defaultLanguage
+   
+   currentScaleParam := scaleParam
+   GuiControlGet, currentMethod,, deleteMethod
+   deleteMethod := currentMethod
+   ShowCheck(name, checked := "") {
+      if (checked != "")
+         GuiControl,, %name%, % checked ? checkedPath : uncheckedPath
+      GuiControl, Show, %name%
+      GuiControl, Show, Txt_%name%
+   }
+   HideCheck(name) {
+      GuiControl, Hide, %name%
+      GuiControl, Hide, Txt_%name%
+   }
+   
+   extraControls := ["openExtraPack", "packMethod"]
+   sortControls := ["SortByText", "SortByDropdown"]
+   
+   if InStr(currentMethod, "Inject") {
+      HideCheck("nukeAccount")
+      nukeAccount := 0
+      ShowCheck("spendHourGlass", spendHourGlass)
+      for _, ctrl in sortControls
+         GuiControl, Show, %ctrl%
+      if (currentMethod = "Inject for Reroll") {
+         for _, ctrl in extraControls
+            ShowCheck(ctrl, %ctrl%)
+      } else {
+         for _, ctrl in extraControls {
+            HideCheck(ctrl)
+            %ctrl% := 0
+         }
+      }
+   } else {
+      ShowCheck("nukeAccount", nukeAccount)
+      HideCheck("spendHourGlass")
+      for _, ctrl in extraControls {
+         HideCheck(ctrl)
+         %ctrl% := 0
+      }
+      for _, ctrl in sortControls
+         GuiControl, Hide, %ctrl%
+   }
+   
+   if (defaultLanguage = "Scale125")
+      scaleParam := 277
+   else if (defaultLanguage = "Scale100")
+      scaleParam := 287
+   
+   if (debugMode && scaleParam != currentScaleParam)
+      MsgBox, 0x40000,, Scale parameter updated: %scaleParam% (Was: %currentScaleParam%)
+return
+
+spendHourGlassSettings:
+   spendHourGlass := !spendHourGlass
+   if (spendHourGlass) {
+      GuiControl,, spendHourGlass, %checkedPath%
+   } else {
+      GuiControl,, spendHourGlass, %uncheckedPath%
+      openExtraPack := 0
+      GuiControl,, openExtraPack, %uncheckedPath%
+   }
+return
+
+openExtraPackSettings:
+   openExtraPack := !openExtraPack
+   if (openExtraPack) {
+      GuiControl,, openExtraPack, %checkedPath%
+   } else {
+      GuiControl,, openExtraPack, %uncheckedPath%
+      spendHourGlass := 0
+      GuiControl,, spendHourGlass, %uncheckedPath%
+   }
+return
+
+SortByDropdownHandler:
+   GuiControlGet, selectedOption,, SortByDropdown
+   
+   ; Update injectSortMethod based on selected option
+   if (selectedOption = "Oldest First")
+      injectSortMethod := "ModifiedAsc"
+   else if (selectedOption = "Newest First")
+      injectSortMethod := "ModifiedDesc"
+   else if (selectedOption = "Fewest Packs First")
+      injectSortMethod := "PacksAsc"
+   else if (selectedOption = "Most Packs First")
+      injectSortMethod := "PacksDesc"
+return
+
+s4tSettings:
+   global s4tMainControls := "s4tSilent,s4t3Dmnd,s4t4Dmnd,s4t1Star,S4T_Divider1,s4tWP,S4T_Divider2,"
+   s4tMainControls .= "Txt_s4tEnabled,Txt_s4tSilent,Txt_s4t3Dmnd,Txt_s4t4Dmnd,Txt_s4t1Star,Txt_s4tWP,"
+   s4tMainControls .= "Txt_s4tSendAccountXml,S4TDiscordSettingsSubHeading,Txt_S4T_DiscordID,s4tDiscordUserId,"
+   s4tMainControls .= "Txt_S4T_DiscordWebhook,s4tDiscordWebhookURL,s4tSendAccountXml,SaveForTradeDivider_1,SaveForTradeDivider_2"
+   global s4tAllControls := s4tMainControls . ",s4tGholdengo,s4tGholdengoEmblem,s4tGholdengoArrow,s4tWPMinCardsLabel,s4tWPMinCards"
+   ; Function to show multiple controls at once
+   s4tEnabled := !s4tEnabled
+   GuiControl,, s4tEnabled, % s4tEnabled ? checkedPath : uncheckedPath
+   
+   if (s4tEnabled) {
+      ShowControls(s4tMainControls)
+      ; Gholdengo show/hide
+      if (Shining) {
+         ShowControls("s4tGholdengo,s4tGholdengoEmblem,s4tGholdengoArrow")
+      } else {
+         HideControls("s4tGholdengo,s4tGholdengoEmblem,s4tGholdengoArrow")
+      }
+      ; s4tWP show/hide
+      if (s4tWP) {
+         ShowControls("s4tWPMinCardsLabel,s4tWPMinCards")
+      } else {
+         HideControls("s4tWPMinCardsLabel,s4tWPMinCards")
+      }
+   } else {
+      HideControls(s4tAllControls)
+   }
+return
+
+s4tWPSettings:
+   s4tWP := !s4tWP
+   GuiControl,, s4tWP, % s4tWP ? checkedPath : uncheckedPath
+   
+   if (s4tWP) {
+      GuiControl, Show, s4tWPMinCardsLabel
+      GuiControl, Show, s4tWPMinCards
+   } else {
+      GuiControl, Hide, s4tWPMinCardsLabel
+      GuiControl, Hide, s4tWPMinCards
+   }
+return
+
+s4tWPMinCardsCheck:
+   GuiControlGet, s4tWPMinCards
+   if (s4tWPMinCards < 1)
+      s4tWPMinCards := 1
+   if (s4tWPMinCards > 2)
+      s4tWPMinCards := 2
+   GuiControl,, s4tWPMinCards, %s4tWPMinCards%
+return
+
+discordSettings:
+   global heartbeatControls := "heartBeatName,heartBeatWebhookURL,heartBeatDelay,hbName,hbURL,hbDelay"
+   heartBeat := !heartBeat
+   GuiControl,, heartBeat, % heartBeat ? checkedPath : uncheckedPath
+   if (heartBeat)
+      ShowControls(heartbeatControls)
+   else
+      HideControls(heartbeatControls)
 return
 
 ArrangeWindows:
-    GuiControlGet, Mains,, Mains
-    GuiControlGet, Instances,, Instances
-    GuiControlGet, Columns,, Columns
-    GuiControlGet, SelectedMonitorIndex,, SelectedMonitorIndex
-    GuiControlGet, defaultLanguage,, defaultLanguage
-    GuiControlGet, rowGap,, rowGap
-    IniRead, runMain, Settings.ini, UserSettings, runMain
-    
-    ; Re-validate scaleParam based on current language
-    if (defaultLanguage = "Scale125") {
-        scaleParam := 277
-    } else if (defaultLanguage = "Scale100") {
-        scaleParam := 287
-    }
-    
-    windowsPositioned := 0
-    
-    if (runMain && Mains > 0) {
-        Loop %Mains% {
-            mainInstanceName := "Main" . (A_Index > 1 ? A_Index : "")
-            ; Use exact matching for Main windows
-            SetTitleMatchMode, 3 ; Exact match
-            if (WinExist(mainInstanceName)) {
-                WinActivate, %mainInstanceName%
-                WinGetPos, curX, curY, curW, curH, %mainInstanceName%
-                
-                ; Calculate position
-                SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
-                SysGet, Monitor, Monitor, %SelectedMonitorIndex%
-                
-                instanceIndex := A_Index
-                rowHeight := 533
-                currentRow := Floor((instanceIndex - 1) / Columns)
-                y := MonitorTop + (currentRow * rowHeight) + (currentRow * rowGap)
-                x := MonitorLeft + (Mod((instanceIndex - 1), Columns) * scaleParam)
-                
-                ; Move window
-                WinMove, %mainInstanceName%,, %x%, %y%, %scaleParam%, 537
-                WinSet, Redraw, , %mainInstanceName%
-                
-                windowsPositioned++
-                sleep, 100
-            }
-        }
-    }
-    
-    if (Instances > 0) {
-        Loop %Instances% {
-            ; Use exact window title matching with SetTitleMatchMode
-            SetTitleMatchMode, 3 ; Exact match
-            windowTitle := A_Index
+   SaveAllSettings()
+   LoadSettingsFromIni()
+   ; Re-validate scaleParam based on current language
+   if (defaultLanguage = "Scale125") {
+      scaleParam := 277
+   } else if (defaultLanguage = "Scale100") {
+      scaleParam := 287
+   }
+   
+   windowsPositioned := 0
+   
+   if (runMain && Mains > 0) {
+      Loop %Mains% {
+         mainInstanceName := "Main" . (A_Index > 1 ? A_Index : "")
+         ; Use exact matching for Main windows
+         SetTitleMatchMode, 3 ; Exact match
+         if (WinExist(mainInstanceName)) {
+            WinActivate, %mainInstanceName%
+            WinGetPos, curX, curY, curW, curH, %mainInstanceName%
             
-            if (WinExist(windowTitle)) {
-                WinActivate, %windowTitle%
-                WinGetPos, curX, curY, curW, curH, %windowTitle%
-                
-                ; Calculate position
-                SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
-                SysGet, Monitor, Monitor, %SelectedMonitorIndex%
-                
-                if (runMain) {
-                    instanceIndex := (Mains - 1) + A_Index + 1
-                } else {
-                    instanceIndex := A_Index
-                }
-                
-                rowHeight := 533
-                currentRow := Floor((instanceIndex - 1) / Columns)
-                y := MonitorTop + (currentRow * rowHeight) + (currentRow * rowGap)
-                x := MonitorLeft + (Mod((instanceIndex - 1), Columns) * scaleParam)
-                
-                ; Move window
-                WinMove, %windowTitle%,, %x%, %y%, %scaleParam%, 537
-                WinSet, Redraw, , %windowTitle%
-                
-                windowsPositioned++
-                sleep, 100
+            ; Calculate position
+            SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
+            SysGet, Monitor, Monitor, %SelectedMonitorIndex%
+            
+            instanceIndex := A_Index
+            rowHeight := 533
+            currentRow := Floor((instanceIndex - 1) / Columns)
+            y := MonitorTop + (currentRow * rowHeight) + (currentRow * rowGap)
+            x := MonitorLeft + (Mod((instanceIndex - 1), Columns) * scaleParam)
+            
+            ; Move window
+            WinMove, %mainInstanceName%,, %x%, %y%, %scaleParam%, 537
+            WinSet, Redraw, , %mainInstanceName%
+            
+            windowsPositioned++
+            sleep, 100
+         }
+      }
+   }
+   
+   if (Instances > 0) {
+      Loop %Instances% {
+         ; Use exact window title matching with SetTitleMatchMode
+         SetTitleMatchMode, 3 ; Exact match
+         windowTitle := A_Index
+         
+         if (WinExist(windowTitle)) {
+            WinActivate, %windowTitle%
+            WinGetPos, curX, curY, curW, curH, %windowTitle%
+            
+            ; Calculate position
+            SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
+            SysGet, Monitor, Monitor, %SelectedMonitorIndex%
+            
+            if (runMain) {
+               instanceIndex := (Mains - 1) + A_Index + 1
+            } else {
+               instanceIndex := A_Index
             }
-        }
-    }
-    
-    if (debugMode && windowsPositioned == 0) {
-        MsgBox, No windows found to arrange
-    } else {
-        MsgBox, Arranged %windowsPositioned% windows
-    }
-    
-    ; Save settings after arranging windows
-    SaveAllSettings()
-return
-
-moveScreen:
-    TargetWindowTitle := "PTCGPB Bot Setup [Non-Commercial 4.0 International License]"
-    
-    WinGetPos, x, y, w, h, % TargetWindowTitle
-    
-    Loop, 10 {
-        t := 250 - A_Index * 25
-        WinSet, Transparent, %t%, % TargetWindowTitle
-        Sleep, 5
-    }
-    
-    WinMove, % TargetWindowTitle, , 1250, y
-    
-    Loop, 50 {
-        t := 5 + A_Index * 5
-        WinSet, Transparent, %t%, % TargetWindowTitle
-        Sleep, 4
-    }
+            
+            rowHeight := 533
+            currentRow := Floor((instanceIndex - 1) / Columns)
+            y := MonitorTop + (currentRow * rowHeight) + (currentRow * rowGap)
+            x := MonitorLeft + (Mod((instanceIndex - 1), Columns) * scaleParam)
+            
+            ; Move window
+            WinMove, %windowTitle%,, %x%, %y%, %scaleParam%, 537
+            WinSet, Redraw, , %windowTitle%
+            
+            windowsPositioned++
+            sleep, 100
+         }
+      }
+   }
+   
+   if (debugMode && windowsPositioned == 0) {
+      MsgBox, 0x40000,, No windows found to arrange
+   } else {
+      MsgBox, 0x40000,, Arranged %windowsPositioned% windows
+   }
+   
+   ; Save settings after arranging windows
+   SaveAllSettings()
 return
 
 LaunchAllMumu:
-    SetTimer, moveScreen, -1
-    GuiControlGet, Instances,, Instances
-    GuiControlGet, folderPath,, folderPath
-    GuiControlGet, Mains,, Mains
-    GuiControlGet, instanceLaunchDelay,, instanceLaunchDelay
-    IniRead, runMain, Settings.ini, UserSettings, runMain
-    
-    ; Save settings before launching
-    SaveAllSettings()
-    
-    if(StrLen(A_ScriptDir) > 200 || InStr(A_ScriptDir, " ")) {
-        MsgBox, ERROR: The bot folder path is too long or contains spaces. Move it directly into your C:\ or D:\ drive folder.
-        return
-    }
-    
-    launchAllFile := A_ScriptDir . "\Scripts\Include\LaunchAllMumu.ahk"
-    if(FileExist(launchAllFile)) {
-        Run, %launchAllFile%
-    }
+   SaveAllSettings()
+   LoadSettingsFromIni()
+   
+   ; Save settings before launching
+   SaveAllSettings()
+   
+   if(StrLen(A_ScriptDir) > 200 || InStr(A_ScriptDir, " ")) {
+      MsgBox, 0x40000,, the path to the bot folder is too long or contain white spaces. move it to a shorter path without spaces
+      return
+   }
+   
+   launchAllFile := A_ScriptDir . "\Scripts\Include\LaunchAllMumu.ahk"
+   if(FileExist(launchAllFile)) {
+      Run, %launchAllFile%
+   }
 return
 
 OpenClassicMode:
-    Gui, Submit, NoHide
-    SaveAllSettings()
-    Run, %A_ScriptDir%\Scripts\Include\ClassicMode.ahk
-    ExitApp
+   SaveAllSettings()
+   Run, %A_ScriptDir%\Scripts\Include\ClassicMode.ahk
+ExitApp
 return
 
 ; ToolTip
 OpenToolTip:
-    Tool := A_ScriptDir . "\GUI\Help Guide.html"
-    Run, %Tool%
+   ;WinMinimize, ahk_id %mainHwnd%
+   Tool := A_ScriptDir . "\GUI\Help Guide.html"
+   Run, %Tool%
 return
 
 ; Handle the link click
 OpenLink:
-    Run, https://buymeacoffee.com/aarturoo
+   ;WinMinimize, ahk_id %mainHwnd%
+   Run, https://buymeacoffee.com/aarturoo
 return
 
 OpenDiscord:
-    Run, https://discord.gg/C9Nyf7P4sT
+   ;WinMinimize, ahk_id %mainHwnd%
+   Run, https://discord.gg/C9Nyf7P4sT
 return
+
+RunXMLSortTool:
+   CallOthers := 1
+   GuiRemoveAlwaysOnTop()
+   WinMinimize, ahk_id %menuHwnd%
+   Tool := A_ScriptDir . "\Accounts\xmlCounter.ahk"
+   RunWait, %Tool%
+   WinRestore, ahk_id %menuHwnd%
+   WinActivate, ahk_id %menuHwnd%
+   CallOthers := 0
+Return
+
+RunXMLDuplicateTool:
+   CallOthers := 1
+   GuiRemoveAlwaysOnTop()
+   WinMinimize, ahk_id %menuHwnd%
+   Tool := A_ScriptDir . "\Accounts\xml_duplicate_finder.ahk"
+   RunWait, %Tool%
+   WinRestore, ahk_id %menuHwnd%
+   WinActivate, ahk_id %menuHwnd%
+   CallOthers := 0
+Return
 
 ; IMPROVED: Ensure settings are saved completely before reload
 SaveReload:
-    ; Get the most current values from all controls
-    Gui, Submit
-    ; Save all settings using our comprehensive function
-    SaveAllSettings()
-    ; Reload the script
-    Reload
+   ; Save all settings using our comprehensive function
+   SaveAllSettings()
+   ; Reload the script
+   Reload
 return
 
+LanguageControl:
+   GuiControlGet, curLang,, TopBotLanguage
+   BotLanguage := curLang
+   langMap := { "English": 1, "中文": 2, "日本語": 3, "Deutsch": 4 }
+   defaultBotLanguage := langMap.HasKey(BotLanguage) ? langMap[BotLanguage] : 1
+   GuiControl, TopBar:Show, saveTopBar
+Return
+
+ChooseFont:
+   global selectedFont
+   CallOthers := 1
+   GuiRemoveAlwaysOnTop()
+   selectedFont := ""
+   ShowFontListGui("selectedFont")
+   if (selectedFont = "")
+      selectedFont := "Segoe UI"
+   GuiControl,TopBar:, currentfont, %selectedFont%
+   GuiControl, TopBar:Show, saveTopBar
+   WinSet, AlwaysOnTop, On, ahk_id %topBarColorHwnd%
+   CallOthers := 0
+return
+
+FontListOK:
+   global FontChoice
+   Gui, FontList:Submit
+   selectedFont := FontChoice
+   Gui, FontList:Destroy
+return
+
+ChooseBackground:
+   CallOthers := 1
+   GuiRemoveAlwaysOnTop()
+   FileSelectFile, selectedFile, 3, , Please select a background image, Image Files (*.jpg; *.png)
+   if (selectedFile != "") {
+      BackgroundImage := selectedFile
+      GuiControl, TopBar:, BackgroundImage, %BackgroundImage%
+   }
+   GuiControl, TopBar:Show, saveTopBar
+   WinSet, AlwaysOnTop, On, ahk_id %topBarColorHwnd%
+   CallOthers := 0
+return
+
+ChoosePage:
+   CallOthers := 1
+   GuiRemoveAlwaysOnTop()
+   FileSelectFile, selectedFile, 3, , Please select a Page image, Image Files (*.jpg; *.png)
+   if (selectedFile != "") {
+      PageImage := selectedFile
+      GuiControl, TopBar:, PageImage, %PageImage%
+   }
+   GuiControl, TopBar:Show, saveTopBar
+   WinSet, AlwaysOnTop, On, ahk_id %topBarColorHwnd%
+   CallOthers := 0
+return
+
+ChooseMenu:
+   CallOthers := 1
+   GuiRemoveAlwaysOnTop()
+   FileSelectFile, selectedFile, 3, , Please select a Menu image, Image Files (*.jpg; *.png)
+   if (selectedFile != "") {
+      MenuBackground := selectedFile
+      GuiControl, TopBar:, MenuBackground, %MenuBackground%
+   }
+   GuiControl, TopBar:Show, saveTopBar
+   WinSet, AlwaysOnTop, On, ahk_id %topBarColorHwnd%
+   CallOthers := 0
+return
+
+ChooseFontColor:
+   CallOthers := 1
+   GuiRemoveAlwaysOnTop()
+   result := ChooseColors("", FontColor)
+   temp := FontColor
+      ,FontColor := result.1
+   if (FontColor = "") {
+      FontColor := temp
+   }
+   GuiControl, TopBar:, FontColor, %FontColor%
+   ApplyInputStyle()
+   GuiControl, TopBar:Show, saveTopBar
+   WinSet, AlwaysOnTop, On, ahk_id %topBarColorHwnd%
+   CallOthers := 0
+return
+
+ToggleTheme:
+   Front := A_ScriptDir . "\GUI\Images\"
+      ,CurrentTheme := (CurrentTheme = "Dark"? "Light": "Dark")
+      ,btn_mainPage := Front . (CurrentTheme = "Dark"? "panel2.png": "panel1.png")
+      ,ToolTipImage := Front . (CurrentTheme = "Dark"? "ToolTip2.png": "ToolTip1.png")
+      ,btn_fontColor := CurrentTheme = "Dark"? "FDFDFD": "CC0000"
+      ,titleImage := Front . (CurrentTheme = "Dark"? "Title2.png": "Title1.png")
+      ,TopBarBig := Front . (CurrentTheme = "Dark"? "TopBarBig2.png": "TopBarBig1.png")
+      ,TopBarSmall := Front . (CurrentTheme = "Dark"? "TopBarSmall2.png": "TopBarSmall1.png")
+      ,TopBarOpen := Front . (CurrentTheme = "Dark"? "TopBarOpen2.png": "TopBarOpen1.png")
+      ,TopBarClose := Front . (CurrentTheme = "Dark"? "TopBarClose2.png": "TopBarClose1.png")
+      ,MenuOpen := Front . (CurrentTheme = "Dark" ? "MenuOpen2.png":"MenuOpen1.png")
+      ,MenuClose := Front . (CurrentTheme = "Dark" ? "MenuClose2.png":"MenuClose1.png")
+      ,PageImage := Front . (CurrentTheme = "Dark"? "Page2.png": "Page1.png")
+      ,BackgroundImage := Front . (CurrentTheme = "Dark"? "Background2.png": "Background1.png")
+      ,MenuBackground := Front . (CurrentTheme = "Dark"? "Menu2.png": "Menu1.png")
+      ,FontColor := CurrentTheme = "Dark"? "FDFDFD": "000000"
+   GuiControl, TopBar:, MenuBackground, %MenuBackground%
+   GuiControl, TopBar:, BackgroundImage, %BackgroundImage%
+   GuiControl, TopBar:, PageImage, %PageImage%
+   GuiControl, TopBar:, FontColor, %FontColor%
+   SaveAllSettings()
+   Reload
+Return
+
+SaveTopBarSettings:
+   SaveAllSettings()
+   Reload
+Return
+
 BalanceXMLs:
-    if(Instances>0) {
-        ; Save all settings first to ensure Instances is up to date
-        SaveAllSettings()
-        
-        ;get current # of instances in box
-        GuiControlGet, Instances,, Instances
-        
-        ;todo better status message location or method
-        GuiControlGet, ButtonPos, Pos, BalanceXMLs
-        XTooltipPos = % ButtonPosX + 10
-        YTooltipPos = % ButtonPosY + 140
-        
-        ;check folders
-        saveDir := A_ScriptDir "\Accounts\Saved\"
-        if !FileExist(saveDir) ; Check if the directory exists
-            FileCreateDir, %saveDir% ; Create the directory if it doesn't exist
-        
-        tmpDir := A_ScriptDir "\Accounts\Saved\tmp"
-        if !FileExist(tmpDir) ; Check if the directory exists
-            FileCreateDir, %tmpDir% ; Create the directory if it doesn't exist
-        
-        ;lags gui for some reason
-        Tooltip, Moving Files and Folders to tmp, XTooltipPos, YTooltipPos
-        Loop, Files, %saveDir%*, D
-        {
-            if (A_LoopFilePath == tmpDir)
-                continue
-            dest := tmpDir . "\" . A_LoopFileName
+   if(Instances>0) {
+      ; Save all settings first to ensure Instances is up to date
+      SaveAllSettings()
+      LoadSettingsFromIni()
+      ;todo better status message location or method
+      GuiControlGet, ButtonPos, Pos, BalanceXMLs
+      XTooltipPos = % ButtonPosX + 10
+      YTooltipPos = % ButtonPosY + 140
+      
+      ;check folders
+      saveDir := A_ScriptDir "\Accounts\Saved\"
+      if !FileExist(saveDir) ; Check if the directory exists
+         FileCreateDir, %saveDir% ; Create the directory if it doesn't exist
+      
+      tmpDir := A_ScriptDir "\Accounts\Saved\tmp"
+      if !FileExist(tmpDir) ; Check if the directory exists
+         FileCreateDir, %tmpDir% ; Create the directory if it doesn't exist
+      
+      ;lags gui for some reason
+      Tooltip, Moving Files and Folders to tmp, XTooltipPos, YTooltipPos
+      Loop, Files, %saveDir%*, D
+      {
+         if (A_LoopFilePath == tmpDir)
+            continue
+         dest := tmpDir . "\" . A_LoopFileName
+         
+         FileMoveDir, %A_LoopFilePath%, %dest%, 1
+      }
+      Loop, Files, %saveDir%\*, F
+      {
+         dest := tmpDir . "\" . A_LoopFileName
+         FileMove, %A_LoopFilePath%, %dest%, 1
+      }
+      ; create instance dirs
+      Loop , %Instances%
+      {
+         instanceDir := saveDir . "\" . A_Index
+         if !FileExist(instanceDir) ; Check if the directory exists
+            FileCreateDir, %instanceDir% ; Create the directory if it doesn't exist
+         listfile := instanceDir . "\list.txt"
+         if FileExist(listfile)
+            FileDelete, %listfile% ; delete list if it exists
+      }
+      
+      ToolTip, Checking for Duplicate names, XTooltipPos, YTooltipPos
+      fileList := ""
+      seenFiles := {}
+      Loop, Files, %tmpDir%\*.xml, R
+      {
+         fileName := A_LoopFileName
+         fileTime := A_LoopFileTimeModified
+         ; TODO can also sort by name (num packs), or time created
+         fileTime := A_LoopFileTimeCreated
+         filePath := A_LoopFileFullPath
+         
+         if seenFiles.HasKey(fileName)
+         {
+            ; Compare the timestamps to determine which file is older
+            prevTime := seenFiles[fileName].Time
+            prevPath := seenFiles[fileName].Path
             
-            FileMoveDir, %A_LoopFilePath%, %dest%, 1
-        }
-        Loop, Files, %saveDir%\*, F
-        {
-            dest := tmpDir . "\" . A_LoopFileName
-            FileMove, %A_LoopFilePath%, %dest%, 1
-        }
-        
-        ; create instance dirs
-        Loop , %Instances%
-        {
-            instanceDir := saveDir . "\" . A_Index
-            if !FileExist(instanceDir) ; Check if the directory exists
-                FileCreateDir, %instanceDir% ; Create the directory if it doesn't exist
-            listfile := instanceDir . "\list.txt"
-            if FileExist(listfile)
-                FileDelete, %listfile% ; delete list if it exists
-        }
-        
-        ToolTip, Checking for Duplicate names, XTooltipPos, YTooltipPos
-        fileList := ""
-        seenFiles := {}
-        Loop, Files, %tmpDir%\*.xml, R
-        {
-            fileName := A_LoopFileName
-            fileTime := A_LoopFileTimeModified
-            ; TODO can also sort by name (num packs), or time created
-            fileTime := A_LoopFileTimeCreated
-            filePath := A_LoopFileFullPath
-            
-            if seenFiles.HasKey(fileName)
+            if (fileTime > prevTime)
             {
-                ; Compare the timestamps to determine which file is older
-                prevTime := seenFiles[fileName].Time
-                prevPath := seenFiles[fileName].Path
-                
-                if (fileTime > prevTime)
-                {
-                    ; Current file is newer, delete the previous one
-                    FileDelete, %prevPath%
-                    seenFiles[fileName] := {Time: fileTime, Path: filePath}
-                }
-                else
-                {
-                    ; Current file is older, delete it
-                    FileDelete, %filePath%
-                }
-                continue
+               ; Current file is newer, delete the previous one
+               FileDelete, %prevPath%
+               seenFiles[fileName] := {Time: fileTime, Path: filePath}
             }
-            
-            ; Store the file info
-            seenFiles[fileName] := {Time: fileTime, Path: filePath}
-            fileList .= fileTime "`t" filePath "`n"
-        }
-        
-        ToolTip, Sorting by modified date, XTooltipPos, YTooltipPos
-        Sort, fileList, R
-        
-        ToolTip, Distributing XMLs between folders...please wait, XTooltipPos, YTooltipPos
-        instance := 1
-        Loop, Parse, fileList, `n
-        {
-            if (A_LoopField = "")
-                continue
-            
-            ; Split each line into timestamp and file path (split by tab)
-            StringSplit, parts, A_LoopField, %A_Tab%
-            tmpFile := parts2 ; Get the file path from the second part
-            toDir := saveDir . "\" . instance
-            
-            ; Move the file
-            FileMove, %tmpFile%, %toDir%, 1
-            
-            instance++
-            if (instance > Instances)
-                instance := 1
-        }
-        
-        ;count number of xmls with date modified time over 24 hours in instance 1
-        instanceOneDir := saveDir . "1"
-        counter := 0
-        counter2 := 0
-        Loop, Files, %instanceOneDir%\*.xml
-        {
-            fileModifiedTimeDiff := A_Now
-            FileGetTime, fileModifiedTime, %A_LoopFileFullPath%, M
-            EnvSub, fileModifiedTimeDiff, %fileModifiedTime%, Hours
-            if (fileModifiedTimeDiff >= 24) ; 24 hours
-                counter++
-        }
-        
-        Tooltip ;clear tooltip
-        MsgBox, Done balancing XMLs between %Instances% instances`n%counter% XMLs past 24 hours per instance
-    }
+            else
+            {
+               ; Current file is older, delete it
+               FileDelete, %filePath%
+            }
+            continue
+         }
+         
+         ; Store the file info
+         seenFiles[fileName] := {Time: fileTime, Path: filePath}
+         fileList .= fileTime "`t" filePath "`n"
+      }
+      
+      ToolTip, Sorting by modified date, XTooltipPos, YTooltipPos
+      Sort, fileList, R
+      
+      ToolTip, Distributing XMLs between folders...please wait, XTooltipPos, YTooltipPos
+      instance := 1
+      Loop, Parse, fileList, `n
+      {
+         if (A_LoopField = "")
+            continue
+         
+         ; Split each line into timestamp and file path (split by tab)
+         StringSplit, parts, A_LoopField, %A_Tab%
+         tmpFile := parts2 ; Get the file path from the second part
+         toDir := saveDir . "\" . instance
+         
+         ; Move the file
+         FileMove, %tmpFile%, %toDir%, 1
+         
+         instance++
+         if (instance > Instances)
+            instance := 1
+      }
+      
+      ;count number of xmls with date modified time over 24 hours in instance 1
+      instanceOneDir := saveDir . "1"
+      counter := 0
+      counter2 := 0
+      Loop, Files, %instanceOneDir%\*.xml
+      {
+         fileModifiedTimeDiff := A_Now
+         FileGetTime, fileModifiedTime, %A_LoopFileFullPath%, M
+         EnvSub, fileModifiedTimeDiff, %fileModifiedTime%, Hours
+         if (fileModifiedTimeDiff >= 24) ; 24 hours
+            counter++
+      }
+      
+      Tooltip ;clear tooltip
+      MsgBox, 0x40000,XML Balance,Done balancing XMLs between %Instances% instances`n%counter% XMLs past 24 hours per instance
+   }
+return
+
+CheckForUpdates:
+   CheckForUpdate()
 return
 
 ; Function to reset all account lists (automatically called on startup)
 ResetAccountLists() {
-    ; Check if ResetLists.ahk exists before trying to run it
-    resetListsPath := A_ScriptDir . "\Scripts\Include\ResetLists.ahk"
-    
-    if (FileExist(resetListsPath)) {
-        ; Run the ResetLists.ahk script without waiting
-        Run, %resetListsPath%,, Hide UseErrorLevel
-        
-        ; Very short delay to ensure process starts
-        Sleep, 50
-        
-        ; Log that we've delegated to the script
-        LogToFile("Account lists reset via ResetLists.ahk. New lists will be generated on next injection.")
-        
-        ; Create a status message
-        CreateStatusMessage("Account lists reset. New lists will use current method settings.",,,, false)
-    } else {
-        ; Log error if file doesn't exist
-        LogToFile("ERROR: ResetLists.ahk not found at: " . resetListsPath)
-        
-        if (debugMode) {
-            MsgBox, ResetLists.ahk not found at:`n%resetListsPath%
-        }
-    }
+   ; Check if ResetLists.ahk exists before trying to run it
+   resetListsPath := A_ScriptDir . "\Scripts\Include\ResetLists.ahk"
+   
+   if (FileExist(resetListsPath)) {
+      ; Run the ResetLists.ahk script without waiting
+      Run, %resetListsPath%,, Hide UseErrorLevel
+      
+      ; Very short delay to ensure process starts
+      Sleep, 50
+      
+      ; Log that we've delegated to the script
+      LogToFile("Account lists reset via ResetLists.ahk. New lists will be generated on next injection.")
+      
+      ; Create a status message
+      CreateStatusMessage("Account lists reset. New lists will use current method settings.",,,, false)
+   } else {
+      ; Log error if file doesn't exist
+      LogToFile("ERROR: ResetLists.ahk not found at: " . resetListsPath)
+      
+      if (debugMode) {
+         MsgBox, 0x40000, Reset list issue, ResetLists.ahk not found at:`n%resetListsPath%
+      }
+   }
 }
 
 StartBot:
-    Gui, Submit, NoHide
-    
-    ; Quick path validation (no file I/O)
-    if(StrLen(A_ScriptDir) > 200 || InStr(A_ScriptDir, " ")) {
-        MsgBox, % SetUpDictionary.Error_BotPathTooLong
-        return
-    }
-    
-    ; Build confirmation message with current GUI values
-    confirmMsg := SetUpDictionary.Confirm_SelectedMethod . deleteMethod . "`n"
-    
-    confirmMsg .= "`n" . SetUpDictionary.Confirm_SelectedPacks . "`n"
-    if (Buzzwole)
-        confirmMsg .= "• " . currentDictionary.Txt_Buzzwole . "`n"
-    if (Solgaleo)
-        confirmMsg .= "• " . currentDictionary.Txt_Solgaleo . "`n"
-    if (Lunala)
-        confirmMsg .= "• " . currentDictionary.Txt_Lunala . "`n"
-    if (Shining)
-        confirmMsg .= "• " . currentDictionary.Txt_Shining . "`n"
-    if (Arceus)
-        confirmMsg .= "• " . currentDictionary.Txt_Arceus . "`n"
-    if (Palkia)
-        confirmMsg .= "• " . currentDictionary.Txt_Palkia . "`n"
-    if (Dialga)
-        confirmMsg .= "• " . currentDictionary.Txt_Dialga . "`n"
-    if (Pikachu)
-        confirmMsg .= "• " . currentDictionary.Txt_Pikachu . "`n"
-    if (Charizard)
-        confirmMsg .= "• " . currentDictionary.Txt_Charizard . "`n"
-    if (Mewtwo)
-        confirmMsg .= "• " . currentDictionary.Txt_Mewtwo . "`n"
-    if (Mew)
-        confirmMsg .= "• " . currentDictionary.Txt_Mew . "`n"
-    
-    confirmMsg .= "`n" . SetUpDictionary.Confirm_AdditionalSettings
-    additionalSettingsFound := false
-    
-    if (packMethod) {
-        confirmMsg .= "`n" . SetUpDictionary.Confirm_1PackMethod
-        additionalSettingsFound := true
-    }
-    if (nukeAccount && !InStr(deleteMethod, "Inject")) {
-        confirmMsg .= "`n•" . SetUpDictionary.Confirm_MenuDelete
-        additionalSettingsFound := true
-    }
-    if (spendHourGlass) {
-        confirmMsg .= "`n" . SetUpDictionary.Confirm_SpendHourGlass
-        additionalSettingsFound := true
-    }
-    if (openExtraPack) {
-        confirmMsg .= "`n" . SetUpDictionary.Confirm_OpenExtraPack
-        additionalSettingsFound := true
-    }
-    if (claimSpecialMissions && InStr(deleteMethod, "Inject")) {
-        confirmMsg .= "`n" . SetUpDictionary.Confirm_ClaimMissions
-        additionalSettingsFound := true
-    }
-    if (InStr(deleteMethod, "Inject") && sortByCreated) {
-        GuiControlGet, selectedSortOption,, SortByDropdown
-        confirmMsg .= "`n" . SetUpDictionary.Confirm_SortBy . selectedSortOption
-        additionalSettingsFound := true
-    }
-    if (!additionalSettingsFound)
-        confirmMsg .= "`n" . SetUpDictionary.Confirm_None
-    
-    confirmMsg .= "`n`n" . SetUpDictionary.Confirm_CardDetection
-    cardDetectionFound := false
-    
-    if (FullArtCheck) {
-        confirmMsg .= "`n" . SetUpDictionary.Confirm_SingleFullArt
-        cardDetectionFound := true
-    }
-    if (TrainerCheck) {
-        confirmMsg .= "`n" . SetUpDictionary.Confirm_SingleTrainer
-        cardDetectionFound := true
-    }
-    if (RainbowCheck) {
-        confirmMsg .= "`n" . SetUpDictionary.Confirm_SingleRainbow
-        cardDetectionFound := true
-    }
-    if (PseudoGodPack) {
-        confirmMsg .= "`n" . SetUpDictionary.Confirm_Double2Star
-        cardDetectionFound := true
-    }
-    if (CrownCheck) {
-        confirmMsg .= "`n" . SetUpDictionary.Confirm_SaveCrowns
-        cardDetectionFound := true
-    }
-    if (ShinyCheck) {
-        confirmMsg .= "`n" . SetUpDictionary.Confirm_SaveShiny
-        cardDetectionFound := true
-    }
-    if (ImmersiveCheck) {
-        confirmMsg .= "`n" . SetUpDictionary.Confirm_SaveImmersives
-        cardDetectionFound := true
-    }
-    if (CheckShinyPackOnly) {
-        confirmMsg .= "`n" . SetUpDictionary.Confirm_OnlyShinyPacks
-        cardDetectionFound := true
-    }
-    if (InvalidCheck) {
-        confirmMsg .= "`n" . SetUpDictionary.Confirm_IgnoreInvalid
-        cardDetectionFound := true
-    }
-    
-    if (!cardDetectionFound)
-        confirmMsg .= "`n" . SetUpDictionary.Confirm_None
-
-    confirmMsg .= "`n`n" . SetUpDictionary.Confirm_SaveForTrade
-    
-    if (!s4tEnabled) {
-        confirmMsg .= ": " . SetUpDictionary.Confirm_Disabled
-    } else {
-        confirmMsg .= ": " . SetUpDictionary.Confirm_Enabled . "`n"
-        confirmMsg .= "• " . SetUpDictionary.Confirm_SilentPings . ": " . (s4tSilent ? SetUpDictionary.Confirm_Enabled : SetUpDictionary.Confirm_Disabled) . "`n"
-        
-        ; Add enabled filters
-        if (s4t3Dmnd)
-            confirmMsg .= "• 3 ◆◆◆`n"
-        if (s4t4Dmnd)
-            confirmMsg .= "• 4 ◆◆◆◆`n"
-        if (s4t1Star)
-            confirmMsg .= "• 1 ★`n"
-        if (s4tGholdengo && Shining)
-            confirmMsg .= "• " . SetUpDictionary.Confirm_Gholdengo . "`n"
-        
-        ; Add Wonder Pick status
-        if (s4tWP)
-            confirmMsg .= "• " . SetUpDictionary.Confirm_WonderPick . ": " . s4tWPMinCards . " " . SetUpDictionary.Confirm_MinCards . "`n"
-        else
-            confirmMsg .= "• " . SetUpDictionary.Confirm_WonderPick . ": " . SetUpDictionary.Confirm_Disabled . "`n"
-    }
-
-    if (sendAccountXml || s4tEnabled && s4tSendAccountXml) {
-        confirmMsg .= "`n`n" . SetUpDictionary.Confirm_XMLWarning . "`n"
-    }
-
-    confirmMsg .= "`n`n" . SetUpDictionary.Confirm_StartBot
-
-    ; === SHOW CONFIRMATION DIALOG IMMEDIATELY ===
-    MsgBox, 4, Confirm Bot Settings, %confirmMsg%
-    IfMsgBox, No
-    {
-        return ; Return to GUI for user to modify settings
-    }
-    
-    
-    ResetAccountLists()
-    
-    ; Update dropdown settings if needed
-    if (InStr(deleteMethod, "Inject") && sortByCreated) {
-        GuiControlGet, selectedSortOption,, SortByDropdown
-        if (selectedSortOption = "Oldest First")
-            injectSortMethod := "ModifiedAsc"
-        else if (selectedSortOption = "Newest First")
-            injectSortMethod := "ModifiedDesc"
-        else if (selectedSortOption = "Fewest Packs First")
-            injectSortMethod := "PacksAsc"
-        else if (selectedSortOption = "Most Packs First")
-            injectSortMethod := "PacksDesc"
-    }
-    
-    ; Save all settings
-    SaveAllSettings()
-    
-    ; Re-validate scaleParam based on current language
-    if (defaultLanguage = "Scale125") {
-        scaleParam := 277
-    } else if (defaultLanguage = "Scale100") {
-        scaleParam := 287
-    }
-    
-    ; Handle deprecated FriendID field
-    if (inStr(FriendID, "http")) {
-        MsgBox, To provide a URL for friend IDs, please use the ids.txt API field and leave the Friend ID field empty.
-        
-        if (mainIdsURL = "") {
-            IniWrite, "", Settings.ini, UserSettings, FriendID
-            IniWrite, %FriendID%, Settings.ini, UserSettings, mainIdsURL
-        }
-        
-        Reload
-    }
-    
-    ; Download a new Main ID file prior to running the rest of the below
-    if (mainIdsURL != "") {
-        DownloadFile(mainIdsURL, "ids.txt")
-    }
-    
-    ; Download showcase codes if enabled
-    if (showcaseEnabled && showcaseURL != "") {
-        DownloadFile(showcaseURL, "showcase_codes.txt")
-    }
-    
-    ; Check for showcase_ids.txt if enabled
-    if (showcaseEnabled) {
-        if (!FileExist("showcase_ids.txt")) {
-            MsgBox, 48, Showcase Warning, Showcase is enabled but showcase_ids.txt does not exist.`nPlease create this file in the same directory as the script.
-        }
-    }
-    
-    ; Create the second page dynamically based on the number of instances
-    Gui, Destroy ; Close the first page
-    
-    ; Run main before instances to account for instance start delay
-    if (runMain) {
-        Loop, %Mains%
-        {
-            if (A_Index != 1) {
-                SourceFile := "Scripts\Main.ahk" ; Path to the source .ahk file
-                TargetFolder := "Scripts\" ; Path to the target folder
-                TargetFile := TargetFolder . "Main" . A_Index . ".ahk" ; Generate target file path
-                FileDelete, %TargetFile%
-                FileCopy, %SourceFile%, %TargetFile%, 1 ; Copy source file to target
-                if (ErrorLevel)
-                    MsgBox, Failed to create %TargetFile%. Ensure permissions and paths are correct.
-            }
-            
-            mainInstanceName := "Main" . (A_Index > 1 ? A_Index : "")
-            FileName := "Scripts\" . mainInstanceName . ".ahk"
-            Command := FileName
-            
-            if (A_Index > 1 && instanceStartDelay > 0) {
-                instanceStartDelayMS := instanceStartDelay * 1000
-                Sleep, instanceStartDelayMS
-            }
-            
-            Run, %Command%
-        }
-    }
-    
-    ; Loop to process each instance
-    Loop, %Instances%
-    {
-        if (A_Index != 1) {
-            SourceFile := "Scripts\1.ahk" ; Path to the source .ahk file
+   global PackGuiBuild := 0
+   SaveAllSettings()
+   LoadSettingsFromIni()
+   CallOthers := 1
+   GuiRemoveAlwaysOnTop()
+   WinMinimize, ahk_id %menuHwnd%
+   ; Quick path validation (no file I/O)
+   if(StrLen(A_ScriptDir) > 200 || InStr(A_ScriptDir, " ")) {
+      MsgBox, 0x40000,, % SetUpDictionary.Error_BotPathTooLong
+      return
+   }
+   
+   ; Build confirmation message with current GUI values
+   confirmMsg := SetUpDictionary.Confirm_SelectedMethod . deleteMethod . "`n"
+   
+   confirmMsg .= "`n" . SetUpDictionary.Confirm_SelectedPacks . "`n"
+   if (Buzzwole)
+      confirmMsg .= "• " . currentDictionary.Txt_Buzzwole . "`n"
+   if (Solgaleo)
+      confirmMsg .= "• " . currentDictionary.Txt_Solgaleo . "`n"
+   if (Lunala)
+      confirmMsg .= "• " . currentDictionary.Txt_Lunala . "`n"
+   if (Shining)
+      confirmMsg .= "• " . currentDictionary.Txt_Shining . "`n"
+   if (Arceus)
+      confirmMsg .= "• " . currentDictionary.Txt_Arceus . "`n"
+   if (Palkia)
+      confirmMsg .= "• " . currentDictionary.Txt_Palkia . "`n"
+   if (Dialga)
+      confirmMsg .= "• " . currentDictionary.Txt_Dialga . "`n"
+   if (Pikachu)
+      confirmMsg .= "• " . currentDictionary.Txt_Pikachu . "`n"
+   if (Charizard)
+      confirmMsg .= "• " . currentDictionary.Txt_Charizard . "`n"
+   if (Mewtwo)
+      confirmMsg .= "• " . currentDictionary.Txt_Mewtwo . "`n"
+   if (Mew)
+      confirmMsg .= "• " . currentDictionary.Txt_Mew . "`n"
+   
+   confirmMsg .= "`n" . SetUpDictionary.Confirm_AdditionalSettings
+   additionalSettingsFound := false
+   
+   if (packMethod) {
+      confirmMsg .= "`n" . SetUpDictionary.Confirm_1PackMethod
+      additionalSettingsFound := true
+   }
+   if (nukeAccount && !InStr(deleteMethod, "Inject")) {
+      confirmMsg .= "`n•" . SetUpDictionary.Confirm_MenuDelete
+      additionalSettingsFound := true
+   }
+   if (spendHourGlass) {
+      confirmMsg .= "`n" . SetUpDictionary.Confirm_SpendHourGlass
+      additionalSettingsFound := true
+   }
+   if (openExtraPack) {
+      confirmMsg .= "`n" . SetUpDictionary.Confirm_OpenExtraPack
+      additionalSettingsFound := true
+   }
+   if (claimSpecialMissions && InStr(deleteMethod, "Inject")) {
+      confirmMsg .= "`n" . SetUpDictionary.Confirm_ClaimMissions
+      additionalSettingsFound := true
+   }
+   if (InStr(deleteMethod, "Inject")) {
+      ;GuiControlGet, selectedSortOption,, SortByDropdown
+      confirmMsg .= "`n" . SetUpDictionary.Confirm_SortBy . SortByDropdown
+      additionalSettingsFound := true
+   }
+   if (!additionalSettingsFound)
+      confirmMsg .= "`n" . SetUpDictionary.Confirm_None
+   
+   confirmMsg .= "`n`n" . SetUpDictionary.Confirm_CardDetection
+   cardDetectionFound := false
+   
+   if (FullArtCheck) {
+      confirmMsg .= "`n" . SetUpDictionary.Confirm_SingleFullArt
+      cardDetectionFound := true
+   }
+   if (TrainerCheck) {
+      confirmMsg .= "`n" . SetUpDictionary.Confirm_SingleTrainer
+      cardDetectionFound := true
+   }
+   if (RainbowCheck) {
+      confirmMsg .= "`n" . SetUpDictionary.Confirm_SingleRainbow
+      cardDetectionFound := true
+   }
+   if (PseudoGodPack) {
+      confirmMsg .= "`n" . SetUpDictionary.Confirm_Double2Star
+      cardDetectionFound := true
+   }
+   if (CrownCheck) {
+      confirmMsg .= "`n" . SetUpDictionary.Confirm_SaveCrowns
+      cardDetectionFound := true
+   }
+   if (ShinyCheck) {
+      confirmMsg .= "`n" . SetUpDictionary.Confirm_SaveShiny
+      cardDetectionFound := true
+   }
+   if (ImmersiveCheck) {
+      confirmMsg .= "`n" . SetUpDictionary.Confirm_SaveImmersives
+      cardDetectionFound := true
+   }
+   if (CheckShinyPackOnly) {
+      confirmMsg .= "`n" . SetUpDictionary.Confirm_OnlyShinyPacks
+      cardDetectionFound := true
+   }
+   if (InvalidCheck) {
+      confirmMsg .= "`n" . SetUpDictionary.Confirm_IgnoreInvalid
+      cardDetectionFound := true
+   }
+   
+   if (!cardDetectionFound)
+      confirmMsg .= "`n" . SetUpDictionary.Confirm_None
+   
+   confirmMsg .= "`n`n" . SetUpDictionary.Confirm_SaveForTrade
+   
+   if (!s4tEnabled) {
+      confirmMsg .= ": " . SetUpDictionary.Confirm_Disabled
+   } else {
+      confirmMsg .= ": " . SetUpDictionary.Confirm_Enabled . "`n"
+      confirmMsg .= "• " . SetUpDictionary.Confirm_SilentPings . ": " . (s4tSilent ? SetUpDictionary.Confirm_Enabled : SetUpDictionary.Confirm_Disabled) . "`n"
+      
+      ; Add enabled filters
+      if (s4t3Dmnd)
+         confirmMsg .= "• 3 ◆◆◆`n"
+      if (s4t4Dmnd)
+         confirmMsg .= "• 4 ◆◆◆◆`n"
+      if (s4t1Star)
+         confirmMsg .= "• 1 ★`n"
+      if (s4tGholdengo && Shining)
+         confirmMsg .= "• " . SetUpDictionary.Confirm_Gholdengo . "`n"
+      
+      ; Add Wonder Pick status
+      if (s4tWP)
+         confirmMsg .= "• " . SetUpDictionary.Confirm_WonderPick . ": " . s4tWPMinCards . " " . SetUpDictionary.Confirm_MinCards . "`n"
+      else
+         confirmMsg .= "• " . SetUpDictionary.Confirm_WonderPick . ": " . SetUpDictionary.Confirm_Disabled . "`n"
+   }
+   
+   if (sendAccountXml || s4tEnabled && s4tSendAccountXml) {
+      confirmMsg .= "`n`n" . SetUpDictionary.Confirm_XMLWarning . "`n"
+   }
+   
+   confirmMsg .= "`n`n" . SetUpDictionary.Confirm_StartBot
+   
+   ; === SHOW CONFIRMATION DIALOG IMMEDIATELY ===
+   MsgBox, 4, Confirm Bot Settings, %confirmMsg%
+   IfMsgBox, No
+   {
+      WinRestore, ahk_id %menuHwnd%
+      WinActivate, ahk_id %menuHwnd%
+      CallOthers := 0
+      return ; Return to GUI for user to modify settings
+   }
+   
+   ResetAccountLists()
+   
+   /*
+   ; Update dropdown settings if needed
+   if (InStr(deleteMethod, "Inject")) {
+      ;MsgBox, SortByDropDown := %SortByDropdown%
+      if (SortByDropdown = "Oldest First")
+         injectSortMethod := "ModifiedAsc"
+      else if (SortByDropdown = "Newest First")
+         injectSortMethod := "ModifiedDesc"
+      else if (SortByDropdown = "Fewest Packs First")
+         injectSortMethod := "PacksAsc"
+      else if (SortByDropdown = "Most Packs First")
+         injectSortMethod := "PacksDesc"
+   }
+   */
+   
+   ; Re-validate scaleParam based on current language
+   if (defaultLanguage = "Scale125") {
+      scaleParam := 277
+   } else if (defaultLanguage = "Scale100") {
+      scaleParam := 287
+   }
+   
+   ; Handle deprecated FriendID field
+   if (inStr(FriendID, "http")) {
+      MsgBox,To provide a URL for friend IDs, please use the ids.txt API field and leave the Friend ID field empty.
+      
+      if (mainIdsURL = "") {
+         IniWrite, "", Settings.ini, UserSettings, FriendID
+         IniWrite, %FriendID%, Settings.ini, UserSettings, mainIdsURL
+      }
+      
+      Reload
+   }
+   
+   ; Download a new Main ID file prior to running the rest of the below
+   if (mainIdsURL != "") {
+      DownloadFile(mainIdsURL, "ids.txt")
+   }
+   
+   ; Download showcase codes if enabled
+   if (showcaseEnabled && showcaseURL != "") {
+      DownloadFile(showcaseURL, "showcase_codes.txt")
+   }
+   
+   ; Check for showcase_ids.txt if enabled
+   if (showcaseEnabled) {
+      if (!FileExist("showcase_ids.txt")) {
+         MsgBox, 48, Showcase Warning, Showcase is enabled but showcase_ids.txt does not exist.`nPlease create this file in the same directory as the script.
+      }
+   }
+   
+   ; Create the second page dynamically based on the number of instances
+   SG.Destroy()
+   Gui, Destroy ; Close the first page
+   
+   ; Run main before instances to account for instance start delay
+   if (runMain) {
+      Loop, %Mains%
+      {
+         if (A_Index != 1) {
+            SourceFile := "Scripts\Main.ahk" ; Path to the source .ahk file
             TargetFolder := "Scripts\" ; Path to the target folder
-            TargetFile := TargetFolder . A_Index . ".ahk" ; Generate target file path
-            if(Instances > 1) {
-                FileDelete, %TargetFile%
-                FileCopy, %SourceFile%, %TargetFile%, 1 ; Copy source file to target
-            }
+            TargetFile := TargetFolder . "Main" . A_Index . ".ahk" ; Generate target file path
+            FileDelete, %TargetFile%
+            FileCopy, %SourceFile%, %TargetFile%, 1 ; Copy source file to target
             if (ErrorLevel)
-                MsgBox, Failed to create %TargetFile%. Ensure permissions and paths are correct.
-        }
-        
-        FileName := "Scripts\" . A_Index . ".ahk"
-        Command := FileName
-        
-        if ((Mains > 1 || A_Index > 1) && instanceStartDelay > 0) {
+               MsgBox, Failed to create %TargetFile%. Ensure permissions and paths are correct.
+         }
+         
+         mainInstanceName := "Main" . (A_Index > 1 ? A_Index : "")
+         FileName := "Scripts\" . mainInstanceName . ".ahk"
+         Command := FileName
+         
+         if (A_Index > 1 && instanceStartDelay > 0) {
             instanceStartDelayMS := instanceStartDelay * 1000
             Sleep, instanceStartDelayMS
-        }
-        
-        ; Clear out the last run time so that our monitor script doesn't try to kill and refresh this instance right away
-        metricFile := A_ScriptDir . "\Scripts\" . A_Index . ".ini"
-        if (FileExist(metricFile)) {
-            IniWrite, 0, %metricFile%, Metrics, LastEndEpoch
-            IniWrite, 0, %metricFile%, UserSettings, DeadCheck
-            IniWrite, 0, %metricFile%, Metrics, rerolls
-            now := A_TickCount
-            IniWrite, %now%, %metricFile%, Metrics, rerollStartTime
-        }
-        
-        Run, %Command%
-    }
-    
-    if(autoLaunchMonitor) {
-        monitorFile := A_ScriptDir . "\Scripts\Include\Monitor.ahk"
-        if(FileExist(monitorFile)) {
-            Run, %monitorFile%
-        }
-    }
-    
-    ; Update ScaleParam for use in displaying the status
-    SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
-    SysGet, Monitor, Monitor, %SelectedMonitorIndex%
-    rerollTime := A_TickCount
-    
-    typeMsg := "\nType: " . deleteMethod
-    injectMethod := false
-    if(InStr(deleteMethod, "Inject"))
-        injectMethod := true
-    if(packMethod)
-        typeMsg .= " (1P Method)"
-    if(nukeAccount && !injectMethod)
-        typeMsg .= " (Menu Delete)"
-    
-    Selected := []
-    selectMsg := "\nOpening: "
-    if(Shining)
-        Selected.Push("Shining")
-    if(Arceus)
-        Selected.Push("Arceus")
-    if(Palkia)
-        Selected.Push("Palkia")
-    if(Dialga)
-        Selected.Push("Dialga")
-    if(Mew)
-        Selected.Push("Mew")
-    if(Pikachu)
-        Selected.Push("Pikachu")
-    if(Charizard)
-        Selected.Push("Charizard")
-    if(Mewtwo)
-        Selected.Push("Mewtwo")
-    if(Solgaleo)
-        Selected.Push("Solgaleo")
-    if(Lunala)
-        Selected.Push("Lunala")
-    if(Buzzwole)
-        Selected.Push("Buzzwole")
-    
-    for index, value in Selected {
-        if(index = Selected.MaxIndex())
-            commaSeparate := ","
-        else
-            commaSeparate := ", "
-        if(value)
-            selectMsg .= value . commaSeparate
-        else
-            selectMsg .= value . commaSeparate
-    }
-    
-    ; === MAIN HEARTBEAT LOOP ===
-    Loop {
-        Sleep, 30000
-        
-        ; Check if Main toggled GP Test Mode and send notification if needed
-        IniRead, mainTestMode, HeartBeat.ini, TestMode, Main, -1
-        if (mainTestMode != -1) {
-            ; Main has toggled test mode, get status and send notification
-            IniRead, mainStatus, HeartBeat.ini, HeartBeat, Main, 0
+         }
+         
+         Run, %Command%
+      }
+   }
+   
+   ; Loop to process each instance
+   Loop, %Instances%
+   {
+      if (A_Index != 1) {
+         SourceFile := "Scripts\1.ahk" ; Path to the source .ahk file
+         TargetFolder := "Scripts\" ; Path to the target folder
+         TargetFile := TargetFolder . A_Index . ".ahk" ; Generate target file path
+         if(Instances > 1) {
+            FileDelete, %TargetFile%
+            FileCopy, %SourceFile%, %TargetFile%, 1 ; Copy source file to target
+         }
+         if (ErrorLevel)
+            MsgBox, Failed to create %TargetFile%. Ensure permissions and paths are correct.
+      }
+      
+      FileName := "Scripts\" . A_Index . ".ahk"
+      Command := FileName
+      
+      if ((Mains > 1 || A_Index > 1) && instanceStartDelay > 0) {
+         instanceStartDelayMS := instanceStartDelay * 1000
+         Sleep, instanceStartDelayMS
+      }
+      
+      ; Clear out the last run time so that our monitor script doesn't try to kill and refresh this instance right away
+      metricFile := A_ScriptDir . "\Scripts\" . A_Index . ".ini"
+      if (FileExist(metricFile)) {
+         IniWrite, 0, %metricFile%, Metrics, LastEndEpoch
+         IniWrite, 0, %metricFile%, UserSettings, DeadCheck
+         IniWrite, 0, %metricFile%, Metrics, rerolls
+         now := A_TickCount
+         IniWrite, %now%, %metricFile%, Metrics, rerollStartTime
+      }
+      
+      Run, %Command%
+   }
+   
+   if(autoLaunchMonitor) {
+      monitorFile := A_ScriptDir . "\Scripts\Include\Monitor.ahk"
+      if(FileExist(monitorFile)) {
+         Run, %monitorFile%
+      }
+   }
+   
+   ; Update ScaleParam for use in displaying the status
+   SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
+   SysGet, Monitor, Monitor, %SelectedMonitorIndex%
+   rerollTime := A_TickCount
+   
+   typeMsg := "\nType: " . deleteMethod
+   injectMethod := false
+   if(InStr(deleteMethod, "Inject"))
+      injectMethod := true
+   if(packMethod)
+      typeMsg .= " (1P Method)"
+   if(nukeAccount && !injectMethod)
+      typeMsg .= " (Menu Delete)"
+   
+   Selected := []
+   selectMsg := "\nOpening: "
+   if(Shining)
+      Selected.Push("Shining")
+   if(Arceus)
+      Selected.Push("Arceus")
+   if(Palkia)
+      Selected.Push("Palkia")
+   if(Dialga)
+      Selected.Push("Dialga")
+   if(Mew)
+      Selected.Push("Mew")
+   if(Pikachu)
+      Selected.Push("Pikachu")
+   if(Charizard)
+      Selected.Push("Charizard")
+   if(Mewtwo)
+      Selected.Push("Mewtwo")
+   if(Solgaleo)
+      Selected.Push("Solgaleo")
+   if(Lunala)
+      Selected.Push("Lunala")
+   if(Buzzwole)
+      Selected.Push("Buzzwole")
+   
+   for index, value in Selected {
+      if(index = Selected.MaxIndex())
+         commaSeparate := ","
+      else
+         commaSeparate := ", "
+      if(value)
+         selectMsg .= value . commaSeparate
+      else
+         selectMsg .= value . commaSeparate
+   }
+   
+   ; === MAIN HEARTBEAT LOOP ===
+   Loop {
+      Sleep, 30000
+      ;ToolTip, Enter Loop, 100, 800
+      ; Check if Main toggled GP Test Mode and send notification if needed
+      IniRead, mainTestMode, HeartBeat.ini, TestMode, Main, -1
+      if (mainTestMode != -1) {
+         ; Main has toggled test mode, get status and send notification
+         IniRead, mainStatus, HeartBeat.ini, HeartBeat, Main, 0
+         
+         onlineAHK := ""
+         offlineAHK := ""
+         Online := []
+         
+         Loop %Instances% {
+            IniRead, value, HeartBeat.ini, HeartBeat, Instance%A_Index%
+            if(value)
+               Online.Push(1)
+            else
+               Online.Push(0)
+            IniWrite, 0, HeartBeat.ini, HeartBeat, Instance%A_Index%
+         }
+         
+         for index, value in Online {
+            if(index = Online.MaxIndex())
+               commaSeparate := ""
+            else
+               commaSeparate := ", "
+            if(value)
+               onlineAHK .= A_Index . commaSeparate
+            else
+               offlineAHK .= A_Index . commaSeparate
+         }
+         
+         if (runMain) {
+            if(mainStatus) {
+               if (onlineAHK)
+                  onlineAHK := "Main, " . onlineAHK
+               else
+                  onlineAHK := "Main"
+            }
+            else {
+               if (offlineAHK)
+                  offlineAHK := "Main, " . offlineAHK
+               else
+                  offlineAHK := "Main"
+            }
+         }
+         
+         if(offlineAHK = "")
+            offlineAHK := "Offline: none"
+         else
+            offlineAHK := "Offline: " . RTrim(offlineAHK, ", ")
+         if(onlineAHK = "")
+            onlineAHK := "Online: none"
+         else
+            onlineAHK := "Online: " . RTrim(onlineAHK, ", ")
+         
+         ; Create status message with all regular heartbeat info
+         discMessage := heartBeatName ? "\n" . heartBeatName : ""
+         discMessage .= "\n" . onlineAHK . "\n" . offlineAHK
+         
+         total := SumVariablesInJsonFile()
+         totalSeconds := Round((A_TickCount - rerollTime) / 1000)
+         mminutes := Floor(totalSeconds / 60)
+         packStatus := "Time: " . mminutes . "m | Packs: " . total
+         packStatus .= " | Avg: " . Round(total / mminutes, 2) . " packs/min"
+         
+         discMessage .= "\n" . packStatus . "\nVersion: " . RegExReplace(githubUser, "-.*$") . "-" . localVersion
+         discMessage .= typeMsg
+         discMessage .= selectMsg
+         
+         ; Add special note about Main's test mode status
+         if (mainTestMode == "1")
+            discMessage .= "\n\nMain entered GP Test Mode ✕"
+         else
+            discMessage .= "\n\nMain exited GP Test Mode ✓"
+         
+         ; Send the message
+         LogToDiscord(discMessage,, false,,, heartBeatWebhookURL)
+         
+         ; Clear the flag
+         IniDelete, HeartBeat.ini, TestMode, Main
+      }
+      
+      ; Every 5 minutes, pull down the main ID list and showcase list
+      if(Mod(A_Index, 10) = 0) {
+         if(mainIdsURL != "") {
+            DownloadFile(mainIdsURL, "ids.txt")
+         } else {
+            if(FileExist("ids.txt"))
+               FileDelete, ids.txt
+         }
+      }
+      
+      ; Sum all variable values and write to total.json
+      total := SumVariablesInJsonFile()
+      totalSeconds := Round((A_TickCount - rerollTime) / 1000) ; Total time in seconds
+      mminutes := Floor(totalSeconds / 60)
+      
+      packStatus := "Time: " . mminutes . "m Packs: " . total
+      packStatus .= " | Avg: " . Round(total / mminutes, 2) . " packs/min"
+      ; Display pack status at the bottom of the first reroll instance
+      DisplayPackStatus(packStatus, ((runMain ? Mains * scaleParam : 0) + 5), 625)
+      
+      ; FIXED HEARTBEAT CODE
+      if(heartBeat) {
+         ; Each loop iteration is 30 seconds (0.5 minutes)
+         ; So for X minutes, we need X * 2 iterations
+         heartbeatIterations := heartBeatDelay * 2
+         
+         ; Send heartbeat at start (A_Index = 1) or every heartbeatDelay minutes
+         if (A_Index = 1 || Mod(A_Index, heartbeatIterations) = 0) {
             
             onlineAHK := ""
             offlineAHK := ""
             Online := []
             
             Loop %Instances% {
-                IniRead, value, HeartBeat.ini, HeartBeat, Instance%A_Index%
-                if(value)
-                    Online.Push(1)
-                else
-                    Online.Push(0)
-                IniWrite, 0, HeartBeat.ini, HeartBeat, Instance%A_Index%
+               IniRead, value, HeartBeat.ini, HeartBeat, Instance%A_Index%
+               if(value)
+                  Online.Push(1)
+               else
+                  Online.Push(0)
+               IniWrite, 0, HeartBeat.ini, HeartBeat, Instance%A_Index%
             }
             
             for index, value in Online {
-                if(index = Online.MaxIndex())
-                    commaSeparate := ""
-                else
-                    commaSeparate := ", "
-                if(value)
-                    onlineAHK .= A_Index . commaSeparate
-                else
-                    offlineAHK .= A_Index . commaSeparate
+               if(index = Online.MaxIndex())
+                  commaSeparate := ""
+               else
+                  commaSeparate := ", "
+               if(value)
+                  onlineAHK .= A_Index . commaSeparate
+               else
+                  offlineAHK .= A_Index . commaSeparate
             }
             
-            if (runMain) {
-                if(mainStatus) {
-                    if (onlineAHK)
-                        onlineAHK := "Main, " . onlineAHK
-                    else
-                        onlineAHK := "Main"
-                }
-                else {
-                    if (offlineAHK)
-                        offlineAHK := "Main, " . offlineAHK
-                    else
-                        offlineAHK := "Main"
-                }
+            if(runMain) {
+               IniRead, value, HeartBeat.ini, HeartBeat, Main
+               if(value) {
+                  if (onlineAHK)
+                     onlineAHK := "Main, " . onlineAHK
+                  else
+                     onlineAHK := "Main"
+               }
+               else {
+                  if (offlineAHK)
+                     offlineAHK := "Main, " . offlineAHK
+                  else
+                     offlineAHK := "Main"
+               }
+               IniWrite, 0, HeartBeat.ini, HeartBeat, Main
             }
             
             if(offlineAHK = "")
-                offlineAHK := "Offline: none"
+               offlineAHK := "Offline: none"
             else
-                offlineAHK := "Offline: " . RTrim(offlineAHK, ", ")
+               offlineAHK := "Offline: " . RTrim(offlineAHK, ", ")
             if(onlineAHK = "")
-                onlineAHK := "Online: none"
+               onlineAHK := "Online: none"
             else
-                onlineAHK := "Online: " . RTrim(onlineAHK, ", ")
+               onlineAHK := "Online: " . RTrim(onlineAHK, ", ")
             
-            ; Create status message with all regular heartbeat info
             discMessage := heartBeatName ? "\n" . heartBeatName : ""
-            discMessage .= "\n" . onlineAHK . "\n" . offlineAHK
             
-            total := SumVariablesInJsonFile()
-            totalSeconds := Round((A_TickCount - rerollTime) / 1000)
-            mminutes := Floor(totalSeconds / 60)
-            packStatus := "Time: " . mminutes . "m | Packs: " . total
-            packStatus .= " | Avg: " . Round(total / mminutes, 2) . " packs/min"
-            
-            discMessage .= "\n" . packStatus . "\nVersion: " . RegExReplace(githubUser, "-.*$") . "-" . localVersion
+            discMessage .= "\n" . onlineAHK . "\n" . offlineAHK . "\n" . packStatus . "\nVersion: " . RegExReplace(githubUser, "-.*$") . "-" . localVersion
             discMessage .= typeMsg
             discMessage .= selectMsg
             
-            ; Add special note about Main's test mode status
-            if (mainTestMode == "1")
-                discMessage .= "\n\nMain entered GP Test Mode ✕"
-            else
-                discMessage .= "\n\nMain exited GP Test Mode ✓"
-            
-            ; Send the message
             LogToDiscord(discMessage,, false,,, heartBeatWebhookURL)
             
-            ; Clear the flag
-            IniDelete, HeartBeat.ini, TestMode, Main
-        }
-        
-        ; Every 5 minutes, pull down the main ID list and showcase list
-        if(Mod(A_Index, 10) = 0) {
-            if(mainIdsURL != "") {
-                DownloadFile(mainIdsURL, "ids.txt")
-            } else {
-                if(FileExist("ids.txt"))
-                    FileDelete, ids.txt
+            ; Optional debug log
+            if (debugMode) {
+               FileAppend, % A_Now . " - Heartbeat sent at iteration " . A_Index . "`n", %A_ScriptDir%\heartbeat_log.txt
             }
-        }
-        
-        ; Sum all variable values and write to total.json
-        total := SumVariablesInJsonFile()
-        totalSeconds := Round((A_TickCount - rerollTime) / 1000) ; Total time in seconds
-        mminutes := Floor(totalSeconds / 60)
-        
-        packStatus := "Time: " . mminutes . "m Packs: " . total
-        packStatus .= " | Avg: " . Round(total / mminutes, 2) . " packs/min"
-        
-        ; Display pack status at the bottom of the first reroll instance
-        DisplayPackStatus(packStatus, ((runMain ? Mains * scaleParam : 0) + 5), 625)
-        
-        ; FIXED HEARTBEAT CODE
-        if(heartBeat) {
-            ; Each loop iteration is 30 seconds (0.5 minutes)
-            ; So for X minutes, we need X * 2 iterations
-            heartbeatIterations := heartBeatDelay * 2
-            
-            ; Send heartbeat at start (A_Index = 1) or every heartbeatDelay minutes
-            if (A_Index = 1 || Mod(A_Index, heartbeatIterations) = 0) {
-                
-                onlineAHK := ""
-                offlineAHK := ""
-                Online := []
-                
-                Loop %Instances% {
-                    IniRead, value, HeartBeat.ini, HeartBeat, Instance%A_Index%
-                    if(value)
-                        Online.Push(1)
-                    else
-                        Online.Push(0)
-                    IniWrite, 0, HeartBeat.ini, HeartBeat, Instance%A_Index%
-                }
-                
-                for index, value in Online {
-                    if(index = Online.MaxIndex())
-                        commaSeparate := ""
-                    else
-                        commaSeparate := ", "
-                    if(value)
-                        onlineAHK .= A_Index . commaSeparate
-                    else
-                        offlineAHK .= A_Index . commaSeparate
-                }
-                
-                if(runMain) {
-                    IniRead, value, HeartBeat.ini, HeartBeat, Main
-                    if(value) {
-                        if (onlineAHK)
-                            onlineAHK := "Main, " . onlineAHK
-                        else
-                            onlineAHK := "Main"
-                    }
-                    else {
-                        if (offlineAHK)
-                            offlineAHK := "Main, " . offlineAHK
-                        else
-                            offlineAHK := "Main"
-                    }
-                    IniWrite, 0, HeartBeat.ini, HeartBeat, Main
-                }
-                
-                if(offlineAHK = "")
-                    offlineAHK := "Offline: none"
-                else
-                    offlineAHK := "Offline: " . RTrim(offlineAHK, ", ")
-                if(onlineAHK = "")
-                    onlineAHK := "Online: none"
-                else
-                    onlineAHK := "Online: " . RTrim(onlineAHK, ", ")
-                
-                discMessage := heartBeatName ? "\n" . heartBeatName : ""
-                
-                discMessage .= "\n" . onlineAHK . "\n" . offlineAHK . "\n" . packStatus . "\nVersion: " . RegExReplace(githubUser, "-.*$") . "-" . localVersion
-                discMessage .= typeMsg
-                discMessage .= selectMsg
-                
-                LogToDiscord(discMessage,, false,,, heartBeatWebhookURL)
-                
-                ; Optional debug log
-                if (debugMode) {
-                    FileAppend, % A_Now . " - Heartbeat sent at iteration " . A_Index . "`n", %A_ScriptDir%\heartbeat_log.txt
-                }
-            }
-        }
-    }
+         }
+      }
+   }
 
 Return
 
 GuiClose:
-    ; Save all settings before exiting
-    SaveAllSettings()
-    
-    ; Kill all related scripts
-    KillAllScripts()
+   ; Save all settings before exiting
+   SaveAllSettings()
+   
+   ; Kill all related scripts
+   KillAllScripts()
 
 ExitApp
 return
 
 ; New hotkey for sending "All Offline" status message
 ~+F7::
-    SendAllInstancesOfflineStatus()
+   SendAllInstancesOfflineStatus()
 ExitApp
 return
 
 ; Function to send a Discord message with all instances marked as offline
 SendAllInstancesOfflineStatus() {
-    global heartBeatName, heartBeatWebhookURL, localVersion, githubUser, Instances, runMain, Mains
-    global typeMsg, selectMsg, rerollTime, scaleParam
-    
-    ; Display visual feedback that the hotkey was triggered
-    DisplayPackStatus("Shift+F7 pressed - Sending offline heartbeat to Discord...", ((runMain ? Mains * scaleParam : 0) + 5), 625)
-    
-    ; Create message showing all instances as offline
-    offlineInstances := ""
-    if (runMain) {
-        offlineInstances := "Main"
-        if (Mains > 1) {
-            Loop, % Mains - 1
-                offlineInstances .= ", Main" . (A_Index + 1)
-        }
-        if (Instances > 0)
-            offlineInstances .= ", "
-    }
-    
-    Loop, %Instances% {
-        offlineInstances .= A_Index
-        if (A_Index < Instances)
-            offlineInstances .= ", "
-    }
-    
-    ; Create status message with heartbeat info
-    discMessage := heartBeatName ? "\n" . heartBeatName : ""
-    discMessage .= "\nOnline: none"
-    discMessage .= "\nOffline: " . offlineInstances
-    
-    ; Add pack statistics
-    total := SumVariablesInJsonFile()
-    totalSeconds := Round((A_TickCount - rerollTime) / 1000)
-    mminutes := Floor(totalSeconds / 60)
-    packStatus := "Time: " . mminutes . "m | Packs: " . total
-    packStatus .= " | Avg: " . Round(total / mminutes, 2) . " packs/min"
-    
-    discMessage .= "\n" . packStatus . "\nVersion: " . RegExReplace(githubUser, "-.*$") . "-" . localVersion
-    discMessage .= typeMsg
-    discMessage .= selectMsg
-    discMessage .= "\n\n All instances marked as OFFLINE"
-    
-    ; Send the message
-    LogToDiscord(discMessage,, false,,, heartBeatWebhookURL)
-    
-    ; Display confirmation in the status bar
-    DisplayPackStatus("Discord notification sent: All instances marked as OFFLINE", ((runMain ? Mains * scaleParam : 0) + 5), 625)
-}
-
-; Improved status display function
-DisplayPackStatus(Message, X := 0, Y := 625) {
-    global SelectedMonitorIndex
-    static GuiName := "PackStatusGUI"
-    
-    ; Fixed light theme colors
-    bgColor := "F0F5F9" ; Light background
-    textColor := "2E3440" ; Dark text for contrast
-    
-    MaxRetries := 10
-    RetryCount := 0
-    
-    try {
-        ; Get monitor origin from index
-        SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
-        SysGet, Monitor, Monitor, %SelectedMonitorIndex%
-        X := MonitorLeft + X
-        
-        ;Adjust Y position to be just above buttons
-        Y := MonitorTop + 503 ; This is approximately where the buttons start - 30 (status height)
-        
-        ; Check if GUI already exists
-        Gui %GuiName%:+LastFoundExist
-        if WinExist() {
-            GuiControl, %GuiName%:, PacksText, %Message%
-        }
-        else {
-            ; Create a new GUI with light theme styling
-            OwnerWND := WinExist(1)
-            if(!OwnerWND)
-                Gui, %GuiName%:New, +ToolWindow -Caption +LastFound -DPIScale
-            else
-                Gui, %GuiName%:New, +Owner%OwnerWND% +ToolWindow -Caption +LastFound -DPIScale
-            
-            Gui, %GuiName%:Color, %bgColor% ; Light background
-            Gui, %GuiName%:Margin, 2, 2
-            Gui, %GuiName%:Font, s8 c%textColor% ; Dark text
-            Gui, %GuiName%:Add, Text, vPacksText c%textColor%, %Message%
-            
-            ; Show the GUI without activating it
-            Gui, %GuiName%:Show, NoActivate x%X% y%Y%, %GuiName%
-        }
-    } catch e {
-        ; Silent error handling
-    }
+   global heartBeatName, heartBeatWebhookURL, localVersion, githubUser, Instances, runMain, Mains
+   global typeMsg, selectMsg, rerollTime, scaleParam
+   
+   ; Display visual feedback that the hotkey was triggered
+   DisplayPackStatus("Shift+F7 pressed - Sending offline heartbeat to Discord...", ((runMain ? Mains * scaleParam : 0) + 5), 625)
+   
+   ; Create message showing all instances as offline
+   offlineInstances := ""
+   if (runMain) {
+      offlineInstances := "Main"
+      if (Mains > 1) {
+         Loop, % Mains - 1
+            offlineInstances .= ", Main" . (A_Index + 1)
+      }
+      if (Instances > 0)
+         offlineInstances .= ", "
+   }
+   
+   Loop, %Instances% {
+      offlineInstances .= A_Index
+      if (A_Index < Instances)
+         offlineInstances .= ", "
+   }
+   
+   ; Create status message with heartbeat info
+   discMessage := heartBeatName ? "\n" . heartBeatName : ""
+   discMessage .= "\nOnline: none"
+   discMessage .= "\nOffline: " . offlineInstances
+   
+   ; Add pack statistics
+   total := SumVariablesInJsonFile()
+   totalSeconds := Round((A_TickCount - rerollTime) / 1000)
+   mminutes := Floor(totalSeconds / 60)
+   packStatus := "Time: " . mminutes . "m | Packs: " . total
+   packStatus .= " | Avg: " . Round(total / mminutes, 2) . " packs/min"
+   
+   discMessage .= "\n" . packStatus . "\nVersion: " . RegExReplace(githubUser, "-.*$") . "-" . localVersion
+   discMessage .= typeMsg
+   discMessage .= selectMsg
+   discMessage .= "\n\n All instances marked as OFFLINE"
+   
+   ; Send the message
+   LogToDiscord(discMessage,, false,,, heartBeatWebhookURL)
+   
+   ; Display confirmation in the status bar
+   DisplayPackStatus("Discord notification sent: All instances marked as OFFLINE", ((runMain ? Mains * scaleParam : 0) + 5), 625)
 }
 
 ; Global variable to track the current JSON file
@@ -4595,363 +3999,362 @@ global jsonFileName := ""
 
 ; Function to create or select the JSON file
 InitializeJsonFile() {
-    global jsonFileName
-    fileName := A_ScriptDir . "\json\Packs.json"
-    
-    ; Add this line to create the directory if it doesn't exist
-    FileCreateDir, %A_ScriptDir%\json
-    
-    if FileExist(fileName)
-        FileDelete, %fileName%
-    if !FileExist(fileName) {
-        ; Create a new file with an empty JSON array
-        FileAppend, [], %fileName% ; Write an empty JSON array
-        jsonFileName := fileName
-        return
-    }
+   global jsonFileName
+   fileName := A_ScriptDir . "\json\Packs.json"
+   
+   ; Add this line to create the directory if it doesn't exist
+   FileCreateDir, %A_ScriptDir%\json
+   
+   if FileExist(fileName)
+      FileDelete, %fileName%
+   if !FileExist(fileName) {
+      ; Create a new file with an empty JSON array
+      FileAppend, [], %fileName% ; Write an empty JSON array
+      jsonFileName := fileName
+      return
+   }
 }
 
 ; Function to append a time and variable pair to the JSON file
 AppendToJsonFile(variableValue) {
-    global jsonFileName
-    if (jsonFileName = "") {
-        MsgBox, JSON file not initialized. Call InitializeJsonFile() first.
-        return
-    }
-    
-    ; Read the current content of the JSON file
-    FileRead, jsonContent, %jsonFileName%
-    if (jsonContent = "") {
-        jsonContent := "[]"
-    }
-    
-    ; Parse and modify the JSON content
-    jsonContent := SubStr(jsonContent, 1, StrLen(jsonContent) - 1) ; Remove trailing bracket
-    if (jsonContent != "[")
-        jsonContent .= ","
-    jsonContent .= "{""time"": """ A_Now """, ""variable"": " variableValue "}]"
-    
-    ; Write the updated JSON back to the file
-    FileDelete, %jsonFileName%
-    FileAppend, %jsonContent%, %jsonFileName%
+   global jsonFileName
+   if (jsonFileName = "") {
+      MsgBox, 0x40000, JSON, JSON file not initialized. Call InitializeJsonFile() first.
+      return
+   }
+   
+   ; Read the current content of the JSON file
+   FileRead, jsonContent, %jsonFileName%
+   if (jsonContent = "") {
+      jsonContent := "[]"
+   }
+   
+   ; Parse and modify the JSON content
+   jsonContent := SubStr(jsonContent, 1, StrLen(jsonContent) - 1) ; Remove trailing bracket
+   if (jsonContent != "[")
+      jsonContent .= ","
+   jsonContent .= "{""time"": """ A_Now """, ""variable"": " variableValue "}]"
+   
+   ; Write the updated JSON back to the file
+   FileDelete, %jsonFileName%
+   FileAppend, %jsonContent%, %jsonFileName%
 }
 
 ; Function to sum all variable values in the JSON file
 SumVariablesInJsonFile() {
-    global jsonFileName
-    if (jsonFileName = "") {
-        return 0 ; Return 0 instead of nothing if jsonFileName is empty
-    }
-    
-    ; Read the file content
-    FileRead, jsonContent, %jsonFileName%
-    if (jsonContent = "") {
-        return 0
-    }
-    
-    ; Parse the JSON and calculate the sum
-    sum := 0
-    ; Clean and parse JSON content
-    jsonContent := StrReplace(jsonContent, "[", "") ; Remove starting bracket
-    jsonContent := StrReplace(jsonContent, "]", "") ; Remove ending bracket
-    Loop, Parse, jsonContent, {, }
-    {
-        ; Match each variable value
-        if (RegExMatch(A_LoopField, """variable"":\s*(-?\d+)", match)) {
-            sum += match1
-        }
-    }
-    
-    ; Write the total sum to a file called "total.json"
-    if(sum > 0) {
-        totalFile := A_ScriptDir . "\json\total.json"
-        totalContent := "{""total_sum"": " sum "}"
-        FileDelete, %totalFile%
-        FileAppend, %totalContent%, %totalFile%
-    }
-    
-    return sum
+   global jsonFileName
+   if (jsonFileName = "") {
+      return 0 ; Return 0 instead of nothing if jsonFileName is empty
+   }
+   ; Read the file content
+   FileRead, jsonContent, %jsonFileName%
+   if (jsonContent = "") {
+      return 0
+   }
+   
+   ; Parse the JSON and calculate the sum
+   sum := 0
+   ; Clean and parse JSON content
+   jsonContent := StrReplace(jsonContent, "[", "") ; Remove starting bracket
+   jsonContent := StrReplace(jsonContent, "]", "") ; Remove ending bracket
+   Loop, Parse, jsonContent, {, }
+   {
+      ; Match each variable value
+      if (RegExMatch(A_LoopField, """variable"":\s*(-?\d+)", match)) {
+         sum += match1
+      }
+   }
+   
+   ; Write the total sum to a file called "total.json"
+   if(sum > 0) {
+      totalFile := A_ScriptDir . "\json\total.json"
+      totalContent := "{""total_sum"": " sum "}"
+      FileDelete, %totalFile%
+      FileAppend, %totalContent%, %totalFile%
+   }
+   
+   return sum
 }
 
 CheckForUpdate() {
-    global githubUser, repoName, localVersion, zipPath, extractPath, scriptFolder, currentDictionary
-    url := "https://api.github.com/repos/" githubUser "/" repoName "/releases/latest"
-    
-    response := HttpGet(url)
-    if !response
-    {
-        MsgBox, currentDictionary.fail_fetch
-        return
-    }
-    latestReleaseBody := FixFormat(ExtractJSONValue(response, "body"))
-    latestVersion := ExtractJSONValue(response, "tag_name")
-    zipDownloadURL := ExtractJSONValue(response, "zipball_url")
-    Clipboard := latestReleaseBody
-    if (zipDownloadURL = "" || !InStr(zipDownloadURL, "http"))
-    {
-        MsgBox, % currentDictionary.fail_url
-        return
-    }
-    
-    if (latestVersion = "")
-    {
-        MsgBox, % currentDictionary.fail_version
-        return
-    }
-    
-    if (VersionCompare(latestVersion, localVersion) > 0)
-    {
-        ; Get release notes from the JSON (ensure this is populated earlier in the script)
-        releaseNotes := latestReleaseBody ; Assuming `latestReleaseBody` contains the release notes
-        
-        ; Show a message box asking if the user wants to download
-        updateAvailable := currentDictionary.update_title
-        latestDownloaad := currentDictionary.confirm_dl
-        MsgBox, 4, %updateAvailable% %latestVersion%, %releaseNotes%`n`nDo you want to download the latest version?
-        
-        ; If the user clicks Yes (return value 6)
-        IfMsgBox, Yes
-        {
-            MsgBox, 64, Downloading..., % currentDictionary.downloading
-            
-            ; Proceed with downloading the update
-            URLDownloadToFile, %zipDownloadURL%, %zipPath%
-            if ErrorLevel
-            {
-                MsgBox, % currentDictionary.dl_failed
-                return
-            }
-            else {
-                MsgBox, % currentDictionary.dl_complete
-                
-                ; Create a temporary folder for extraction
-                tempExtractPath := A_Temp "\PTCGPB_Temp"
-                FileCreateDir, %tempExtractPath%
-                
-                ; Extract the ZIP file into the temporary folder
-                RunWait, powershell -Command "Expand-Archive -Path '%zipPath%' -DestinationPath '%tempExtractPath%' -Force",, Hide
-                
-                ; Check if extraction was successful
-                if !FileExist(tempExtractPath)
-                {
-                    MsgBox, % currentDictionary.extract_failed
-                    return
-                }
-                
-                ; Get the first subfolder in the extracted folder
-                Loop, Files, %tempExtractPath%\*, D
-                {
-                    extractedFolder := A_LoopFileFullPath
-                    break
-                }
-                
-                ; Check if a subfolder was found and move its contents recursively to the script folder
-                if (extractedFolder)
-                {
-                    MoveFilesRecursively(extractedFolder, scriptFolder)
-                    
-                    ; Clean up the temporary extraction folder
-                    FileRemoveDir, %tempExtractPath%, 1
-                    MsgBox, % currentDictionary.installed
-                    Reload
-                }
-                else
-                {
-                    MsgBox, % currentDictionary.missing_files
-                    return
-                }
-            }
-        }
-        else
-        {
-            MsgBox, % currentDictionary.cancel
+   global githubUser, repoName, localVersion, zipPath, extractPath, scriptFolder, currentDictionary
+   url := "https://api.github.com/repos/" githubUser "/" repoName "/releases/latest"
+   
+   response := HttpGet(url)
+   if !response
+   {
+      MsgBox, 0x40000, Check for Update, currentDictionary.fail_fetch
+      return
+   }
+   latestReleaseBody := FixFormat(ExtractJSONValue(response, "body"))
+   latestVersion := ExtractJSONValue(response, "tag_name")
+   zipDownloadURL := ExtractJSONValue(response, "zipball_url")
+   Clipboard := latestReleaseBody
+   if (zipDownloadURL = "" || !InStr(zipDownloadURL, "http"))
+   {
+      MsgBox, 0x40000, Check for Update, % currentDictionary.fail_url
+      return
+   }
+   
+   if (latestVersion = "")
+   {
+      MsgBox, 0x40000, Check for Update, % currentDictionary.fail_version
+      return
+   }
+   
+   if (VersionCompare(latestVersion, localVersion) > 0)
+   {
+      ; Get release notes from the JSON (ensure this is populated earlier in the script)
+      releaseNotes := latestReleaseBody ; Assuming `latestReleaseBody` contains the release notes
+      
+      ; Show a message box asking if the user wants to download
+      updateAvailable := currentDictionary.update_title
+      latestDownloaad := currentDictionary.confirm_dl
+      MsgBox, 262148, %updateAvailable% %latestVersion%, %releaseNotes%`n`nDo you want to download the latest version?
+      
+      ; If the user clicks Yes (return value 6)
+      IfMsgBox, Yes
+      {
+         MsgBox, 262208, Downloading..., % currentDictionary.downloading
+         
+         ; Proceed with downloading the update
+         URLDownloadToFile, %zipDownloadURL%, %zipPath%
+         if ErrorLevel
+         {
+            MsgBox, 0x40000, Check for Update, % currentDictionary.dl_failed
             return
-        }
-    }
-    else
-    {
-        MsgBox, % currentDictionary.up_to_date
-    }
+         }
+         else {
+            MsgBox, 0x40000, Check for Update, % currentDictionary.dl_complete
+            
+            ; Create a temporary folder for extraction
+            tempExtractPath := A_Temp "\PTCGPB_Temp"
+            FileCreateDir, %tempExtractPath%
+            
+            ; Extract the ZIP file into the temporary folder
+            RunWait, powershell -Command "Expand-Archive -Path '%zipPath%' -DestinationPath '%tempExtractPath%' -Force",, Hide
+            
+            ; Check if extraction was successful
+            if !FileExist(tempExtractPath)
+            {
+               MsgBox, 0x40000, Check for Update, % currentDictionary.extract_failed
+               return
+            }
+            
+            ; Get the first subfolder in the extracted folder
+            Loop, Files, %tempExtractPath%\*, D
+            {
+               extractedFolder := A_LoopFileFullPath
+               break
+            }
+            
+            ; Check if a subfolder was found and move its contents recursively to the script folder
+            if (extractedFolder)
+            {
+               MoveFilesRecursively(extractedFolder, scriptFolder)
+               
+               ; Clean up the temporary extraction folder
+               FileRemoveDir, %tempExtractPath%, 1
+               MsgBox, 0x40000, Check for Update, % currentDictionary.installed
+               Reload
+            }
+            else
+            {
+               MsgBox, 0x40000, Check for Update, % currentDictionary.missing_files
+               return
+            }
+         }
+      }
+      else
+      {
+         MsgBox, 0x40000, Check for Update, % currentDictionary.cancel
+         return
+      }
+   }
+   else
+   {
+      MsgBox, 0x40000, Check for Update, % currentDictionary.up_to_date
+   }
 }
 
 MoveFilesRecursively(srcFolder, destFolder) {
-    ; Loop through all files and subfolders in the source folder
-    Loop, Files, % srcFolder . "\*", R
-    {
-        ; Get the relative path of the file/folder from the srcFolder
-        relativePath := SubStr(A_LoopFileFullPath, StrLen(srcFolder) + 2)
-        
-        ; Create the corresponding destination path
-        destPath := destFolder . "\" . relativePath
-        
-        ; If it's a directory, create it in the destination folder
-        if (A_LoopIsDir)
-        {
-            ; Ensure the directory exists, if not, create it
-            FileCreateDir, % destPath
-        }
-        else
-        {
-            if ((relativePath = "ids.txt" && FileExist(destPath))
-                || (relativePath = "usernames.txt" && FileExist(destPath))
-                || (relativePath = "discord.txt" && FileExist(destPath))
-                || (relativePath = "vip_ids.txt" && FileExist(destPath))) {
-                continue
-            }
-            ; If it's a file, move it to the destination folder
-            ; Ensure the directory exists before moving the file
-            FileCreateDir, % SubStr(destPath, 1, InStr(destPath, "\", 0, 0) - 1)
-            FileMove, % A_LoopFileFullPath, % destPath, 1
-        }
-    }
+   ; Loop through all files and subfolders in the source folder
+   Loop, Files, % srcFolder . "\*", R
+   {
+      ; Get the relative path of the file/folder from the srcFolder
+      relativePath := SubStr(A_LoopFileFullPath, StrLen(srcFolder) + 2)
+      
+      ; Create the corresponding destination path
+      destPath := destFolder . "\" . relativePath
+      
+      ; If it's a directory, create it in the destination folder
+      if (A_LoopIsDir)
+      {
+         ; Ensure the directory exists, if not, create it
+         FileCreateDir, % destPath
+      }
+      else
+      {
+         if ((relativePath = "ids.txt" && FileExist(destPath))
+            || (relativePath = "usernames.txt" && FileExist(destPath))
+            || (relativePath = "discord.txt" && FileExist(destPath))
+            || (relativePath = "vip_ids.txt" && FileExist(destPath))) {
+            continue
+         }
+         ; If it's a file, move it to the destination folder
+         ; Ensure the directory exists before moving the file
+         FileCreateDir, % SubStr(destPath, 1, InStr(destPath, "\", 0, 0) - 1)
+         FileMove, % A_LoopFileFullPath, % destPath, 1
+      }
+   }
 }
 
 HttpGet(url) {
-    http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-    http.Open("GET", url, false)
-    http.Send()
-    return http.ResponseText
+   http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+   http.Open("GET", url, false)
+   http.Send()
+   return http.ResponseText
 }
 
 ; Function to extract value from JSON
 ExtractJSONValue(json, key1, key2:="", ext:="") {
-    value := ""
-    json := StrReplace(json, """", "")
-    lines := StrSplit(json, ",")
-    
-    Loop, % lines.MaxIndex()
-    {
-        if InStr(lines[A_Index], key1 ":") {
-            ; Take everything after the first colon as the value
-            value := SubStr(lines[A_Index], InStr(lines[A_Index], ":") + 1)
-            if (key2 != "")
-            {
-                if InStr(lines[A_Index+1], key2 ":") && InStr(lines[A_Index+1], ext)
-                    value := SubStr(lines[A_Index+1], InStr(lines[A_Index+1], ":") + 1)
-            }
-            break
-        }
-    }
-    return Trim(value)
+   value := ""
+   json := StrReplace(json, """", "")
+   lines := StrSplit(json, ",")
+   
+   Loop, % lines.MaxIndex()
+   {
+      if InStr(lines[A_Index], key1 ":") {
+         ; Take everything after the first colon as the value
+         value := SubStr(lines[A_Index], InStr(lines[A_Index], ":") + 1)
+         if (key2 != "")
+         {
+            if InStr(lines[A_Index+1], key2 ":") && InStr(lines[A_Index+1], ext)
+               value := SubStr(lines[A_Index+1], InStr(lines[A_Index+1], ":") + 1)
+         }
+         break
+      }
+   }
+   return Trim(value)
 }
 
 FixFormat(text) {
-    ; Replace carriage return and newline with an actual line break
-    text := StrReplace(text, "\r\n", "`n") ; Replace \r\n with actual newlines
-    text := StrReplace(text, "\n", "`n") ; Replace \n with newlines
-    
-    ; Remove unnecessary backslashes before other characters like "player" and "None"
-    text := StrReplace(text, "\player", "player") ; Example: removing backslashes around words
-    text := StrReplace(text, "\None", "None") ; Remove backslash around "None"
-    text := StrReplace(text, "\Welcome", "Welcome") ; Removing \ before "Welcome"
-    
-    ; Escape commas by replacing them with %2C (URL encoding)
-    text := StrReplace(text, ",", "")
-    
-    return text
+   ; Replace carriage return and newline with an actual line break
+   text := StrReplace(text, "\r\n", "`n") ; Replace \r\n with actual newlines
+   text := StrReplace(text, "\n", "`n") ; Replace \n with newlines
+   
+   ; Remove unnecessary backslashes before other characters like "player" and "None"
+   text := StrReplace(text, "\player", "player") ; Example: removing backslashes around words
+   text := StrReplace(text, "\None", "None") ; Remove backslash around "None"
+   text := StrReplace(text, "\Welcome", "Welcome") ; Removing \ before "Welcome"
+   
+   ; Escape commas by replacing them with %2C (URL encoding)
+   text := StrReplace(text, ",", "")
+   
+   return text
 }
 
 VersionCompare(v1, v2) {
-    ; Remove non-numeric characters (like 'alpha', 'beta')
-    cleanV1 := RegExReplace(v1, "[^\d.]")
-    cleanV2 := RegExReplace(v2, "[^\d.]")
-    
-    v1Parts := StrSplit(cleanV1, ".")
-    v2Parts := StrSplit(cleanV2, ".")
-    
-    Loop, % Max(v1Parts.MaxIndex(), v2Parts.MaxIndex()) {
-        num1 := v1Parts[A_Index] ? v1Parts[A_Index] : 0
-        num2 := v2Parts[A_Index] ? v2Parts[A_Index] : 0
-        if (num1 > num2)
-            return 1
-        if (num1 < num2)
-            return -1
-    }
-    
-    ; If versions are numerically equal, check if one is an alpha version
-    isV1Alpha := InStr(v1, "alpha") || InStr(v1, "beta")
-    isV2Alpha := InStr(v2, "alpha") || InStr(v2, "beta")
-    
-    if (isV1Alpha && !isV2Alpha)
-        return -1 ; Non-alpha version is newer
-    if (!isV1Alpha && isV2Alpha)
-        return 1 ; Alpha version is older
-    
-    return 0 ; Versions are equal
+   ; Remove non-numeric characters (like 'alpha', 'beta')
+   cleanV1 := RegExReplace(v1, "[^\d.]")
+   cleanV2 := RegExReplace(v2, "[^\d.]")
+   
+   v1Parts := StrSplit(cleanV1, ".")
+   v2Parts := StrSplit(cleanV2, ".")
+   
+   Loop, % Max(v1Parts.MaxIndex(), v2Parts.MaxIndex()) {
+      num1 := v1Parts[A_Index] ? v1Parts[A_Index] : 0
+      num2 := v2Parts[A_Index] ? v2Parts[A_Index] : 0
+      if (num1 > num2)
+         return 1
+      if (num1 < num2)
+         return -1
+   }
+   
+   ; If versions are numerically equal, check if one is an alpha version
+   isV1Alpha := InStr(v1, "alpha") || InStr(v1, "beta")
+   isV2Alpha := InStr(v2, "alpha") || InStr(v2, "beta")
+   
+   if (isV1Alpha && !isV2Alpha)
+      return -1 ; Non-alpha version is newer
+   if (!isV1Alpha && isV2Alpha)
+      return 1 ; Alpha version is older
+   
+   return 0 ; Versions are equal
 }
 
 DownloadFile(url, filename) {
-    url := url
-    localPath = %A_ScriptDir%\%filename%
-    
-    URLDownloadToFile, %url%, %localPath%
+   url := url
+   localPath = %A_ScriptDir%\%filename%
+   
+   URLDownloadToFile, %url%, %localPath%
 }
 
 ReadFile(filename, numbers := false) {
-    FileRead, content, %A_ScriptDir%\%filename%.txt
-    
-    if (!content)
-        return false
-    
-    values := []
-    for _, val in StrSplit(Trim(content), "`n") {
-        cleanVal := RegExReplace(val, "[^a-zA-Z0-9]") ; Remove non-alphanumeric characters
-        if (cleanVal != "")
-            values.Push(cleanVal)
-    }
-    
-    return values.MaxIndex() ? values : false
+   FileRead, content, %A_ScriptDir%\%filename%.txt
+   
+   if (!content)
+      return false
+   
+   values := []
+   for _, val in StrSplit(Trim(content), "`n") {
+      cleanVal := RegExReplace(val, "[^a-zA-Z0-9]") ; Remove non-alphanumeric characters
+      if (cleanVal != "")
+         values.Push(cleanVal)
+   }
+   
+   return values.MaxIndex() ? values : false
 }
 
 ErrorHandler(exception) {
-    ; Display the error message
-    errorMessage := "Error in PTCGPB.ahk`n`n"
-        . "Message: " exception.Message "`n"
-        . "What: " exception.What "`n"
-        . "Line: " exception.Line "`n`n"
-        . "Click OK to close all related scripts and exit."
-    
-    MsgBox, 16, PTCGPB Error, %errorMessage%
-    
-    ; Kill all related scripts
-    KillAllScripts()
-    
-    ; Exit this script
-    ExitApp, 1
-    return true ; Indicate that the error was handled
+   ; Display the error message
+   errorMessage := "Error in PTCGPB.ahk`n`n"
+      . "Message: " exception.Message "`n"
+      . "What: " exception.What "`n"
+      . "Line: " exception.Line "`n`n"
+      . "Click OK to close all related scripts and exit."
+   
+   MsgBox, 262160, PTCGPB Error, %errorMessage%
+   
+   ; Kill all related scripts
+   KillAllScripts()
+   
+   ; Exit this script
+   ExitApp, 1
+   return true ; Indicate that the error was handled
 }
 
 ; Add this function to kill all related scripts
 KillAllScripts() {
-    ; Kill Monitor.ahk if running
-    Process, Exist, Monitor.ahk
-    if (ErrorLevel) {
-        Process, Close, %ErrorLevel%
-    }
-    
-    ; Kill all instance scripts
-    Loop, 50 { ; Assuming you won't have more than 50 instances
-        scriptName := A_Index . ".ahk"
-        Process, Exist, %scriptName%
-        if (ErrorLevel) {
+   ; Kill Monitor.ahk if running
+   Process, Exist, Monitor.ahk
+   if (ErrorLevel) {
+      Process, Close, %ErrorLevel%
+   }
+   
+   ; Kill all instance scripts
+   Loop, 50 { ; Assuming you won't have more than 50 instances
+      scriptName := A_Index . ".ahk"
+      Process, Exist, %scriptName%
+      if (ErrorLevel) {
+         Process, Close, %ErrorLevel%
+      }
+      
+      ; Also check for Main scripts
+      if (A_Index = 1) {
+         Process, Exist, Main.ahk
+         if (ErrorLevel) {
             Process, Close, %ErrorLevel%
-        }
-        
-        ; Also check for Main scripts
-        if (A_Index = 1) {
-            Process, Exist, Main.ahk
-            if (ErrorLevel) {
-                Process, Close, %ErrorLevel%
-            }
-        } else {
-            mainScript := "Main" . A_Index . ".ahk"
-            Process, Exist, %mainScript%
-            if (ErrorLevel) {
-                Process, Close, %ErrorLevel%
-            }
-        }
-    }
-    
-    ; Close any status GUIs that might be open
-    Gui, PackStatusGUI:Destroy
+         }
+      } else {
+         mainScript := "Main" . A_Index . ".ahk"
+         Process, Exist, %mainScript%
+         if (ErrorLevel) {
+            Process, Close, %ErrorLevel%
+         }
+      }
+   }
+   
+   ; Close any status GUIs that might be open
+   Gui, PackStatusGUI:Destroy
 }
