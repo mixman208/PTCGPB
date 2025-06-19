@@ -3102,8 +3102,7 @@ return
 ; ToolTip
 OpenToolTip:
    ;WinMinimize, ahk_id %mainHwnd%
-   Tool := A_ScriptDir . "\GUI\Help Guide.html"
-   Run, %Tool%
+   Run, https://mixman208.github.io/PTCGPB/
 return
 
 ; Handle the link click
