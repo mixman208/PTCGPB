@@ -82,7 +82,7 @@
         Lang["Txt_InjectRange"] := "Range:"
         Lang["Txt_packMethod"] := "1 Pack Method"
         Lang["Txt_nukeAccount"] := "Menu Delete"
-        Lang["Txt_spendHourGlass"] := "Spend Hourglass"
+        Lang["Txt_spendHourGlass"] := "Spend All Hourglass"
         Lang["Txt_openExtraPack"] := "Open Extra Pack"
         Lang["Txt_claimSpecialMissions"] := "Claim Special Missions"
         Lang["SortByText"] := "Sort By:"
@@ -125,7 +125,7 @@
         Lang["hbName"] := "Name:"
         Lang["hbDelay"] := "Heartbeat Delay (min):"
 
-        Lang["Txt_showcaseEnabled"] := "Collect 5 Daily Shop Tickets `nusing IDs from showcase_ids.txt"
+        Lang["Txt_showcaseEnabled"] := "Collect 5 Daily Shop Tickets"
     } else if (Language = 2) {
         ;; 中文 GUI Text
         Lang["fail_fetch"] := "無法取得發行資訊。" ; checkForUpdate
