@@ -75,13 +75,14 @@
 
         Lang["Txt_MinStars"] := "Min. 2 ★:"
         Lang["Txt_ShinyMinStars"] := "2 ★ for Shiny Packs:"
+        Lang["Txt_minStarsEnabled"] := "Set all Min. 2 ★"
         Lang["Txt_DeleteMethod"] := "Method:"
         Lang["Txt_InjectMaxValue"] := "Max:"
         Lang["Txt_InjectMinValue"] := "Min:"
         Lang["Txt_InjectRange"] := "Range:"
         Lang["Txt_packMethod"] := "1 Pack Method"
         Lang["Txt_nukeAccount"] := "Menu Delete"
-        Lang["Txt_spendHourGlass"] := "Spend All Hourglass"
+        Lang["Txt_spendHourGlass"] := "Spend Hourglass"
         Lang["Txt_openExtraPack"] := "Open Extra Pack"
         Lang["Txt_claimSpecialMissions"] := "Claim Special Missions"
         Lang["SortByText"] := "Sort By:"
@@ -124,7 +125,7 @@
         Lang["hbName"] := "Name:"
         Lang["hbDelay"] := "Heartbeat Delay (min):"
 
-        Lang["Txt_showcaseEnabled"] := "Collect 5 Daily Shop Tickets"
+        Lang["Txt_showcaseEnabled"] := "Collect 5 Daily Shop Tickets `nusing IDs from showcase_ids.txt"
     } else if (Language = 2) {
         ;; 中文 GUI Text
         Lang["fail_fetch"] := "無法取得發行資訊。" ; checkForUpdate
@@ -199,6 +200,7 @@
 
         Lang["Txt_MinStars"] := "最小 2 ★："
         Lang["Txt_ShinyMinStars"] := "閃光最小  2 ★："
+        Lang["Txt_minStarsEnabled"] := "設定所有最小 2 ★"
         Lang["Txt_DeleteMethod"] := "刷包法："
         Lang["Txt_InjectMaxValue"] := "上限："
         Lang["Txt_InjectMinValue"] := "下限："
@@ -323,6 +325,7 @@
 
         Lang["Txt_MinStars"] := "最小 2 ★："
         Lang["Txt_ShinyMinStars"] := "色違い最小  2 ★："
+        Lang["Txt_minStarsEnabled"] := "すべての最小 2 ★ を設定"
         Lang["Txt_DeleteMethod"] := "注入法："
         Lang["Txt_InjectMaxValue"] := "上限："
         Lang["Txt_InjectMinValue"] := "下限："
@@ -450,6 +453,7 @@
 
         Lang["Txt_MinStars"] := "Min. 2 ★:"
         Lang["Txt_ShinyMinStars"] := "2 ★ für Schillernde Packs:"
+        Lang["Txt_minStarsEnabled"] := "Alle Min. 2 ★ setzen"
         Lang["Txt_DeleteMethod"] := "Methode:"
         Lang["Txt_InjectMaxValue"] := "Max:"
         Lang["Txt_InjectMinValue"] := "Min:"
@@ -776,7 +780,7 @@ PageBtnShift(Language) {
     xs_Discord := 0
     xs_Download := 0
     xs_MainPage := 0
-    ys := 0
+    ys := -5
 
     xs_Arrange := 0
     xs_Coffee := 0
@@ -796,6 +800,8 @@ PageBtnShift(Language) {
     xs_Theme := 0
     xs_Language := 0
     xs_ToolTip := 0
+    xs_XMLSort := 0
+    xs_XMLDuplicate := 0
     ys_Background := 0
     ys_Theme := 0
     ys_Reload := 0
@@ -810,7 +816,7 @@ PageBtnShift(Language) {
         xs_Discord := 0
         xs_Download := 0
         xs_MainPage := 0
-        ys := 0
+        ys := -5
 
         xs_Arrange := 0
         xs_Coffee := 0
@@ -842,7 +848,7 @@ PageBtnShift(Language) {
         xs_Discord := 22
         xs_Download := 42
         xs_MainPage := 6
-        ys := 2
+        ys := -5
 
         xs_Arrange := 37
         xs_Coffee := 12
@@ -876,7 +882,7 @@ PageBtnShift(Language) {
         xs_Discord := 22
         xs_Download := 12
         xs_MainPage := -14
-        ys := 2
+        ys := -5
 
         xs_Arrange := 10
         xs_Coffee := 12
@@ -908,7 +914,7 @@ PageBtnShift(Language) {
         xs_Discord := -15
         xs_Download := -15
         xs_MainPage := 4
-        ys := 0
+        ys := -5
 
         xs_Arrange := 0
         xs_Coffee := -40
