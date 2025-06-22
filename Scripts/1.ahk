@@ -1852,6 +1852,10 @@ CheckPack() {
     if (foundInvalid) {
         ; Pack is invalid...
 		foundInvalidGP := FindGodPack(true) ; GP is never ignored
+
+    if (foundInvalidGP){
+        restartGameInstance("Invalid God Pack Found.", "GodPack")
+    }
         if (!foundInvalidGP && !InvalidCheck) {
 			; If not a GP and not "ignore invalid packs" , check what cards the current pack contains which make it invalid, and if user want to save them.
             if (ShinyCheck && foundShiny && !foundLabel)
@@ -2227,7 +2231,7 @@ FindCard(prefix) {
 }
 
 FindGodPack(invalidPack := false) {
-    global shinyPacks, openPack, minStars, minStarsShiny, openExtraPack, spendHourGlass
+    global shinyPacks, openPack, minStars, minStarsShiny
 
     ; Check for normal borders.
     normalBorders := FindBorders("normal")
@@ -2256,8 +2260,6 @@ FindGodPack(invalidPack := false) {
         GodPackFound("Invalid")
         RemoveFriends()
         IniWrite, 0, %A_ScriptDir%\%scriptName%.ini, UserSettings, DeadCheck
-        openExtraPack := false
-        spendHourGlass := false
     } else {
         GodPackFound("Valid")
     }
