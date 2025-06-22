@@ -2208,6 +2208,10 @@ LoadSettingsFromIni() {
          Delay := 250
       if (s4tWPMinCards < 1 || s4tWPMinCards > 2)
          s4tWPMinCards := 1
+      if (mainIdsURL = "") {
+         if (FileExist("ids.txt"))
+            FileDelete, ids.txt
+            }
       
       ; Return success
       return true
