@@ -22,7 +22,7 @@ WinHide % "ahk_id " DllCall("GetConsoleWindow", "ptr")
 
 global winTitle, changeDate, failSafe, openPack, Delay, failSafeTime, StartSkipTime, Columns, failSafe, scriptName, GPTest, StatusText, defaultLanguage, setSpeed, jsonFileName, pauseToggle, SelectedMonitorIndex, swipeSpeed, godPack, scaleParam, deleteMethod, packs, FriendID, friendIDs, Instances, username, friendCode, stopToggle, friended, runMain, Mains, showStatus, injectMethod, packMethod, loadDir, loadedAccount, nukeAccount, CheckShinyPackOnly, TrainerCheck, FullArtCheck, RainbowCheck, ShinyCheck, dateChange, foundGP, friendsAdded, PseudoGodPack, packArray, CrownCheck, ImmersiveCheck, InvalidCheck, slowMotion, screenShot, accountFile, invalid, starCount, keepAccount
 global Mewtwo, Charizard, Pikachu, Mew, Dialga, Palkia, Arceus, Shining, Solgaleo, Lunala, Buzzwole
-global shinyPacks, minStars, minStarsShiny
+global shinyPacks, minStars, minStarsShiny, minStarsA1Mewtwo, minStarsA1Charizard, minStarsA1Pikachu, minStarsA1a, minStarsA2Dialga, minStarsA2Palkia, minStarsA2a, minStarsA2b, minStarsA3Solgaleo, minStarsA3Lunala, minStarsA3a
 global DeadCheck
 global s4tEnabled, s4tSilent, s4t3Dmnd, s4t4Dmnd, s4t1Star, s4tGholdengo, s4tWP, s4tWPMinCards, s4tDiscordWebhookURL, s4tDiscordUserId, s4tSendAccountXml
 global avgtotalSeconds
@@ -112,6 +112,18 @@ IniRead, Mewtwo, %A_ScriptDir%\..\Settings.ini, UserSettings, Mewtwo, 0
 IniRead, Charizard, %A_ScriptDir%\..\Settings.ini, UserSettings, Charizard, 0
 IniRead, Pikachu, %A_ScriptDir%\..\Settings.ini, UserSettings, Pikachu, 0
 IniRead, Mew, %A_ScriptDir%\..\Settings.ini, UserSettings, Mew, 0
+
+IniRead, minStarsA1Mewtwo, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA1Mewtwo, 0
+IniRead, minStarsA1Charizard, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA1Charizard, 0
+IniRead, minStarsA1Pikachu, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA1Pikachu, 0
+IniRead, minStarsA1a, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA1a, 0
+IniRead, minStarsA2Dialga, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA2Dialga, 0
+IniRead, minStarsA2Palkia, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA2Palkia, 0
+IniRead, minStarsA2a, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA2a, 0
+IniRead, minStarsA2b, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA2b, 0
+IniRead, minStarsA3Solgaleo, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA3Solgaleo, 0
+IniRead, minStarsA3Lunala, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA3Lunala, 0
+IniRead, minStarsA3a, %A_ScriptDir%\..\Settings.ini, UserSettings, minStarsA3a, 0
 
 IniRead, slowMotion, %A_ScriptDir%\..\Settings.ini, UserSettings, slowMotion, 0
 IniRead, DeadCheck, %A_ScriptDir%\%scriptName%.ini, UserSettings, DeadCheck, 0
@@ -2256,8 +2268,6 @@ FindCard(prefix) {
 }
 
 FindGodPack(invalidPack := false) {
-    global shinyPacks, openPack, minStars, minStarsShiny
-
     ; Check for normal borders.
     normalBorders := FindBorders("normal")
     if (normalBorders) {
@@ -2268,12 +2278,40 @@ FindGodPack(invalidPack := false) {
     ; A god pack (although possibly invalid) has been found.
     keepAccount := true
 
+    ; Determine the required minimum stars based on pack type.
+    requiredStars := minStars ; Default to general minStars
+
+    ; Check specific selections first, then default to shiny
+        if (openPack == "Buzzwole") {
+            requiredStars := minStarsA3a
+        } else if (openPack == "Solgaleo") {
+            requiredStars := minStarsA3Solgaleo
+        } else if (openPack == "Lunala") {
+            requiredStars := minStarsA3Lunala
+        } else if (openPack = "Shining") {
+            requiredStars := minStarsA2b
+        } else if (openPack = "Arceus") {
+            requiredStars := minStarsA2a
+        } else if (openPack = "Dialga") {
+            requiredStars := minStarsA2Dialga
+        } else if (openPack = "Palkia") {
+            requiredStars := minStarsA2Palkia
+        } else if (openPack = "Mewtwo") {
+            requiredStars := minStarsA1Mewtwo
+        } else if (openPack = "Charizard") {
+            requiredStars := minStarsA1Charizard
+        } else if (openPack = "Pikachu") {
+            requiredStars := minStarsA1Pikachu
+        } else if (openPack = "Mew") {
+            requiredStars := minStarsA1a
+        } else if (shinyPacks.HasKey(openPack)) {
+            requiredStars := minStarsShiny
+        }
+    
+    
     ; Check if pack meets minimum stars requirement
     if (!invalidPack) {
         starCount := 5 - FindBorders("1star")
-        
-        ; Use minStarsShiny if it's a shiny pack, otherwise use minStars
-        requiredStars := (shinyPacks.HasKey(openPack)) ? minStarsShiny : minStars
         
         if (requiredStars > 0 && starCount < requiredStars) {
             CreateStatusMessage("Pack doesn't contain enough 2 stars...",,,, false)
