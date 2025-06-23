@@ -2068,17 +2068,31 @@ FoundTradeable(found3Dmnd := 0, found4Dmnd := 0, found1Star := 0, foundGimmighou
     Sleep, 5000
     fcScreenshot := Screenshot("FRIENDCODE", "Trades")
 
+    tempDir := A_ScriptDir . "\..\Screenshots\temp"
+    if !FileExist(tempDir)
+        FileCreateDir, %tempDir%
+
+    usernameScreenshotFile := tempDir . "\" . winTitle . "_Username.png"
+    adbTakeScreenshot(usernameScreenshotFile)
+    Sleep, 100 
+
     ; If we're doing the inject method, try to OCR our Username
     try {
         if (injectMethod && IsFunc("ocr")) {
-            ; Region: x32, y120, 175x26
             playerName := ""
-            if(RefinedOCRText(fcScreenshot, 32, 120, 175, 26, "", "", playerName)) {
+            allowedUsernameChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-+"
+            usernamePattern := "[\w-]+"
+
+            if(RefinedOCRText(usernameScreenshotFile, 125, 490, 290, 50, allowedUsernameChars, usernamePattern, playerName)) {
             username := playerName
             }
         }
     } catch e {
         LogToFile("Failed to OCR the friend code: " . e.message, "OCR.txt")
+    }
+
+    if (FileExist(usernameScreenshotFile)) {
+        FileDelete, %usernameScreenshotFile%
     }
 
     statusMessage := "Tradeable cards found"
@@ -2116,15 +2130,25 @@ FoundStars(star) {
     Sleep, 5000
     fcScreenshot := Screenshot("FRIENDCODE")
 
+    tempDir := A_ScriptDir . "\..\Screenshots\temp"
+    if !FileExist(tempDir)
+        FileCreateDir, %tempDir%
+
+    usernameScreenshotFile := tempDir . "\" . winTitle . "_Username.png"
+    adbTakeScreenshot(usernameScreenshotFile)
+    Sleep, 100 
+
     if(star = "Crown" || star = "Immersive" || star = "Shiny")
         RemoveFriends()
     else {
         ; If we're doing the inject method, try to OCR our Username
         try {
             if (injectMethod && IsFunc("ocr")) {
-                ; Region: x32, y120, 175x26
                 playerName := ""
-               if(RefinedOCRText(fcScreenshot, 32, 120, 175, 26, "", "", playerName)) {
+                allowedUsernameChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-+"
+                usernamePattern := "[\w-]+"
+
+                if(RefinedOCRText(usernameScreenshotFile, 125, 490, 290, 50, allowedUsernameChars, usernamePattern, playerName)) {
                 username := playerName
                 }
             }
@@ -2292,18 +2316,33 @@ GodPackFound(validity) {
     Sleep, 5000
     fcScreenshot := Screenshot("FRIENDCODE")
 
+    tempDir := A_ScriptDir . "\..\Screenshots\temp"
+    if !FileExist(tempDir)
+        FileCreateDir, %tempDir%
+
+    usernameScreenshotFile := tempDir . "\" . winTitle . "_Username.png"
+    adbTakeScreenshot(usernameScreenshotFile)
+    Sleep, 100 
+
     ; If we're doing the inject method, try to OCR our Username
     try {
         if (injectMethod && IsFunc("ocr")) {
-            ; Region: x32, y120, 175x26
             playerName := ""
-            if(RefinedOCRText(fcScreenshot, 32, 120, 175, 26, "", "", playerName)) {
+            allowedUsernameChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-+"
+            usernamePattern := "[\w-]+"
+
+            if(RefinedOCRText(usernameScreenshotFile, 125, 490, 290, 50, allowedUsernameChars, usernamePattern, playerName)) {
             username := playerName
             }
         }
     } catch e {
         LogToFile("Failed to OCR the friend code: " . e.message, "OCR.txt")
     }
+
+    if (FileExist(usernameScreenshotFile)) {
+        FileDelete, %usernameScreenshotFile%
+    }
+
 
     CreateStatusMessage(Interjection . (invalid ? " " . invalid : "") . " God Pack found!",,,, false)
     logMessage := Interjection . "\n" . username . " (" . friendCode . ")\n[" . starCount . "/5][" . packsInPool . "P][" . openPack . "] " . invalid . " God Pack found in instance: " . scriptName . "\nFile name: " . accountFile . "\nBacking up to the Accounts\\GodPacks folder and continuing..."
