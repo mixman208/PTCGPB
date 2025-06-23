@@ -943,10 +943,11 @@ TradeTutorial() {
             adbClick_wbb(167, 437)
             Delay(1)
             if(FindOrLoseImage(15, 455, 40, 475, ,"Add2", 0))          
-            break
+                break
         }
-
+        Delay(2)
         FindImageAndClick(226, 100, 270, 135, , "Add", 38, 460, 500,,2)
+        Delay(2)
     }
     Delay(1)
 }
