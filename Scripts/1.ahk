@@ -1893,13 +1893,13 @@ CheckPack() {
     ; Check for god pack. if found we know its not invalid
     foundGP := FindGodPack()
 
-if (foundGP) {
-    if (loadedAccount) {
-        ;accountFoundGP()
-        accountHasPackInTesting := 1 
-        setMetaData()               
-        IniWrite, 0, %A_ScriptDir%\%scriptName%.ini, UserSettings, DeadCheck
-    }
+    if (foundGP) {
+        if (loadedAccount) {
+            ;accountFoundGP()
+            accountHasPackInTesting := 1 
+            setMetaData()               
+            IniWrite, 0, %A_ScriptDir%\%scriptName%.ini, UserSettings, DeadCheck
+        }
 
     restartGameInstance("God Pack found. Continuing...", "GodPack")
     return
@@ -3329,8 +3329,7 @@ DoTutorial() {
     failSafe := A_TickCount
     failSafeTime := 0
 
-    Loop
-    {
+    Loop {
         Delay(1)
         if(FindImageAndClick(100, 386, 138, 416, , "Month", , , , 1, failSafeTime))
             break
@@ -3352,8 +3351,7 @@ DoTutorial() {
     Delay(1)
     failSafe := A_TickCount
     failSafeTime := 0
-    Loop ;select month and year and click
-    {
+    Loop { ;select month and year and click
         Delay(1)
         if(FindImageAndClick(148, 384, 256, 419, , "Year", , , , 1, failSafeTime))
             break
@@ -3383,7 +3381,7 @@ DoTutorial() {
             if(countryOK)
                 adbClick_wbb(124, 250)
             else if(!birthFound)
-                    adbClick_wbb(140, 474)
+                adbClick_wbb(140, 474)
             else if(birthFound)
                 break
             Delay(2)
@@ -3440,47 +3438,48 @@ DoTutorial() {
     Delay(1)
     failSafe := A_TickCount
     failSafeTime := 0
-        Loop {
-            if(FindOrLoseImage(51, 335, 107, 359, , "Link", 0, failSafeTime)) {
-                adbClick_wbb(140, 460)
-                Loop {
-                    Delay(1)
-                    if(FindOrLoseImage(51, 335, 107, 359, , "Link", 1, failSafeTime)) {
-                        adbClick_wbb(140, 380) ; click ok on the interrupted while opening pack prompt
-                        break
-                    }
-                    failSafeTime := (A_TickCount - failSafe) // 1000
+    Loop {
+        if(FindOrLoseImage(51, 335, 107, 359, , "Link", 0, failSafeTime)){
+            adbClick_wbb(140, 460)
+            Loop {
+                Delay(1)
+                if(FindOrLoseImage(51, 335, 107, 359, , "Link", 1, failSafeTime)){
+                    adbClick_wbb(140, 380) ; click ok on the interrupted while opening pack prompt
+                    break
                 }
-            } else if(FindOrLoseImage(110, 350, 150, 404, , "Confirm", 0, failSafeTime)) {
-                adbClick_wbb(203, 364)
-            } else if(FindOrLoseImage(215, 371, 264, 418, , "Complete", 0, failSafeTime)) {
-                adbClick_wbb(140, 370)
-            } else if(FindOrLoseImage(0, 46, 20, 70, , "Cinematic", 0, failSafeTime)) {
-                break
+                failSafeTime := (A_TickCount - failSafe) // 1000
             }
-            Delay(1)
-            failSafeTime := (A_TickCount - failSafe) // 1000
+        } else if(FindOrLoseImage(110, 350, 150, 404, , "Confirm", 0, failSafeTime)){
+            adbClick_wbb(203, 364)
+        } else if(FindOrLoseImage(215, 371, 264, 418, , "Complete", 0, failSafeTime)){
+            adbClick_wbb(140, 370)
+        } else if(FindOrLoseImage(0, 46, 20, 70, , "Cinematic", 0, failSafeTime)){
+            break
         }
+        Delay(1)
+        failSafeTime := (A_TickCount - failSafe) // 1000
+    }
 
-        if(setSpeed = 3) {
-            FindImageAndClick(25, 145, 70, 170, , "Platin", 18, 109, 2000) ; click mod settings
-            FindImageAndClick(9, 170, 25, 190, , "One", 26, 180) ; click mod settings
-            Delay(1)
-            adbClick_wbb(41, 296)
-            Delay(1)
-        }
+    if(setSpeed = 3){
+        FindImageAndClick(25, 145, 70, 170, , "Platin", 18, 109, 2000) ; click mod settings
+        FindImageAndClick(9, 170, 25, 190, , "One", 26, 180) ; click mod settings
+        Delay(1)
+        adbClick_wbb(41, 296)
+        Delay(1)
+    }
 
-        FindImageAndClick(110, 230, 182, 257, , "Welcome", 253, 506, 110) ;click through cutscene until welcome page
+    FindImageAndClick(110, 230, 182, 257, , "Welcome", 253, 506, 110) ;click through cutscene until welcome page
 
-        if(setSpeed = 3) {
-            FindImageAndClick(25, 145, 70, 170, , "Platin", 18, 109, 2000) ; click mod settings
-
-            FindImageAndClick(182, 170, 194, 190, , "Three", 187, 180) ; click mod settings
-            Delay(1)
-            adbClick_wbb(41, 296)
-        }
+    if(setSpeed = 3){
+        FindImageAndClick(25, 145, 70, 170, , "Platin", 18, 109, 2000) ; click mod settings
+        FindImageAndClick(182, 170, 194, 190, , "Three", 187, 180) ; click mod settings
+        Delay(1)
+        adbClick_wbb(41, 296)
+    }
     FindImageAndClick(190, 241, 225, 270, , "Name", 189, 438) ;wait for name input screen
-    /* ; Picks Erika at creation - disabled
+
+    /*
+    ; Picks Erika at creation - disabled
     Delay(1)
     if(FindOrLoseImage(147, 160, 157, 169, , "Erika", 1)) {
         adbClick_wbb(143, 207)
@@ -3495,94 +3494,93 @@ DoTutorial() {
     failSafe := A_TickCount
     failSafeTime := 0
     Loop {
-    ; Check for AccountName in Settings.ini
-    IniRead, accountNameValue, %A_ScriptDir%\..\Settings.ini, UserSettings, AccountName, ERROR
+        ; Check for AccountName in Settings.ini
+        IniRead, accountNameValue, %A_ScriptDir%\..\Settings.ini, UserSettings, AccountName, ERROR
 
-    ; Use AccountName if it exists and isn't empty
-    if (accountNameValue != "ERROR" && accountNameValue != "") {
-        Random, randomNum, 1, 500 ; Generate random number from 1 to 500
-        username := accountNameValue . "-" . randomNum
-        username := SubStr(username, 1, 14)  ; max character limit
-        if(verboseLogging)
-            LogToFile("Using AccountName: " . username)
+        ; Use AccountName if it exists and isn't empty
+        if (accountNameValue != "ERROR" && accountNameValue != "") {
+            Random, randomNum, 1, 500 ; Generate random number from 1 to 500
+            username := accountNameValue . "-" . randomNum
+            username := SubStr(username, 1, 14)  ; max character limit
+            if(verboseLogging)
+                LogToFile("Using AccountName: " . username)
         } else {
-        fileName := A_ScriptDir . "\..\usernames.txt"
-        if(FileExist(fileName))
-            name := ReadFile("usernames")
-        else
-            name := ReadFile("usernames_default")
+            fileName := A_ScriptDir . "\..\usernames.txt"
+            if(FileExist(fileName))
+                name := ReadFile("usernames")
+            else
+                name := ReadFile("usernames_default")
 
-        Random, randomIndex, 1, name.MaxIndex()
-        username := name[randomIndex]
-        username := SubStr(username, 1, 14)  ; max character limit
-        if(verboseLogging)
-            LogToFile("Using random username: " . username)
+            Random, randomIndex, 1, name.MaxIndex()
+            username := name[randomIndex]
+            username := SubStr(username, 1, 14)  ; max character limit
+            if(verboseLogging)
+                LogToFile("Using random username: " . username)
         }
 
-    adbInput(username)
-    Delay(1)
-    if(FindImageAndClick(121, 490, 161, 520, , "Return", 185, 372, , 10)) ;click through until return button on open pack
-        break
-    adbClick_wbb(90, 370)
-    Delay(1)
-    adbClick_wbb(139, 254) ; 139 254 194 372
-    Delay(1)
-    adbClick_wbb(139, 254)
-    Delay(1)
-    EraseInput() ; incase the random pokemon is not accepted
-    failSafeTime := (A_TickCount - failSafe) // 1000
-    CreateStatusMessage("In failsafe for Trace. " . failSafeTime "/45 seconds")
-    if(failSafeTime > 45)
-        restartGameInstance("Stuck at name")
-}
-
+        adbInput(username)
+        Delay(1)
+        if(FindImageAndClick(121, 490, 161, 520, , "Return", 185, 372, , 10))
+            break
+        adbClick_wbb(90, 370)
+        Delay(1)
+        adbClick_wbb(139, 254) ; 139 254 194 372
+        Delay(1)
+        adbClick_wbb(139, 254)
+        Delay(1)
+        EraseInput() ; incase the random pokemon is not accepted
+        failSafeTime := (A_TickCount - failSafe) // 1000
+        CreateStatusMessage("In failsafe for Trace. " . failSafeTime . "/45 seconds")
+        if(failSafeTime > 45)
+            restartGameInstance("Stuck at name")
+    }
 
     Delay(1)
 
     adbClick_wbb(140, 424)
 
     FindImageAndClick(225, 273, 235, 290, , "Pack", 140, 424) ;wait for pack to be ready  to trace
-        if(setSpeed > 1) {
-            FindImageAndClick(25, 145, 70, 170, , "Platin", 18, 109, 2000) ; click mod settings
-            FindImageAndClick(9, 170, 25, 190, , "One", 26, 180) ; click mod settings
-            Delay(1)
-        }
+    if(setSpeed > 1) {
+        FindImageAndClick(25, 145, 70, 170, , "Platin", 18, 109, 2000) ; click mod settings
+        FindImageAndClick(9, 170, 25, 190, , "One", 26, 180) ; click mod settings
+        Delay(1)
+    }
     failSafe := A_TickCount
     failSafeTime := 0
     Loop {
         adbSwipe_wbb(adbSwipeParams)
         Sleep, 10
-        if (FindOrLoseImage(225, 273, 235, 290, , "Pack", 1, failSafeTime)){
+        if(FindOrLoseImage(225, 273, 235, 290, , "Pack", 1, failSafeTime)){
             if(setSpeed > 1) {
                 if(setSpeed = 3)
-                        FindImageAndClick(182, 170, 194, 190, , "Three", 187, 180) ; click 3x
+                    FindImageAndClick(182, 170, 194, 190, , "Three", 187, 180) ; click 3x
                 else
-                        FindImageAndClick(100, 170, 113, 190, , "Two", 107, 180) ; click 2x
+                    FindImageAndClick(100, 170, 113, 190, , "Two", 107, 180) ; click 2x
             }
             adbClick_wbb(41, 296)
-                break
+            break
         }
         failSafeTime := (A_TickCount - failSafe) // 1000
         CreateStatusMessage("Waiting for Pack`n(" . failSafeTime . "/45 seconds)")
     }
 
     FindImageAndClick(34, 99, 74, 131, , "Swipe", 140, 375) ;click through cards until needing to swipe up
-        if(setSpeed > 1) {
-            FindImageAndClick(25, 145, 70, 170, , "Platin", 18, 109, 2000) ; click mod settings
-            FindImageAndClick(9, 170, 25, 190, , "One", 26, 180) ; click mod settings
-            Delay(1)
-        }
+    if(setSpeed > 1) {
+        FindImageAndClick(25, 145, 70, 170, , "Platin", 18, 109, 2000) ; click mod settings
+        FindImageAndClick(9, 170, 25, 190, , "One", 26, 180) ; click mod settings
+        Delay(1)
+    }
     failSafe := A_TickCount
     failSafeTime := 0
     Loop {
         adbSwipe_wbb("266 770 266 355 60")
         Sleep, 10
-        if (FindOrLoseImage(120, 70, 150, 95, , "SwipeUp", 0, failSafeTime)){
+        if(FindOrLoseImage(120, 70, 150, 95, , "SwipeUp", 0, failSafeTime)){
             if(setSpeed > 1) {
                 if(setSpeed = 3)
-                        FindImageAndClick(182, 170, 194, 190, , "Three", 187, 180) ; click mod settings
+                    FindImageAndClick(182, 170, 194, 190, , "Three", 187, 180) ; click mod settings
                 else
-                        FindImageAndClick(100, 170, 113, 190, , "Two", 107, 180) ; click mod settings
+                    FindImageAndClick(100, 170, 113, 190, , "Two", 107, 180) ; click mod settings
             }
             adbClick_wbb(41, 296)
             break
@@ -3592,12 +3590,11 @@ DoTutorial() {
         Delay(1)
     }
 
-Delay(1)
+    Delay(1)
     if(setSpeed > 2) {
         FindImageAndClick(136, 420, 151, 436, , "Move", 134, 375, 500) ; click through until move
         FindImageAndClick(50, 394, 86, 412, , "Proceed", 141, 483, 750) ;wait for menu to proceed then click ok. increased delay in between clicks to fix freezing on 3x speed
-    }
-    else {
+    } else {
         FindImageAndClick(136, 420, 151, 436, , "Move", 134, 375) ; click through until move
         FindImageAndClick(50, 394, 86, 412, , "Proceed", 141, 483) ;wait for menu to proceed then click ok
     }
@@ -3637,32 +3634,32 @@ Delay(1)
     adbClick_wbb(142, 436)
 
     FindImageAndClick(225, 273, 235, 290, , "Pack", 239, 497) ;wait for pack to be ready  to Trace
-        if(setSpeed > 1) {
-            FindImageAndClick(25, 145, 70, 170, , "Platin", 18, 109, 2000) ; click mod settings
-            FindImageAndClick(9, 170, 25, 190, , "One", 26, 180) ; click mod settings
-            Delay(1)
-        }
+    if(setSpeed > 1) {
+        FindImageAndClick(25, 145, 70, 170, , "Platin", 18, 109, 2000) ; click mod settings
+        FindImageAndClick(9, 170, 25, 190, , "One", 26, 180) ; click mod settings
+        Delay(1)
+    }
     failSafe := A_TickCount
     failSafeTime := 0
     Loop {
         adbSwipe_wbb(adbSwipeParams)
         Sleep, 10
-        if (FindOrLoseImage(225, 273, 235, 290, , "Pack", 1, failSafeTime)){
-        if(setSpeed > 1) {
-            if(setSpeed = 3)
-                        FindImageAndClick(182, 170, 194, 190, , "Three", 187, 180) ; click mod settings
-            else
-                        FindImageAndClick(100, 170, 113, 190, , "Two", 107, 180) ; click mod settings
-        }
-                adbClick_wbb(41, 296)
-                break
+        if(FindOrLoseImage(225, 273, 235, 290, , "Pack", 1, failSafeTime)){
+            if(setSpeed > 1) {
+                if(setSpeed = 3)
+                    FindImageAndClick(182, 170, 194, 190, , "Three", 187, 180) ; click mod settings
+                else
+                    FindImageAndClick(100, 170, 113, 190, , "Two", 107, 180) ; click mod settings
             }
+            adbClick_wbb(41, 296)
+            break
+        }
         failSafeTime := (A_TickCount - failSafe) // 1000
         CreateStatusMessage("Waiting for Pack`n(" . failSafeTime . "/45 seconds)")
         Delay(1)
     }
 
-    FindImageAndClick(0, 98, 116, 125, 5, "Opening", 239, 497) ;skip through cards until results opening screen
+    FindImageAndClick(170, 98, 270, 125, 5, "Opening", 239, 497) ;skip through cards until results opening screen
 
     FindImageAndClick(233, 486, 272, 519, , "Skip", 146, 496) ;click on next until skip button appears
 
@@ -3715,8 +3712,7 @@ Delay(1)
             adbClick_wbb(146, 494) ;146, 494
         } else if(FindOrLoseImage(120, 70, 150, 100, , "Next2", 0, failSafeTime)) {
             adbClick_wbb(146, 494) ;146, 494
-        }
-        else {
+        } else {
             adbClick_wbb(187, 345)
             Delay(1)
             adbClick_wbb(143, 492)
@@ -4026,7 +4022,7 @@ PackOpening() {
         Delay(1)
     }
 
-    FindImageAndClick(0, 98, 116, 125, 5, "Opening", 239, 497) ;skip through cards until results opening screen
+    FindImageAndClick(170, 98, 270, 125, 5, "Opening", 239, 497) ;skip through cards until results opening screen
 
     CheckPack()
 	
@@ -4167,7 +4163,7 @@ HourglassOpening(HG := false, NEIRestart := true) {
         Delay(1)
     }
 
-    FindImageAndClick(0, 98, 116, 125, 5, "Opening", 239, 497) ;skip through cards until results opening screen
+    FindImageAndClick(170, 98, 270, 125, 5, "Opening", 239, 497) ;skip through cards until results opening screen
 
     CheckPack()
 	
