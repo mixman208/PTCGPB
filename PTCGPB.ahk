@@ -88,7 +88,7 @@ githubUser := "mixman208"
    ,scriptFolder := A_ScriptDir
    ,zipPath := A_Temp . "\update.zip"
    ,extractPath := A_Temp . "\update"
-   ,intro := "New GUI!"
+   ,intro := "Eevee and New GUI!"
 
 if not A_IsAdmin
 {
@@ -911,9 +911,11 @@ NextStep:
       ,CheckOptions["text"] := "➤"
       ,CheckOptions["textX"] := xPos+175
       ,CheckOptions["textY"] := 180
-   AddCheckBox(CheckOptions)
-   Gui, Add, Picture, % ((!s4tEnabled || !Shining) ? "Hidden " : "") . "vs4tGholdengoEmblem w25 h25 x" . xPos+195 . " y201 backgroundtrans", % A_ScriptDir . "\GUI\GuiImage\other\GholdengoEmblem.png"
-   
+      if (!s4tEnabled || !Shining)
+         CheckOptions["extraOptions"] := " Hidden"
+      AddCheckBox(CheckOptions)
+      Gui, Add, Picture, % (!s4tEnabled ? "Hidden " : "") . "vs4tGholdengoEmblem w25 h25 x" . xPos+195 . " y175 backgroundtrans", % A_ScriptDir . "\GUI\Images\GholdengoEmblem.png"
+ 
    global Txt_s4tWP
    CheckOptions := {}
    CheckOptions["x"] := xPos,CheckOptions["y"] := 286,CheckOptions["w"] := 28,CheckOptions["h"] := 13
@@ -1256,14 +1258,14 @@ NextStep:
       ,ButtonOptions["x"] := xPos
       ,ButtonOptions["y"] := 491
       ,ButtonOptions["w"] := 200
-      ,ButtonOptions["h"] := 36
+      ,ButtonOptions["h"] := 44 
       ,ButtonOptions["vName"] := "Btn_Start"
       ,ButtonOptions["gName"] := "StartBot"
       ,ButtonOptions["text"] := currentDictionary.btn_start
-      ,ButtonOptions["imagePath"] := btn_mainPage
+      ,ButtonOptions["imagePath"] := ToolTipImage
       ,ButtonOptions["vTextName"] := "Txt_Btn_Start"
       ,ButtonOptions["textX"] := xPos
-      ,ButtonOptions["textY"] := (501 + ys)
+      ,ButtonOptions["textY"] := (506 + ys)
    AddBtn(ButtonOptions)
    ButtonOptions["type"] := "Picture"
       ,ButtonOptions["x"] := xPos
@@ -3482,7 +3484,7 @@ StartBot:
    }
    if (InStr(deleteMethod, "Inject")) {
       ;GuiControlGet, selectedSortOption,, SortByDropdown
-      confirmMsg .= "`n" . SetUpDictionary.Confirm_SortBy . SortByDropdown
+      confirmMsg .= "`n" . SetUpDictionary.Confirm_SortBy . " " . SortByDropdown
       additionalSettingsFound := true
    }
    if (!additionalSettingsFound)
