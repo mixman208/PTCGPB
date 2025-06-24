@@ -3840,7 +3840,7 @@ SelectPack(HG := false) {
 					Delay(10)
 				}
 			} else {
-				FindImageAndClick(115, 140, 160, 155, , "SelectExpansion", 248, 459, 3000) ; if selected pack is not the latest pack click directly select other boosters
+				FindImageAndClick(115, 140, 160, 155, , "SelectExpansion", 248, 459, 1000) ; if selected pack is not the latest pack click directly select other boosters
 				
 				if(PackIsInHomeScreen) {
 					; the only one that is not handled below because should show in home page
@@ -3850,12 +3850,12 @@ SelectPack(HG := false) {
 		}
 	} else {
 		; if not first or not injected, or friends were added, always start from home page
-		FindImageAndClick(233, 400, 264, 428, , "Points", packx, packy, 3000)  ; open selected pack from home page
+		FindImageAndClick(233, 400, 264, 428, , "Points", packx, packy, 1000)  ; open selected pack from home page
 	}
 
 	; if not the ones showing in home screen, click select other booster packs
     if (!PackIsInHomeScreen && !inselectexpansionscreen) {
-        FindImageAndClick(115, 140, 160, 155, , "SelectExpansion", 248, 459, 3000)
+        FindImageAndClick(115, 140, 160, 155, , "SelectExpansion", 248, 459, 1000)
 		inselectexpansionscreen := 1
 	}
 	
@@ -4123,6 +4123,10 @@ HourglassOpening(HG := false, NEIRestart := true) {
 			
 		if(cantOpenMorePacks)
 			return
+
+        if(FindOrLoseImage(100, 240, 185, 275, , "Error", 0, failSafeTime)){
+            SelectPack("HGPack")
+        }
 		
         clickButton := FindOrLoseImage(145, 440, 258, 480, 80, "Button", 0, failSafeTime)
         if(clickButton) {
