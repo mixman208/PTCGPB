@@ -1169,7 +1169,7 @@ showcaseLikes() {
             Delay(2)        
 			FindImageAndClick(215, 252, 240, 277, , "FriendIDSearch", 224, 472, 200)
             Delay(2)
-			FindImageAndClick(193, 495, 218, 521, , "ShowcaseInput", 143, 273, 200)
+			FindImageAndClick(157, 498, 225, 522, , "ShowcaseInput", 143, 273, 200)
 			Delay(3)
 			adbInput(showcaseID)					; Pasting ID
 			Delay(1)
