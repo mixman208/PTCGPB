@@ -2183,6 +2183,8 @@ LoadSettingsFromIni() {
       IniRead, s4tWP, Settings.ini, UserSettings, s4tWP, 0
       IniRead, s4tWPMinCards, Settings.ini, UserSettings, s4tWPMinCards, 1
       IniRead, s4tDiscordWebhookURL, Settings.ini, UserSettings, s4tDiscordWebhookURL, ""
+      IniRead, s4tDiscordUserId, Settings.ini, UserSettings, s4tDiscordUserId, ""
+      IniRead, s4tSendAccountXml, Settings.ini, UserSettings, s4tSendAccountXml, 0
       
       ;discord settings
       IniRead, DiscordWebhookURL, Settings.ini, UserSettings, DiscordWebhookURL, ""
@@ -2957,7 +2959,7 @@ return
 
 s4tSettings:
    global s4tMainControls := "s4tSilent,s4t3Dmnd,s4t4Dmnd,s4t1Star,S4T_Divider1,s4tWP,S4T_Divider2,"
-   s4tMainControls .= "Txt_s4tEnabled,Txt_s4tSilent,Txt_s4t3Dmnd,Txt_s4t4Dmnd,Txt_s4t1Star,Txt_s4tWP,"
+   s4tMainControls .= "Txt_s4tSilent,Txt_s4t3Dmnd,Txt_s4t4Dmnd,Txt_s4t1Star,Txt_s4tWP,"
    s4tMainControls .= "Txt_s4tSendAccountXml,S4TDiscordSettingsSubHeading,Txt_S4T_DiscordID,s4tDiscordUserId,"
    s4tMainControls .= "Txt_S4T_DiscordWebhook,s4tDiscordWebhookURL,s4tSendAccountXml,SaveForTradeDivider_1,SaveForTradeDivider_2"
    global s4tAllControls := s4tMainControls . ",s4tGholdengo,s4tGholdengoEmblem,s4tGholdengoArrow,s4tWPMinCardsLabel,s4tWPMinCards"
