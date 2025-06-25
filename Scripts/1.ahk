@@ -777,7 +777,7 @@ clearMissionCache() {
 }
 
 RemoveFriends() {
-    global friendIDs, friended, friendID
+    global friendIDs, friended, friendID, packsInPool
 	friendIDs := ReadFile("ids")
 
     if(!friendIDs && friendID = "") {
@@ -823,124 +823,50 @@ RemoveFriends() {
         CreateStatusMessage("Waiting for Social`n(" . failSafeTime . "/90 seconds)")
     }
     
-    FindImageAndClick(226, 100, 270, 135, , "Add", 38, 460, 500)
-    FindImageAndClick(205, 430, 255, 475, , "Search", 240, 120, 1500)
-    FindImageAndClick(0, 475, 25, 495, , "OK2", 138, 454)
-    
-    friendsProcessed := 0
-    
-    if(!friendIDs) {
-        ; Process single friend ID
-        CreateStatusMessage("Processing single friend ID: " . FriendID,,,, false)
-        
-        failSafe := A_TickCount
-        failSafeTime := 0
-        Loop {
-            adbInput(FriendID)
-            Delay(1)
-            if(FindOrLoseImage(205, 430, 255, 475, , "Search", 0, failSafeTime)) {
-                FindImageAndClick(0, 475, 25, 495, , "OK2", 138, 454)
-                EraseInput(1,1)
-            } else if(FindOrLoseImage(205, 430, 255, 475, , "Search2", 0, failSafeTime)) {
-                break
-            }
-            failSafeTime := (A_TickCount - failSafe) // 1000
-            CreateStatusMessage("Waiting for AddFriends1`n(" . failSafeTime . "/45 seconds)")
-        }
-        
-        failSafe := A_TickCount
-        failSafeTime := 0
-        Loop {
-            adbClick_wbb(232, 453)
-            if(FindOrLoseImage(165, 250, 190, 275, , "Send", 0, failSafeTime)) {
-                break
-            } else if(FindOrLoseImage(165, 250, 190, 275, , "Accepted", 0, failSafeTime)) {
-                FindImageAndClick(135, 355, 160, 385, , "Remove", 193, 258, 500)
-                FindImageAndClick(165, 250, 190, 275, , "Send", 200, 372, 2000)
-                break
-            } else if(FindOrLoseImage(165, 240, 255, 270, , "Withdraw", 0, failSafeTime)) {
-                FindImageAndClick(165, 250, 190, 275, , "Send", 243, 258, 2000)
-                break
-            }
-            Sleep, 750
-            failSafeTime := (A_TickCount - failSafe) // 1000
-            CreateStatusMessage("Waiting for AddFriends2`n(" . failSafeTime . "/45 seconds)")
-        }
-        friendsProcessed := 1
-    } else {
-        ; Process multiple friend IDs
-        CreateStatusMessage("Processing " . friendIDs.MaxIndex() . " friend IDs...",,,, false)
-        
-        ;randomize friend id list to not back up mains if running in groups since they'll be sent in a random order.
-        n := friendIDs.MaxIndex()
-        Loop % n
-        {
-            i := n - A_Index + 1
-            Random, j, 1, %i%
-            ; Force string assignment with quotes
-            temp := friendIDs[i] . ""  ; Concatenation ensures string type
-            friendIDs[i] := friendIDs[j] . ""
-            friendIDs[j] := temp . ""
-        }
-        
-        for index, value in friendIDs {
-            if (StrLen(value) != 16) {
-                ; Wrong id value
-                LogToFile("Skipping invalid friend ID: " . value . " (length: " . StrLen(value) . ")")
-                continue
-            }
-            
-            CreateStatusMessage("Processing friend " . index . "/" . friendIDs.MaxIndex() . ": " . value,,,, false)
-            
-            failSafe := A_TickCount
-            failSafeTime := 0
-            Loop {
-                adbInput(value)
-                Delay(1)
-                if(FindOrLoseImage(205, 430, 255, 475, , "Search", 0, failSafeTime)) {
-                    FindImageAndClick(0, 475, 25, 495, , "OK2", 138, 454)
-                    EraseInput()
-                } else if(FindOrLoseImage(205, 430, 255, 475, , "Search2", 0, failSafeTime)) {
-                    break
-                }
-                failSafeTime := (A_TickCount - failSafe) // 1000
-                CreateStatusMessage("Waiting for AddFriends3`n(" . failSafeTime . "/45 seconds)")
-            }
-            
-            failSafe := A_TickCount
-            failSafeTime := 0
-            Loop {
-                adbClick_wbb(232, 453)
-                if(FindOrLoseImage(165, 250, 190, 275, , "Send", 0, failSafeTime)) {
-                    break
-                } else if(FindOrLoseImage(165, 250, 190, 275, , "Accepted", 0, failSafeTime)) {
-                    FindImageAndClick(135, 355, 160, 385, , "Remove", 193, 258, 500)
-                    FindImageAndClick(165, 250, 190, 275, , "Send", 200, 372, 500)
-                    break
-                } else if(FindOrLoseImage(165, 240, 255, 270, , "Withdraw", 0, failSafeTime)) {
-                    FindImageAndClick(165, 250, 190, 275, , "Send", 243, 258, 2000)
-                    break
-                }
-                Sleep, 750
-                failSafeTime := (A_TickCount - failSafe) // 1000
-                CreateStatusMessage("Waiting for AddFriends4`n(" . failSafeTime . "/45 seconds)")
-            }
-            
-            friendsProcessed++
-            
-            ; Only clear input and prepare for next friend if there are more friends to process
-            if(index != friendIDs.maxIndex()) {
-                Delay(1)
-                FindImageAndClick(205, 430, 255, 475, , "Search2", 143, 518)
-                FindImageAndClick(0, 475, 25, 495, , "OK2", 138, 454)
-                EraseInput(index, n)
-            }
-        }
+    FindImageAndClick(226, 100, 270, 135, , "Add", 38, 460)
+    FindImageAndClick(97, 452, 104, 476, 10, "requests", 174, 467)
+    Loop{
+        if (FindOrLoseImage(191, 498, 207, 514, , "clearAll", 0))
+            break
+        adbClick(205, 510)
+        Delay(1)
+        if (FindOrLoseImage(135, 355, 160, 385, , "Remove", 0))
+            adbClick(210, 372)
     }
-    
+    FindImageAndClick(84, 463, 100, 475, 10, "Friends", 22, 464)
+    friendsProcessed := 0
+    finished := false
+    accepted := false
+    Loop {
+        Loop {
+            adbClick(58, 190)
+            Delay(1)
+            if(FindOrLoseImage(87, 401, 99, 412, , "Accepted2", 0)){
+                accepted := true
+                break
+            }
+            else if(FindOrLoseImage(84, 463, 100, 475, 10, "Friends", 0)) {
+                if(FindOrLoseImage(42, 163, 66, 185, 10, "empty", 0)) {
+                    finished := true
+                    break
+                }
+            }
+            else if(FindOrLoseImage(70, 395, 100, 420, , "Send2", 0)) 
+                break
+        }
+        if(finished)
+            break
+        if(accepted){
+            accepted := false
+            FindImageAndClick(135, 355, 160, 385, , "Remove", 145, 407)
+            FindImageAndClick(70, 395, 100, 420, , "Send2", 200, 372)
+        }
+        FindImageAndClick(226, 100, 270, 135, , "Add", 143, 507)
+        friendsProcessed++
+    }
+
     ; Exit friend removal process
     CreateStatusMessage("Friend removal completed. Processed " . friendsProcessed . " friends. Returning to main...",,,, false)
-    
 	IniWrite, 0, %A_ScriptDir%\%scriptName%.ini, UserSettings, DeadCheck
     friended := false
     CreateStatusMessage("Friends removed successfully!",,,, false)
