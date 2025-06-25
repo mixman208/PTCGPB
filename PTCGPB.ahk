@@ -2307,7 +2307,6 @@ CreateDefaultSettingsFile() {
       iniContent .= "statusMessage=1`n"
       iniContent .= "minStarsEnabled=0`n"
       iniContent .= "showcaseEnabled=0`n"
-      iniContent .= "showcaseURL=`n"
       iniContent .= "showcaseLikes=5`n"
       iniContent .= "isDarkTheme=1`n"
       iniContent .= "useBackgroundImage=1`n"
@@ -2338,7 +2337,7 @@ SaveAllSettings() {
    global CheckShinyPackOnly, TrainerCheck, FullArtCheck, RainbowCheck, ShinyCheck, CrownCheck
    global InvalidCheck, ImmersiveCheck, PseudoGodPack, minStars, Palkia, Dialga, Arceus, Shining
    global Mew, Pikachu, Charizard, Mewtwo, Solgaleo, Lunala, Buzzwole, Eevee, slowMotion, ocrLanguage, clientLanguage
-   global CurrentVisibleSection, heartBeatDelay, sendAccountXml, showcaseEnabled, showcaseURL, isDarkTheme
+   global CurrentVisibleSection, heartBeatDelay, sendAccountXml, showcaseEnabled, isDarkTheme
    global useBackgroundImage, tesseractPath, applyRoleFilters, debugMode, tesseractOption, statusMessage
    global s4tEnabled, s4tSilent, s4t3Dmnd, s4t4Dmnd, s4t1Star, s4tGholdengo, s4tWP, s4tWPMinCards
    global s4tDiscordUserId, s4tDiscordWebhookURL, s4tSendAccountXml, minStarsShiny, instanceLaunchDelay, mainIdsURL, vipIdsURL
@@ -2468,7 +2467,6 @@ SaveAllSettings() {
    iniContent_Second .= "injectSortMethod=" injectSortMethod "`n"
    iniContent_Second .= "waitForEligibleAccounts=" waitForEligibleAccounts "`n"
    iniContent_Second .= "maxWaitHours=" maxWaitHours "`n"
-   iniContent_Second .= "showcaseURL=" showcaseURL "`n"
    iniContent_Second .= "skipMissionsInjectMissions=" skipMissionsInjectMissions "`n"
    iniContent_Second .= "showcaseEnabled=" showcaseEnabled "`n"
    iniContent_Second .= "showcaseLikes=5`n"
@@ -3638,11 +3636,6 @@ StartBot:
    ; Download a new Main ID file prior to running the rest of the below
    if (mainIdsURL != "") {
       DownloadFile(mainIdsURL, "ids.txt")
-   }
-   
-   ; Download showcase codes if enabled
-   if (showcaseEnabled && showcaseURL != "") {
-      DownloadFile(showcaseURL, "showcase_codes.txt")
    }
    
    ; Check for showcase_ids.txt if enabled
