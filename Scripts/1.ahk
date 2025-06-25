@@ -567,12 +567,6 @@ if(DeadCheck = 1 && deleteMethod != "13 Pack") {
 
         EndOfRun:
 
-        ; Collect Daily Hourglasses - either separate setting? or will be currently part of openExtraPack
-        if(deleteMethod = "Inject for Reroll" && openExtraPack) {
-            GoToMain()
-            GetAllRewards(true, true)
-        }
-        
         ; Special missions
         IniRead, claimSpecialMissions, %A_ScriptDir%\..\Settings.ini, UserSettings, claimSpecialMissions, 0
         if (claimSpecialMissions = 1 && !specialMissionsDone && !(deleteMethod = "Inject" && accountOpenPacks >= maxAccountPackNum || deleteMethod = "Inject Missions" && accountOpenPacks >= maxAccountPackNum)) {
@@ -596,6 +590,12 @@ if(DeadCheck = 1 && deleteMethod != "13 Pack") {
             RemoveFriends()
         }
         
+        ; Collect Daily Hourglasses - either separate setting? or will be currently part of openExtraPack
+        if(deleteMethod = "Inject for Reroll" && openExtraPack) {
+            GoToMain(true)
+            GetAllRewards(false, true)
+        }
+
         ; BallCity 2025.02.21 - Track monitor
         now := A_NowUTC
         IniWrite, %now%, %A_ScriptDir%\%scriptName%.ini, Metrics, LastEndTimeUTC
@@ -4989,19 +4989,25 @@ GetAllRewards(tomain := true, dailies := false) {
     }
 }
 
-GoToMain(){
+GoToMain(fromSocial := false) {
     failSafe := A_TickCount
     failSafeTime := 0
-    Delay(2)
-    Loop {
-        Delay(3) ;increase this delay if you see "close app" on home page
-        if(FindOrLoseImage(191, 393, 211, 411, , "Shop", 0, failSafeTime)) {
-            break
+    if(!fromSocial) {
+        Delay(2)
+        Loop {
+            Delay(3) ;increase this delay if you see "close app" on home page
+            if(FindOrLoseImage(191, 393, 211, 411, , "Shop", 0, failSafeTime)) {
+                break
+            }
+            else
+                adbInputEvent("111") ;send ESC
+            failSafeTime := (A_TickCount - failSafe) // 1000
+            CreateStatusMessage("Waiting for Shop`n(" . failSafeTime . "/45 seconds)")
         }
-        else
-            adbInputEvent("111") ;send ESC
-        failSafeTime := (A_TickCount - failSafe) // 1000
-        CreateStatusMessage("Waiting for Shop`n(" . failSafeTime . "/45 seconds)")
+    }
+    else {
+        FindImageAndClick(120, 500, 155, 530, , "Social", 143, 493)
+        FindImageAndClick(191, 393, 211, 411, , "Shop", 20, 515, 500) ;click until at main menu
     }
 }
 
