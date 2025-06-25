@@ -412,79 +412,9 @@ NextStep:
    Gui, Add, Text, % "x" . xPos . " y480 backgroundtrans vTxt_TesseractPath" . (useTesseract ? "" : " Hidden"), % currentDictionary.Txt_TesseractPath
    Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vtesseractPath w280 x" . xPos . " y505 h20 -E0x200 backgroundtrans" . (useTesseract ? "" : " Hidden"), %tesseractPath%
    
-   ;; Pack Settings Section
    ; ========== Page 3 ==========
-   ; ========== Min Stars ==========
-   xPos := 765
-   SetHeaderFont()
-   Gui, Add, Text, x%xPos% y110 backgroundtrans, % currentDictionary.btn_pack
-   SetNormalFont()
-   Gui, Add, Text, x%xPos% y150 backgroundtrans vTxt_MinStars, % currentDictionary.Txt_MinStars
-   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vminStars w40 x" . xPos+120 . " y149 h20 -E0x200 Center backgroundtrans", %minStars%
-   
-   Gui, Add, Text, x%xPos% y175 backgroundtrans vTxt_ShinyMinStars, % currentDictionary.Txt_ShinyMinStars
-   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vminStarsShiny w40 x" . xPos+120 . " y174 h20 -E0x200 Center backgroundtrans", %minStarsShiny%
-   global Txt_minStarsEnabled
-   CheckOptions := {}
-   CheckOptions["x"] := xPos,CheckOptions["y"] := 200, CheckOptions["w"] := 28, CheckOptions["h"] := 13
-      ,CheckOptions["vName"] := "minStarsEnabled"
-      ,CheckOptions["gName"] := "minStarsEnabledSettings"
-      ,CheckOptions["checkedImagePath"] := checkedPath, CheckOptions["uncheckedImagePath"] := uncheckedPath
-      ,CheckOptions["isChecked"] := minStarsEnabled
-      ,CheckOptions["vTextName"] := "Txt_minStarsEnabled"
-      ,CheckOptions["text"] := currentDictionary.Txt_minStarsEnabled
-      ,CheckOptions["textX"] := xPos+35, CheckOptions["textY"] := 199
-   AddCheckBox(CheckOptions)
-   Gui, Add, Text, % "x" . xPos . " y225 vTxt_minStarsA3b BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Eevee
-   defaultStars := MinStarCheck("minStarsA3b")
-   Gui, Add, DropDownList, % "x" . xPos+90 . " y225 w40 vminStarsA3b hwndMinA3b +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-
-   Gui, Add, Text, % "x" . xPos+155 . " y225 vTxt_minStarsA3a BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Buzzwole
-   defaultStars := MinStarCheck("minStarsA3a")
-   Gui, Add, DropDownList, % "x" . xPos+245 . " y225 w40 vminStarsA3a hwndMinA3a +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-
-   Gui, Add, Text, % "x" . xPos . " y250 vTxt_minStarsA3Solgaleo BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Solgaleo
-   defaultStars := MinStarCheck("minStarsA3Solgaleo")
-   Gui, Add, DropDownList, % "x" . xPos+90 . " y250 w40 vminStarsA3Solgaleo hwndMinA3S +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-
-   Gui, Add, Text, % "x" . xPos+155 . " y250 vTxt_minStarsA3Lunala BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Lunala
-   defaultStars := MinStarCheck("minStarsA3Lunala")
-   Gui, Add, DropDownList, % "x" . xPos+245 . " y250 w40 vminStarsA3Lunala hwndMinA3L +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-
-   Gui, Add, Text, % "x" . xPos . " y275 vTxt_minStarsA2b BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Shining
-   defaultStars := MinStarCheck("minStarsA2b")
-   Gui, Add, DropDownList, % "x" . xPos+90 . " y275 w40 vminStarsA2b hwndMinA2b +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-
-   Gui, Add, Text, % "x" . xPos+155 . " y275 vTxt_minStarsA2a BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Arceus
-   defaultStars := MinStarCheck("minStarsA2a")
-   Gui, Add, DropDownList, % "x" . xPos+245 . " y275 w40 vminStarsA2a hwndMinA2a +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-
-   Gui, Add, Text, % "x" . xPos . " y300 vTxt_minStarsA2Dialga BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Dialga
-   defaultStars := MinStarCheck("minStarsA2Dialga")
-   Gui, Add, DropDownList, % "x" . xPos+90 . " y300 w40 vminStarsA2Dialga hwndMinA2D +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-
-   Gui, Add, Text, % "x" . xPos+155 . " y300 vTxt_minStarsA2Palkia BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Palkia
-   defaultStars := MinStarCheck("minStarsA2Palkia")
-   Gui, Add, DropDownList, % "x" . xPos+245 . " y300 w40 vminStarsA2Palkia hwndMinA2P +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-
-   Gui, Add, Text, % "x" . xPos . " y325 vTxt_minStarsA1Mewtwo BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Mewtwo
-   defaultStars := MinStarCheck("minStarsA1Mewtwo")
-   Gui, Add, DropDownList, % "x" . xPos+90 . " y325 w40 vminStarsA1Mewtwo +0x0210 hwndMinA1MT choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-
-   Gui, Add, Text, % "x" . xPos+155 . " y325 vTxt_minStarsA1Charizard BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Charizard
-   defaultStars := MinStarCheck("minStarsA1Charizard")
-   Gui, Add, DropDownList, % "x" . xPos+245 . " y325 w40 vminStarsA1Charizard +0x0210 hwndMinA1C choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-
-   Gui, Add, Text, % "x" . xPos . " y350 vTxt_minStarsA1Pikachu BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Pikachu
-   defaultStars := MinStarCheck("minStarsA1Pikachu")
-   Gui, Add, DropDownList, % "x" . xPos+90 . " y350 w40 vminStarsA1Pikachu +0x0210 hwndMinA1P choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-
-   Gui, Add, Text, % "x" . xPos+155 . " y350 vTxt_minStarsA1a BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Mew
-   defaultStars := MinStarCheck("minStarsA1a")
-   Gui, Add, DropDownList, % "x" . xPos+245 . " y350 w40 vminStarsA1a +0x0210 hwndMinA1M choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5 
-   ; ========== Page 4 ==========
    ; ========== Delete Method ==========
-   xPos := 1125
+   xPos := 765
    SetHeaderFont()
    Gui, Add, Text, x%xPos% y110 backgroundtrans, % currentDictionary.btn_pack
    ; Create Sort By label and dropdown
@@ -695,8 +625,9 @@ NextStep:
       ,CheckOptions["textX"] := xPos+35
       ,CheckOptions["textY"] := 405
    AddCheckBox(CheckOptions)
-   ; ========= Page 5 ==========
-   xPos := 1485
+   ; ========= Page 4 ==========
+   ; ========== Pack Selection ==========
+   xPos := 1125
    SetHeaderFont()
    Gui, Add, Text, x%xPos% y110 backgroundtrans, % currentDictionary.btn_pack
    global Txt_Eevee,Txt_Buzzwole, Txt_Solgaleo, Txt_Lunala, Txt_Shining, Txt_Arceus, Txt_Palkia, Txt_Dialga
@@ -846,6 +777,76 @@ NextStep:
       ,CheckOptions["textX"] := xPos+190
       ,CheckOptions["textY"] := 275
    AddCheckBox(CheckOptions)
+   ; ========== Page 5 ==========
+   ; ========== Min Stars ==========
+   xPos := 1485
+   SetHeaderFont()
+   Gui, Add, Text, x%xPos% y110 backgroundtrans, % currentDictionary.btn_pack
+   SetNormalFont()
+   Gui, Add, Text, x%xPos% y150 backgroundtrans vTxt_MinStars, % currentDictionary.Txt_MinStars
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vminStars w40 x" . xPos+120 . " y149 h20 -E0x200 Center backgroundtrans", %minStars%
+   
+   Gui, Add, Text, x%xPos% y175 backgroundtrans vTxt_ShinyMinStars, % currentDictionary.Txt_ShinyMinStars
+   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vminStarsShiny w40 x" . xPos+120 . " y174 h20 -E0x200 Center backgroundtrans", %minStarsShiny%
+   global Txt_minStarsEnabled
+   CheckOptions := {}
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 200, CheckOptions["w"] := 28, CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "minStarsEnabled"
+      ,CheckOptions["gName"] := "minStarsEnabledSettings"
+      ,CheckOptions["checkedImagePath"] := checkedPath, CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := minStarsEnabled
+      ,CheckOptions["vTextName"] := "Txt_minStarsEnabled"
+      ,CheckOptions["text"] := currentDictionary.Txt_minStarsEnabled
+      ,CheckOptions["textX"] := xPos+35, CheckOptions["textY"] := 199
+   AddCheckBox(CheckOptions)
+   Gui, Add, Text, % "x" . xPos . " y225 vTxt_minStarsA3b BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Eevee
+   defaultStars := MinStarCheck("minStarsA3b")
+   Gui, Add, DropDownList, % "x" . xPos+90 . " y225 w40 vminStarsA3b hwndMinA3b +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos+155 . " y225 vTxt_minStarsA3a BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Buzzwole
+   defaultStars := MinStarCheck("minStarsA3a")
+   Gui, Add, DropDownList, % "x" . xPos+245 . " y225 w40 vminStarsA3a hwndMinA3a +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos . " y250 vTxt_minStarsA3Solgaleo BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Solgaleo
+   defaultStars := MinStarCheck("minStarsA3Solgaleo")
+   Gui, Add, DropDownList, % "x" . xPos+90 . " y250 w40 vminStarsA3Solgaleo hwndMinA3S +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos+155 . " y250 vTxt_minStarsA3Lunala BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Lunala
+   defaultStars := MinStarCheck("minStarsA3Lunala")
+   Gui, Add, DropDownList, % "x" . xPos+245 . " y250 w40 vminStarsA3Lunala hwndMinA3L +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos . " y275 vTxt_minStarsA2b BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Shining
+   defaultStars := MinStarCheck("minStarsA2b")
+   Gui, Add, DropDownList, % "x" . xPos+90 . " y275 w40 vminStarsA2b hwndMinA2b +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos+155 . " y275 vTxt_minStarsA2a BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Arceus
+   defaultStars := MinStarCheck("minStarsA2a")
+   Gui, Add, DropDownList, % "x" . xPos+245 . " y275 w40 vminStarsA2a hwndMinA2a +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos . " y300 vTxt_minStarsA2Dialga BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Dialga
+   defaultStars := MinStarCheck("minStarsA2Dialga")
+   Gui, Add, DropDownList, % "x" . xPos+90 . " y300 w40 vminStarsA2Dialga hwndMinA2D +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos+155 . " y300 vTxt_minStarsA2Palkia BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Palkia
+   defaultStars := MinStarCheck("minStarsA2Palkia")
+   Gui, Add, DropDownList, % "x" . xPos+245 . " y300 w40 vminStarsA2Palkia hwndMinA2P +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos . " y325 vTxt_minStarsA1Mewtwo BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Mewtwo
+   defaultStars := MinStarCheck("minStarsA1Mewtwo")
+   Gui, Add, DropDownList, % "x" . xPos+90 . " y325 w40 vminStarsA1Mewtwo +0x0210 hwndMinA1MT choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos+155 . " y325 vTxt_minStarsA1Charizard BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Charizard
+   defaultStars := MinStarCheck("minStarsA1Charizard")
+   Gui, Add, DropDownList, % "x" . xPos+245 . " y325 w40 vminStarsA1Charizard +0x0210 hwndMinA1C choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos . " y350 vTxt_minStarsA1Pikachu BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Pikachu
+   defaultStars := MinStarCheck("minStarsA1Pikachu")
+   Gui, Add, DropDownList, % "x" . xPos+90 . " y350 w40 vminStarsA1Pikachu +0x0210 hwndMinA1P choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos+155 . " y350 vTxt_minStarsA1a BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Mew
+   defaultStars := MinStarCheck("minStarsA1a")
+   Gui, Add, DropDownList, % "x" . xPos+245 . " y350 w40 vminStarsA1a +0x0210 hwndMinA1M choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5 
+
    ; ========== Page 6 ==========
    ;; Save For Trade Section
    xPos := 1845
