@@ -435,49 +435,53 @@ NextStep:
       ,CheckOptions["text"] := currentDictionary.Txt_minStarsEnabled
       ,CheckOptions["textX"] := xPos+35, CheckOptions["textY"] := 199
    AddCheckBox(CheckOptions)
-   Gui, Add, Text, % "x" . xPos . " y225 vTxt_minStarsA3a BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Buzzwole
+   Gui, Add, Text, % "x" . xPos . " y225 vTxt_minStarsA3b BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Eevee
+   defaultStars := MinStarCheck("minStarsA3b")
+   Gui, Add, DropDownList, % "x" . xPos+90 . " y225 w40 vminStarsA3b hwndMinA3b +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos+155 . " y225 vTxt_minStarsA3a BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Buzzwole
    defaultStars := MinStarCheck("minStarsA3a")
-   Gui, Add, DropDownList, % "x" . xPos+90 . " y225 w40 vminStarsA3a hwndMinA3a +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-   
-   Gui, Add, Text, % "x" . xPos+155 . " y225 vTxt_minStarsA3Solgaleo BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Solgaleo
+   Gui, Add, DropDownList, % "x" . xPos+245 . " y225 w40 vminStarsA3a hwndMinA3a +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos . " y250 vTxt_minStarsA3Solgaleo BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Solgaleo
    defaultStars := MinStarCheck("minStarsA3Solgaleo")
-   Gui, Add, DropDownList, % "x" . xPos+245 . " y225 w40 vminStarsA3Solgaleo hwndMinA3S +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-   
-   Gui, Add, Text, % "x" . xPos . " y250 vTxt_minStarsA3Lunala BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Lunala
+   Gui, Add, DropDownList, % "x" . xPos+90 . " y250 w40 vminStarsA3Solgaleo hwndMinA3S +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos+155 . " y250 vTxt_minStarsA3Lunala BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Lunala
    defaultStars := MinStarCheck("minStarsA3Lunala")
-   Gui, Add, DropDownList, % "x" . xPos+90 . " y250 w40 vminStarsA3Lunala hwndMinA3L +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-   
-   Gui, Add, Text, % "x" . xPos+155 . " y250 vTxt_minStarsA2b BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Shining
+   Gui, Add, DropDownList, % "x" . xPos+245 . " y250 w40 vminStarsA3Lunala hwndMinA3L +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos . " y275 vTxt_minStarsA2b BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Shining
    defaultStars := MinStarCheck("minStarsA2b")
-   Gui, Add, DropDownList, % "x" . xPos+245 . " y250 w40 vminStarsA2b hwndMinA2b +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-   
-   Gui, Add, Text, % "x" . xPos . " y275 vTxt_minStarsA2a BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Arceus
+   Gui, Add, DropDownList, % "x" . xPos+90 . " y275 w40 vminStarsA2b hwndMinA2b +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos+155 . " y275 vTxt_minStarsA2a BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Arceus
    defaultStars := MinStarCheck("minStarsA2a")
-   Gui, Add, DropDownList, % "x" . xPos+90 . " y275 w40 vminStarsA2a hwndMinA2a +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-   
-   Gui, Add, Text, % "x" . xPos+155 . " y275 vTxt_minStarsA2Dialga BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Dialga
+   Gui, Add, DropDownList, % "x" . xPos+245 . " y275 w40 vminStarsA2a hwndMinA2a +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos . " y300 vTxt_minStarsA2Dialga BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Dialga
    defaultStars := MinStarCheck("minStarsA2Dialga")
-   Gui, Add, DropDownList, % "x" . xPos+245 . " y275 w40 vminStarsA2Dialga +0x0210 hwndMinA2D choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-   
-   Gui, Add, Text, % "x" . xPos . " y300 vTxt_minStarsA2Palkia BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Palkia
+   Gui, Add, DropDownList, % "x" . xPos+90 . " y300 w40 vminStarsA2Dialga hwndMinA2D +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos+155 . " y300 vTxt_minStarsA2Palkia BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Palkia
    defaultStars := MinStarCheck("minStarsA2Palkia")
-   Gui, Add, DropDownList, % "x" . xPos+90 . " y300 w40 vminStarsA2Palkia hwndMinA2P +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-   
-   Gui, Add, Text, % "x" . xPos+155 . " y300 vTxt_minStarsA1Mewtwo BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Mewtwo
+   Gui, Add, DropDownList, % "x" . xPos+245 . " y300 w40 vminStarsA2Palkia hwndMinA2P +0x0210 choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos . " y325 vTxt_minStarsA1Mewtwo BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Mewtwo
    defaultStars := MinStarCheck("minStarsA1Mewtwo")
-   Gui, Add, DropDownList, % "x" . xPos+245 . " y300 w40 vminStarsA1Mewtwo +0x0210 hwndMinA1MT choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-   
-   Gui, Add, Text, % "x" . xPos . " y325 vTxt_minStarsA1Charizard BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Charizard
+   Gui, Add, DropDownList, % "x" . xPos+90 . " y325 w40 vminStarsA1Mewtwo +0x0210 hwndMinA1MT choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos+155 . " y325 vTxt_minStarsA1Charizard BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Charizard
    defaultStars := MinStarCheck("minStarsA1Charizard")
-   Gui, Add, DropDownList, % "x" . xPos+90 . " y325 w40 vminStarsA1Charizard +0x0210 hwndMinA1C choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-   
-   Gui, Add, Text, % "x" . xPos+155 . " y325 vTxt_minStarsA1Pikachu BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Pikachu
+   Gui, Add, DropDownList, % "x" . xPos+245 . " y325 w40 vminStarsA1Charizard +0x0210 hwndMinA1C choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos . " y350 vTxt_minStarsA1Pikachu BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Pikachu
    defaultStars := MinStarCheck("minStarsA1Pikachu")
-   Gui, Add, DropDownList, % "x" . xPos+245 . " y325 w40 vminStarsA1Pikachu +0x0210 hwndMinA1P choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
-   
-   Gui, Add, Text, % "x" . xPos . " y350 vTxt_minStarsA1a BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Mew
+   Gui, Add, DropDownList, % "x" . xPos+90 . " y350 w40 vminStarsA1Pikachu +0x0210 hwndMinA1P choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+
+   Gui, Add, Text, % "x" . xPos+155 . " y350 vTxt_minStarsA1a BackgroundTrans" . (minStarsEnabled ? "" : " Hidden"), % currentDictionary.Txt_Mew
    defaultStars := MinStarCheck("minStarsA1a")
-   Gui, Add, DropDownList, % "x" . xPos+90 . " y350 w40 vminStarsA1a +0x0210 hwndMinA1M choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5
+   Gui, Add, DropDownList, % "x" . xPos+245 . " y350 w40 vminStarsA1a +0x0210 hwndMinA1M choose" . defaultStars . " -E0x200 Center backgroundtrans" . (minStarsEnabled ? "" : " Hidden"), 0|1|2|3|4|5 
    ; ========== Page 4 ==========
    ; ========== Delete Method ==========
    xPos := 1125
@@ -695,11 +699,23 @@ NextStep:
    xPos := 1485
    SetHeaderFont()
    Gui, Add, Text, x%xPos% y110 backgroundtrans, % currentDictionary.btn_pack
-   global Txt_Buzzwole, Txt_Solgaleo, Txt_Lunala, Txt_Shining, Txt_Arceus, Txt_Palkia, Txt_Dialga
+   global Txt_Eevee,Txt_Buzzwole, Txt_Solgaleo, Txt_Lunala, Txt_Shining, Txt_Arceus, Txt_Palkia, Txt_Dialga
    global Txt_Mewtwo, Txt_Charizard, Txt_Pikachu, Txt_Mew
    SetNormalFont()
    CheckOptions := {}
    CheckOptions["x"] := xPos,CheckOptions["y"] := 151,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+      ,CheckOptions["vName"] := "Eevee"
+      ,CheckOptions["gName"] := ""
+      ,CheckOptions["checkedImagePath"] := checkedPath
+      ,CheckOptions["uncheckedImagePath"] := uncheckedPath
+      ,CheckOptions["isChecked"] := Eevee
+      ,CheckOptions["vTextName"] := "Txt_Eevee"
+      ,CheckOptions["text"] := currentDictionary.Txt_Eevee
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 150
+   AddCheckBox(CheckOptions)
+   CheckOptions := {}
+   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 151,CheckOptions["w"] := 28,CheckOptions["h"] := 13
       ,CheckOptions["vName"] := "Buzzwole"
       ,CheckOptions["gName"] := ""
       ,CheckOptions["checkedImagePath"] := checkedPath
@@ -707,11 +723,11 @@ NextStep:
       ,CheckOptions["isChecked"] := Buzzwole
       ,CheckOptions["vTextName"] := "Txt_Buzzwole"
       ,CheckOptions["text"] := currentDictionary.Txt_Buzzwole
-      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textX"] := xPos+190
       ,CheckOptions["textY"] := 150
    AddCheckBox(CheckOptions)
    CheckOptions := {}
-   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 151,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 176,CheckOptions["w"] := 28,CheckOptions["h"] := 13
       ,CheckOptions["vName"] := "Solgaleo"
       ,CheckOptions["gName"] := ""
       ,CheckOptions["checkedImagePath"] := checkedPath
@@ -719,11 +735,11 @@ NextStep:
       ,CheckOptions["isChecked"] := Solgaleo
       ,CheckOptions["vTextName"] := "Txt_Solgaleo"
       ,CheckOptions["text"] := currentDictionary.Txt_Solgaleo
-      ,CheckOptions["textX"] := xPos+190
-      ,CheckOptions["textY"] := 150
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 175
    AddCheckBox(CheckOptions)
    CheckOptions := {}
-   CheckOptions["x"] := xPos,CheckOptions["y"] := 176,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 176,CheckOptions["w"] := 28,CheckOptions["h"] := 13
       ,CheckOptions["vName"] := "Lunala"
       ,CheckOptions["gName"] := ""
       ,CheckOptions["checkedImagePath"] := checkedPath
@@ -731,11 +747,11 @@ NextStep:
       ,CheckOptions["isChecked"] := Lunala
       ,CheckOptions["vTextName"] := "Txt_Lunala"
       ,CheckOptions["text"] := currentDictionary.Txt_Lunala
-      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textX"] := xPos+190
       ,CheckOptions["textY"] := 175
    AddCheckBox(CheckOptions)
    CheckOptions := {}
-   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 176,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 201,CheckOptions["w"] := 28,CheckOptions["h"] := 13
       ,CheckOptions["vName"] := "Shining"
       ,CheckOptions["gName"] := ""
       ,CheckOptions["checkedImagePath"] := checkedPath
@@ -743,11 +759,11 @@ NextStep:
       ,CheckOptions["isChecked"] := Shining
       ,CheckOptions["vTextName"] := "Txt_Shining"
       ,CheckOptions["text"] := currentDictionary.Txt_Shining
-      ,CheckOptions["textX"] := xPos+190
-      ,CheckOptions["textY"] := 175
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 200
    AddCheckBox(CheckOptions)
    CheckOptions := {}
-   CheckOptions["x"] := xPos,CheckOptions["y"] := 201,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 201,CheckOptions["w"] := 28,CheckOptions["h"] := 13
       ,CheckOptions["vName"] := "Arceus"
       ,CheckOptions["gName"] := ""
       ,CheckOptions["checkedImagePath"] := checkedPath
@@ -755,11 +771,11 @@ NextStep:
       ,CheckOptions["isChecked"] := Arceus
       ,CheckOptions["vTextName"] := "Txt_Arceus"
       ,CheckOptions["text"] := currentDictionary.Txt_Arceus
-      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textX"] := xPos+190
       ,CheckOptions["textY"] := 200
    AddCheckBox(CheckOptions)
    CheckOptions := {}
-   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 201,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 226,CheckOptions["w"] := 28,CheckOptions["h"] := 13
       ,CheckOptions["vName"] := "Palkia"
       ,CheckOptions["gName"] := ""
       ,CheckOptions["checkedImagePath"] := checkedPath
@@ -767,11 +783,11 @@ NextStep:
       ,CheckOptions["isChecked"] := Palkia
       ,CheckOptions["vTextName"] := "Txt_Palkia"
       ,CheckOptions["text"] := currentDictionary.Txt_Palkia
-      ,CheckOptions["textX"] := xPos+190
-      ,CheckOptions["textY"] := 200
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 225
    AddCheckBox(CheckOptions)
    CheckOptions := {}
-   CheckOptions["x"] := xPos,CheckOptions["y"] := 226,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 226,CheckOptions["w"] := 28,CheckOptions["h"] := 13
       ,CheckOptions["vName"] := "Dialga"
       ,CheckOptions["gName"] := ""
       ,CheckOptions["checkedImagePath"] := checkedPath
@@ -779,11 +795,11 @@ NextStep:
       ,CheckOptions["isChecked"] := Dialga
       ,CheckOptions["vTextName"] := "Txt_Dialga"
       ,CheckOptions["text"] := currentDictionary.Txt_Dialga
-      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textX"] := xPos+190
       ,CheckOptions["textY"] := 225
    AddCheckBox(CheckOptions)
    CheckOptions := {}
-   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 226,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 251,CheckOptions["w"] := 28,CheckOptions["h"] := 13
       ,CheckOptions["vName"] := "Pikachu"
       ,CheckOptions["gName"] := ""
       ,CheckOptions["checkedImagePath"] := checkedPath
@@ -791,11 +807,11 @@ NextStep:
       ,CheckOptions["isChecked"] := Pikachu
       ,CheckOptions["vTextName"] := "Txt_Pikachu"
       ,CheckOptions["text"] := currentDictionary.Txt_Pikachu
-      ,CheckOptions["textX"] := xPos+190
-      ,CheckOptions["textY"] := 225
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 250
    AddCheckBox(CheckOptions)
    CheckOptions := {}
-   CheckOptions["x"] := xPos,CheckOptions["y"] := 251,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 251,CheckOptions["w"] := 28,CheckOptions["h"] := 13
       ,CheckOptions["vName"] := "Charizard"
       ,CheckOptions["gName"] := ""
       ,CheckOptions["checkedImagePath"] := checkedPath
@@ -803,11 +819,11 @@ NextStep:
       ,CheckOptions["isChecked"] := Charizard
       ,CheckOptions["vTextName"] := "Txt_Charizard"
       ,CheckOptions["text"] := currentDictionary.Txt_Charizard
-      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textX"] := xPos+190
       ,CheckOptions["textY"] := 250
    AddCheckBox(CheckOptions)
    CheckOptions := {}
-   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 251,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+   CheckOptions["x"] := xPos,CheckOptions["y"] := 276,CheckOptions["w"] := 28,CheckOptions["h"] := 13
       ,CheckOptions["vName"] := "Mewtwo"
       ,CheckOptions["gName"] := ""
       ,CheckOptions["checkedImagePath"] := checkedPath
@@ -815,11 +831,11 @@ NextStep:
       ,CheckOptions["isChecked"] := Mewtwo
       ,CheckOptions["vTextName"] := "Txt_Mewtwo"
       ,CheckOptions["text"] := currentDictionary.Txt_Mewtwo
-      ,CheckOptions["textX"] := xPos+190
-      ,CheckOptions["textY"] := 250
+      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textY"] := 275
    AddCheckBox(CheckOptions)
    CheckOptions := {}
-   CheckOptions["x"] := xPos,CheckOptions["y"] := 276,CheckOptions["w"] := 28,CheckOptions["h"] := 13
+   CheckOptions["x"] := xPos+155,CheckOptions["y"] := 276,CheckOptions["w"] := 28,CheckOptions["h"] := 13
       ,CheckOptions["vName"] := "Mew"
       ,CheckOptions["gName"] := ""
       ,CheckOptions["checkedImagePath"] := checkedPath
@@ -827,7 +843,7 @@ NextStep:
       ,CheckOptions["isChecked"] := Mew
       ,CheckOptions["vTextName"] := "Txt_Mew"
       ,CheckOptions["text"] := currentDictionary.Txt_Mew
-      ,CheckOptions["textX"] := xPos+35
+      ,CheckOptions["textX"] := xPos+190
       ,CheckOptions["textY"] := 275
    AddCheckBox(CheckOptions)
    ; ========== Page 6 ==========
@@ -1091,6 +1107,7 @@ NextStep:
       OD_Colors.Attach(Scale,{T: 0XFDFDFD, B: 0X7C8590})
       OD_Colors.Attach(OCR,{T: 0XFDFDFD, B: 0X7C8590})
       OD_Colors.Attach(Client,{T: 0XFDFDFD, B: 0X7C8590})
+      OD_Colors.Attach(MinA3b,{T: 0XFDFDFD, B: 0X7C8590})
       OD_Colors.Attach(MinA3a,{T: 0XFDFDFD, B: 0X7C8590})
       OD_Colors.Attach(MinA3S,{T: 0XFDFDFD, B: 0X7C8590})
       OD_Colors.Attach(MinA3L,{T: 0XFDFDFD, B: 0X7C8590})
@@ -1109,6 +1126,7 @@ NextStep:
       OD_Colors.Attach(Scale,{T: 0XBC0000, B: 0XFFD1CD})
       OD_Colors.Attach(OCR,{T: 0XBC0000, B: 0XFFD1CD})
       OD_Colors.Attach(Client,{T: 0XBC0000, B: 0XFFD1CD})
+      OD_Colors.Attach(MinA3b,{T: 0XBC0000, B: 0XFFD1CD})
       OD_Colors.Attach(MinA3a,{T: 0XBC0000, B: 0XFFD1CD})
       OD_Colors.Attach(MinA3S,{T: 0XBC0000, B: 0XFFD1CD})
       OD_Colors.Attach(MinA3L,{T: 0XBC0000, B: 0XFFD1CD})
@@ -2141,7 +2159,8 @@ LoadSettingsFromIni() {
       IniRead, Mewtwo, Settings.ini, UserSettings, Mewtwo, 0
       IniRead, Solgaleo, Settings.ini, UserSettings, Solgaleo, 0
       IniRead, Lunala, Settings.ini, UserSettings, Lunala, 0
-      IniRead, Buzzwole, Settings.ini, UserSettings, Buzzwole, 1
+      IniRead, Buzzwole, Settings.ini, UserSettings, Buzzwole, 0
+      IniRead, Eevee, Settings.ini, UserSettings, Eevee, 1
       
       IniRead, CheckShinyPackOnly, Settings.ini, UserSettings, CheckShinyPackOnly, 0
       IniRead, TrainerCheck, Settings.ini, UserSettings, TrainerCheck, 0
@@ -2189,7 +2208,8 @@ LoadSettingsFromIni() {
       IniRead, minStarsA2a, Settings.ini, UserSettings, minStarsA2a, 0
       IniRead, minStarsA3Solgaleo, Settings.ini, UserSettings, minStarsA3Solgaleo, 0
       IniRead, minStarsA3Lunala, Settings.ini, UserSettings, minStarsA3Lunala, 0
-      IniRead, minStarsA3a, Settings.ini, UserSettings, minStarA3aBuzzwole, 0
+      IniRead, minStarsA3a, Settings.ini, UserSettings, minStarsA3a, 0
+      IniRead, minStarsA3b, Settings.ini, UserSettings, minStarsA3b, 0
       
       IniRead, waitForEligibleAccounts, Settings.ini, UserSettings, waitForEligibleAccounts, 1
       IniRead, maxWaitHours, Settings.ini, UserSettings, maxWaitHours, 24
@@ -2316,7 +2336,7 @@ SaveAllSettings() {
    global autoLaunchMonitor, autoUseGPTest, TestTime
    global CheckShinyPackOnly, TrainerCheck, FullArtCheck, RainbowCheck, ShinyCheck, CrownCheck
    global InvalidCheck, ImmersiveCheck, PseudoGodPack, minStars, Palkia, Dialga, Arceus, Shining
-   global Mew, Pikachu, Charizard, Mewtwo, Solgaleo, Lunala, Buzzwole, slowMotion, ocrLanguage, clientLanguage
+   global Mew, Pikachu, Charizard, Mewtwo, Solgaleo, Lunala, Buzzwole, Eevee, slowMotion, ocrLanguage, clientLanguage
    global CurrentVisibleSection, heartBeatDelay, sendAccountXml, showcaseEnabled, showcaseURL, isDarkTheme
    global useBackgroundImage, tesseractPath, applyRoleFilters, debugMode, tesseractOption, statusMessage
    global s4tEnabled, s4tSilent, s4t3Dmnd, s4t4Dmnd, s4t1Star, s4tGholdengo, s4tWP, s4tWPMinCards
@@ -2325,7 +2345,7 @@ SaveAllSettings() {
    global waitForEligibleAccounts, maxWaitHours, skipMissionsInjectMissions
    global minStarsEnabled, minStarsA1Mewtwo, minStarsA1Charizard, minStarsA1Pikachu, minStarsA1a
    global minStarsA2Dialga, minStarsA2Palkia, minStarsA2a, minStarsA2b
-   global minStarsA3Solgaleo, minStarsA3Lunala, minStarsA3a
+   global minStarsA3Solgaleo, minStarsA3Lunala, minStarsA3a, minStarsA3b
    global menuExpanded
    
    iniContent := "[UserSettings]`n"
@@ -2369,6 +2389,7 @@ SaveAllSettings() {
    iniContent .= "Solgaleo=" Solgaleo "`n"
    iniContent .= "Lunala=" Lunala "`n"
    iniContent .= "Buzzwole=" Buzzwole "`n"
+   iniContent .= "Eevee=" Eevee "`n"
    iniContent .= "CheckShinyPackOnly=" CheckShinyPackOnly "`n"
    iniContent .= "TrainerCheck=" TrainerCheck "`n"
    iniContent .= "FullArtCheck=" FullArtCheck "`n"
@@ -2461,6 +2482,7 @@ SaveAllSettings() {
    iniContent_Second .= "minStarsA3Solgaleo=" minStarsA3Solgaleo "`n"
    iniContent_Second .= "minStarsA3Lunala=" minStarsA3Lunala "`n"
    iniContent_Second .= "minStarsA3a=" minStarsA3a "`n"
+   iniContent_Second .= "minStarsA3b=" minStarsA3b "`n"
    iniContent_Second .= "s4tWPMinCards=" s4tWPMinCards "`n"
    iniContent_Second .= "s4tDiscordUserId=" s4tDiscordUserId "`n"
    iniContent_Second .= "s4tDiscordWebhookURL=" s4tDiscordWebhookURL "`n"
@@ -2828,12 +2850,12 @@ return
 
 minStarsEnabledSettings:
    minStarsEnabled := !minStarsEnabled
-   controlsList := "Txt_minStarsA3a,minStarsA3a,Txt_minStarsA3Lunala,minStarsA3Lunala,"
-   controlsList .= "Txt_minStarsA3Solgaleo,minStarsA3Solgaleo,Txt_minStarsA2b,minStarsA2b,"
-   controlsList .= "Txt_minStarsA2a,minStarsA2a,Txt_minStarsA2Palkia,minStarsA2Palkia,"
-   controlsList .= "Txt_minStarsA2Dialga,minStarsA2Dialga,Txt_minStarsA1a,minStarsA1a,"
+   controlsList := "Txt_minStarsA3b,minStarsA3b,Txt_minStarsA3a,minStarsA3a,"
+   controlsList .= "Txt_minStarsA3Solgaleo,minStarsA3Solgaleo,Txt_minStarsA3Lunala,minStarsA3Lunala,"
+   controlsList .= "Txt_minStarsA2b,minStarsA2b,Txt_minStarsA2a,minStarsA2a,"
+   controlsList .= "Txt_minStarsA2Palkia,minStarsA2Palkia,Txt_minStarsA2Dialga,minStarsA2Dialga,"
    controlsList .= "Txt_minStarsA1Pikachu,minStarsA1Pikachu,Txt_minStarsA1Mewtwo,minStarsA1Mewtwo,"
-   controlsList .= "Txt_minStarsA1Charizard,minStarsA1Charizard"
+   controlsList .= "Txt_minStarsA1Charizard,minStarsA1Charizard,Txt_minStarsA1a,minStarsA1a"
    if (minStarsEnabled) {
       GuiControl,, minStarsEnabled, %checkedPath%
       ShowControls(controlsList)
@@ -3436,6 +3458,8 @@ StartBot:
    confirmMsg := SetUpDictionary.Confirm_SelectedMethod . deleteMethod . "`n"
    
    confirmMsg .= "`n" . SetUpDictionary.Confirm_SelectedPacks . "`n"
+   if (Eevee) 
+      confirmMsg .= "• " . currentDictionary.Txt_Eevee . "`n"
    if (Buzzwole)
       confirmMsg .= "• " . currentDictionary.Txt_Buzzwole . "`n"
    if (Solgaleo)
@@ -3739,6 +3763,8 @@ StartBot:
       Selected.Push("Lunala")
    if(Buzzwole)
       Selected.Push("Buzzwole")
+   if(Eevee)
+      Selected.Push("Eevee")
    
    for index, value in Selected {
       if(index = Selected.MaxIndex())

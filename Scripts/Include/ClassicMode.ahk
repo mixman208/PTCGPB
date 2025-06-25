@@ -78,7 +78,8 @@ LoadSettingsFromIni() {
     IniRead, Mewtwo, %A_ScriptDir%\..\..\Settings.ini, UserSettings, Mewtwo, 0
     IniRead, Solgaleo, %A_ScriptDir%\..\..\Settings.ini, UserSettings, Solgaleo, 0
     IniRead, Lunala, %A_ScriptDir%\..\..\Settings.ini, UserSettings, Lunala, 0
-    IniRead, Buzzwole, %A_ScriptDir%\..\..\Settings.ini, UserSettings, Buzzwole, 1
+    IniRead, Buzzwole, %A_ScriptDir%\..\..\Settings.ini, UserSettings, Buzzwole, 0
+    IniRead, Eevee, %A_ScriptDir%\..\..\Settings.ini, UserSettings, Eevee, 0
     
     IniRead, CheckShinyPackOnly, %A_ScriptDir%\..\..\Settings.ini, UserSettings, CheckShinyPackOnly, 0
     IniRead, TrainerCheck, %A_ScriptDir%\..\..\Settings.ini, UserSettings, TrainerCheck, 0
@@ -143,7 +144,7 @@ SaveAllSettings() {
   global autoLaunchMonitor, autoUseGPTest, TestTime
   global CheckShinyPackOnly, TrainerCheck, FullArtCheck, RainbowCheck, ShinyCheck, CrownCheck
   global InvalidCheck, ImmersiveCheck, PseudoGodPack, minStars, Palkia, Dialga, Arceus, Shining
-  global Mew, Pikachu, Charizard, Mewtwo, Solgaleo, Lunala, Buzzwole, slowMotion, ocrLanguage, clientLanguage
+  global Mew, Pikachu, Charizard, Mewtwo, Solgaleo, Lunala, Buzzwole, Eevee, slowMotion, ocrLanguage, clientLanguage
   global CurrentVisibleSection, heartBeatDelay, sendAccountXml, showcaseEnabled, showcaseURL, isDarkTheme
   global useBackgroundImage, tesseractPath, applyRoleFilters, debugMode, tesseractOption, statusMessage
   global s4tEnabled, s4tSilent, s4t3Dmnd, s4t4Dmnd, s4t1Star, s4tGholdengo, s4tWP, s4tWPMinCards
@@ -151,11 +152,7 @@ SaveAllSettings() {
   global spendHourGlass, openExtraPack, injectSortMethod, rowGap, SortByDropdown
   global waitForEligibleAccounts, maxWaitHours, skipMissionsInjectMissions
   
-  ; === MISSING ADVANCED SETTINGS VARIABLES ===
-  global minStarsA1Mewtwo, minStarsA1Charizard, minStarsA1Pikachu, minStarsA1a
-  global minStarsA2Dialga, minStarsA2Palkia, minStarsA2a, minStarsA2b
-  global minStarsA3Solgaleo, minStarsA3Lunala, minStarsA3a
-  
+    
   ; FIXED: Make sure all values are properly synced from GUI before saving
   Gui, Submit, NoHide
   
@@ -249,6 +246,7 @@ SaveAllSettings() {
   IniWrite, %Solgaleo%, %A_ScriptDir%\..\..\Settings.ini, UserSettings, Solgaleo
   IniWrite, %Lunala%, %A_ScriptDir%\..\..\Settings.ini, UserSettings, Lunala
   IniWrite, %Buzzwole%, %A_ScriptDir%\..\..\Settings.ini, UserSettings, Buzzwole
+  IniWrite, %Eevee%, %A_ScriptDir%\..\..\Settings.ini, UserSettings, Eevee
   ; Card Detection
   IniWrite, %CheckShinyPackOnly%, %A_ScriptDir%\..\..\Settings.ini, UserSettings, CheckShinyPackOnly
   IniWrite, %TrainerCheck%, %A_ScriptDir%\..\..\Settings.ini, UserSettings, TrainerCheck
@@ -440,7 +438,7 @@ else if (deleteMethod = "Inject Missions")
 else if (deleteMethod = "Inject for Reroll")
   defaultDelete := 4
 ;	SquallTCGP 2025.03.12 - 	Adding the delete method 5 Pack (Fast) to the delete method dropdown list.
-Gui, Add, DropDownList, vdeleteMethod gdeleteSettings choose%defaultDelete% x350 y203 w100 Background2A2A2A cWhite, 13 Pack|Inject|Inject Missions|Inject for Reroll
+Gui, Add, DropDownList, vdeleteMethod gdeleteSettings choose%defaultDelete% x350 y203 w130 Background2A2A2A cWhite, 13 Pack|Inject|Inject Missions|Inject for Reroll
 Gui, Add, Checkbox, % (packMethod ? "Checked" : "") " vpackMethod x270 y235 " . sectionColor . ((deleteMethod = "Inject for Reroll") ? "" : " Hidden"), % currentDictionary.Txt_packMethod
 Gui, Add, Checkbox, % (nukeAccount ? "Checked" : "") " vnukeAccount x270 y255 " . sectionColor . ((deleteMethod = "13 Pack")? "": " Hidden"), % currentDictionary.Txt_nukeAccount
 Gui, Add, Checkbox, % (openExtraPack ? "Checked" : "") " vopenExtraPack gopenExtraPackSettings x270 y255 " . sectionColor . ((deleteMethod = "Inject for Reroll") ? "" : " Hidden"), % currentDictionary.Txt_openExtraPack
@@ -455,7 +453,7 @@ else if (injectSortMethod = "PacksAsc")
   sortOption := 3
 else if (injectSortMethod = "PacksDesc")
   sortOption := 4
-Gui, Add, DropDownList, vSortByDropdow gSortByDropdownHandler choose%sortOption% x350 y298 w100 Background2A2A2A cWhite, Oldest First|Newest First|Fewest Packs First|Most Packs First
+Gui, Add, DropDownList, vSortByDropdow gSortByDropdownHandler choose%sortOption% x350 y298 w130 Background2A2A2A cWhite, Oldest First|Newest First|Fewest Packs First|Most Packs First
 
 ; ========== Card Detection Section ==========
 sectionColor := "cFF4500" ; Orange Red
@@ -478,18 +476,18 @@ Gui, Add, Checkbox, % (ImmersiveCheck ? "Checked" : "") " vImmersiveCheck x270 y
 ; ========== Pack Selection Section ==========
 sectionColor := "cFFD700" ; Gold
 Gui, Add, GroupBox, x505 y0 w240 h590 %sectionColor%, Pack Selection
-Gui, Add, Checkbox, % (Buzzwole ? "Checked" : "") " vBuzzwole x530 y25 " . sectionColor, % currentDictionary.Txt_Buzzwole
-Gui, Add, Checkbox, % (Shining ? "Checked" : "") " vShining x530 y50 " . sectionColor, % currentDictionary.Txt_Shining
-Gui, Add, Checkbox, % (Arceus ? "Checked" : "") " vArceus x530 y75 " . sectionColor, % currentDictionary.Txt_Arceus
-Gui, Add, Checkbox, % (Palkia ? "Checked" : "") " vPalkia x530 y100 " . sectionColor, % currentDictionary.Txt_Palkia
-Gui, Add, Checkbox, % (Dialga ? "Checked" : "") " vDialga x530 y125 " . sectionColor, % currentDictionary.Txt_Dialga
-Gui, Add, Checkbox, % (Solgaleo ? "Checked" : "") " vSolgaleo x530 y150 " . sectionColor, % currentDictionary.Txt_Solgaleo
-Gui, Add, Checkbox, % (Lunala ? "Checked" : "") " vLunala x530 y175 " . sectionColor, % currentDictionary.Txt_Lunala
-
-Gui, Add, Checkbox, % (Pikachu ? "Checked" : "") " vPikachu x530 y200 " . sectionColor, % currentDictionary.Txt_Pikachu
-Gui, Add, Checkbox, % (Charizard ? "Checked" : "") " vCharizard x530 y225 " . sectionColor, % currentDictionary.Txt_Charizard
-Gui, Add, Checkbox, % (Mewtwo ? "Checked" : "") " vMewtwo x530 y250 " . sectionColor, % currentDictionary.Txt_Mewtwo
-Gui, Add, Checkbox, % (Mew ? "Checked" : "") " vMew x530 y275 " . sectionColor, % currentDictionary.Txt_Mew
+Gui, Add, Checkbox, % (Eevee ? "Checked" : "") " vEevee x530 y25 " . sectionColor, % currentDictionary.Txt_Eevee
+Gui, Add, Checkbox, % (Buzzwole ? "Checked" : "") " vBuzzwole x530 y50 " . sectionColor, % currentDictionary.Txt_Buzzwole
+Gui, Add, Checkbox, % (Shining ? "Checked" : "") " vShining x530 y75 " . sectionColor, % currentDictionary.Txt_Shining
+Gui, Add, Checkbox, % (Arceus ? "Checked" : "") " vArceus x530 y100 " . sectionColor, % currentDictionary.Txt_Arceus
+Gui, Add, Checkbox, % (Palkia ? "Checked" : "") " vPalkia x530 y125 " . sectionColor, % currentDictionary.Txt_Palkia
+Gui, Add, Checkbox, % (Dialga ? "Checked" : "") " vDialga x530 y150 " . sectionColor, % currentDictionary.Txt_Dialga
+Gui, Add, Checkbox, % (Solgaleo ? "Checked" : "") " vSolgaleo x530 y175 " . sectionColor, % currentDictionary.Txt_Solgaleo
+Gui, Add, Checkbox, % (Lunala ? "Checked" : "") " vLunala x530 y200 " . sectionColor, % currentDictionary.Txt_Lunala
+Gui, Add, Checkbox, % (Pikachu ? "Checked" : "") " vPikachu x530 y225 " . sectionColor, % currentDictionary.Txt_Pikachu
+Gui, Add, Checkbox, % (Charizard ? "Checked" : "") " vCharizard x530 y250 " . sectionColor, % currentDictionary.Txt_Charizard
+Gui, Add, Checkbox, % (Mewtwo ? "Checked" : "") " vMewtwo x530 y275 " . sectionColor, % currentDictionary.Txt_Mewtwo
+Gui, Add, Checkbox, % (Mew ? "Checked" : "") " vMew x530 y300 " . sectionColor, % currentDictionary.Txt_Mew
 
 ; ========== Column 4 ==========
 ; ==============================

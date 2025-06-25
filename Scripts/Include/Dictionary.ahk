@@ -87,6 +87,7 @@
         Lang["Txt_claimSpecialMissions"] := "Claim Special Missions"
         Lang["SortByText"] := "Sort By:"
 
+        Lang["Txt_Eevee"] := "Eevee"
         Lang["Txt_Buzzwole"] := "Buzzwole"
         Lang["Txt_Solgaleo"] := "Solgaleo"
         Lang["Txt_Lunala"] := "Lunala"
@@ -212,6 +213,7 @@
         Lang["Txt_claimSpecialMissions"] := "領取特殊任務"
         Lang["SortByText"] := "注入排序："
 
+        Lang["Txt_Eevee"] := "伊布"
         Lang["Txt_Buzzwole"] := "爆肌蚊"
         Lang["Txt_Solgaleo"] := "索爾迦雷歐"
         Lang["Txt_Lunala"] := "露奈雅拉"
@@ -337,6 +339,7 @@
         Lang["Txt_claimSpecialMissions"] := "イベント"
         Lang["SortByText"] := "注入序列："
 
+        Lang["Txt_Eevee"] := "イーブイ"
         Lang["Txt_Buzzwole"] := "マッシブーン"
         Lang["Txt_Solgaleo"] := "ソルガレオ"
         Lang["Txt_Lunala"] := "ルナアーラ"
@@ -464,7 +467,8 @@
         Lang["Txt_openExtraPack"] := "Extra-Pack öffnen"
         Lang["Txt_claimSpecialMissions"] := "Spezialmissionen"
         Lang["SortByText"] := "Sortieren nach:"
-
+        
+        Lang["Txt_Eevee"] := "Eevee"
         Lang["Txt_Buzzwole"] := "Masskito"
         Lang["Txt_Solgaleo"] := "Solgaleo"
         Lang["Txt_Lunala"] := "Lunala"
