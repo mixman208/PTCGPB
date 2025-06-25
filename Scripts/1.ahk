@@ -320,14 +320,14 @@ if(DeadCheck = 1 && deleteMethod != "13 Pack") {
 
         if (avgtotalSeconds > 0 ) {
             StartTime := changeDate
-            StartTime += -(1.5*avgtotalSeconds), Seconds
+            StartTime += -(0.7*avgtotalSeconds), Seconds
             EndTime := changeDate
-            EndTime += (1.5*avgtotalSeconds), Seconds
+            EndTime += (0.3*avgtotalSeconds), Seconds
         } else {
             StartTime := changeDate
-            StartTime += -10, minutes
+            StartTime += -5, minutes
             EndTime := changeDate
-            EndTime += 5, minutes
+            EndTime += 2, minutes
         }
 
         StartCurrentTimeDiff := A_Now
