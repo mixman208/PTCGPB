@@ -4204,7 +4204,7 @@ CheckForUpdate() {
    }
    else
    {
-      MsgBox, 0x40000, Check for Update, % currentDictionary.up_to_date
+      ;MsgBox, 0x40000, Check for Update, % currentDictionary.up_to_date
    }
 }
 
