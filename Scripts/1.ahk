@@ -861,7 +861,7 @@ RemoveFriends() {
             FindImageAndClick(135, 355, 160, 385, , "Remove", 145, 407)
             FindImageAndClick(70, 395, 100, 420, , "Send2", 200, 372)
         }
-        FindImageAndClick(226, 100, 270, 135, , "Add", 143, 507)
+        FindImageAndClick(226, 100, 270, 135, , "Add", 143, 507, 750)
         friendsProcessed++
     }
 
