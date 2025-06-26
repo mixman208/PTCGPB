@@ -948,7 +948,7 @@ NextStep:
    AddCheckBox(CheckOptions)
    
    Gui, Add, Text, % "vs4tWPMinCardsLabel x" . xPos . " y310 BackgroundTrans" . (!s4tEnabled || !s4tWP ? " Hidden " : ""), % currentDictionary.Txt_s4tWPMinCards
-   Gui, Add, Edit, % (CurrentTheme = "Dark"? "cFDFDFD ": "cBC0000 ") . "vs4tWPMinCards w40 x" . xPos+120 . " y310 h20 -E0x200 Center backgroundtrans gs4tWPMinCardsCheck " . (!s4tEnabled || !s4tWP ? "Hidden" : ""), %s4tWPMinCards%
+   Gui, Add, DropDownList, % "vs4tWPMinCards x" . xPos+120 . " y307 w40 hwnds4tMin +0x0210 choose" . (s4tWPMinCards=2?2:1) . " -E0x200 Center backgroundtrans" . (!s4tEnabled || !s4tWP ? " Hidden" : ""), 1|2
    
    Gui, Add, Text, % "x" . xPos . " y335 w275 h1 vS4T_Divider2 +0x10 BackgroundTrans" . (!s4tEnabled ? " Hidden" : "") ; Creates a horizontal line
    ; === S4T Discord Settings (now part of Save For Trade) ===
@@ -978,6 +978,22 @@ NextStep:
       ,CheckOptions["textX"] := xPos+35
       ,CheckOptions["textY"] := 465
    AddCheckBox(CheckOptions)
+
+   if (s4tEnabled) {
+   ShowControls(s4tMainControls)
+   ; Gholdengo show/hide
+      if (Shining) {
+         ShowControls("s4tGholdengo,s4tGholdengoEmblem,s4tGholdengoArrow")
+      } else {
+         HideControls("s4tGholdengo,s4tGholdengoEmblem,s4tGholdengoArrow")
+      }
+   ; s4tWP show/hide
+      if (s4tWP) {
+         ShowControls("s4tWPMinCardsLabel,s4tWPMinCards")
+      } else {
+         HideControls("s4tWPMinCardsLabel,s4tWPMinCards")
+      }
+   }
    
    if (!s4tEnabled) {
       GuiControl, Hide, s4tSilent
@@ -1122,6 +1138,7 @@ NextStep:
       OD_Colors.Attach(MinA1M,{T: 0XFDFDFD, B: 0X7C8590})
       OD_Colors.Attach(Method,{T: 0XFDFDFD, B: 0X7C8590})
       OD_Colors.Attach(Sortby,{T: 0XFDFDFD, B: 0X7C8590})
+      OD_Colors.Attach(s4tMin,{T: 0XFDFDFD, B: 0X7C8590})
    } else {
       OD_Colors.Attach(Moitor,{T: 0XBC0000, B: 0XFFD1CD})
       OD_Colors.Attach(Scale,{T: 0XBC0000, B: 0XFFD1CD})
@@ -1141,6 +1158,7 @@ NextStep:
       OD_Colors.Attach(MinA1M,{T: 0XBC0000, B: 0XFFD1CD})
       OD_Colors.Attach(Method,{T: 0XBC0000, B: 0XFFD1CD})
       OD_Colors.Attach(Sortby,{T: 0XBC0000, B: 0XFFD1CD})
+      OD_Colors.Attach(s4tMin,{T: 0XBC0000, B: 0XFFD1CD})
    }
    
    WinGet, mainHwnd, ID, Arturo's PTCGP BOT
@@ -2997,15 +3015,6 @@ s4tWPSettings:
       GuiControl, Hide, s4tWPMinCardsLabel
       GuiControl, Hide, s4tWPMinCards
    }
-return
-
-s4tWPMinCardsCheck:
-   GuiControlGet, s4tWPMinCards
-   if (s4tWPMinCards < 1)
-      s4tWPMinCards := 1
-   if (s4tWPMinCards > 2)
-      s4tWPMinCards := 2
-   GuiControl,, s4tWPMinCards, %s4tWPMinCards%
 return
 
 discordSettings:

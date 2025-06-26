@@ -453,7 +453,7 @@ else if (injectSortMethod = "PacksAsc")
   sortOption := 3
 else if (injectSortMethod = "PacksDesc")
   sortOption := 4
-Gui, Add, DropDownList, vSortByDropdow gSortByDropdownHandler choose%sortOption% x350 y298 w130 Background2A2A2A cWhite, Oldest First|Newest First|Fewest Packs First|Most Packs First
+Gui, Add, DropDownList, vSortByDropdown gSortByDropdownHandler choose%sortOption% x350 y298 w130 Background2A2A2A cWhite, Oldest First|Newest First|Fewest Packs First|Most Packs First
 
 ; ========== Card Detection Section ==========
 sectionColor := "cFF4500" ; Orange Red
@@ -637,9 +637,7 @@ SortByDropdownHandler:
   
   ; Save the updated setting
   IniWrite, %injectSortMethod%, Settings.ini, UserSettings, injectSortMethod
-  
-  ; Save all settings to ensure consistency
-  SaveAllSettings()
+
 return
 
 discordSettings:
