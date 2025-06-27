@@ -1152,13 +1152,20 @@ FindOrLoseImage(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT", E
     } else if(!confirmed && vRet = GDEL && GDEL = 0) {
         confirmed := true
     }
-    Path = %imagePath%App.png
-    pNeedle := GetNeedle(Path)
-    ; ImageSearch within the region
-    vRet := Gdip_ImageSearch_wbb(pBitmap, pNeedle, vPosXY, 225, 300, 242, 314, searchVariation)
-    if (vRet = 1) {
-        restartGameInstance("Stuck at " . imageName . "...")
+
+    loadingPeriod := 30000 ; When we are loading an account, don't check for this for 30 seconds
+    if (!accountLoadingTime || (A_TickCount - accountLoadingTime) > loadingPeriod)
+    {    
+        Path = %imagePath%App.png
+        pNeedle := GetNeedle(Path)
+        ; ImageSearch within the region
+        vRet := Gdip_ImageSearch_wbb(pBitmap, pNeedle, vPosXY, 225, 300, 242, 314, searchVariation)
+        if (vRet = 1) {
+            restartGameInstance("Stuck at " . imageName . "...")
+        }
     }
+
+
     if(imageName = "Social" || imageName = "Add" || imageName = "Add2") {
         TradeTutorial()
     }
@@ -1198,7 +1205,7 @@ FindOrLoseImage(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT", E
     return confirmed
 }
 FindImageAndClick(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT", clickx := 0, clicky := 0, sleepTime := "", skip := false, safeTime := 0) {
-    global winTitle, failSafe, confirmed, slowMotion
+    global winTitle, failSafe, confirmed, slowMotion, accountLoadingTime
 
     if(slowMotion) {
         if(imageName = "Platin" || imageName = "One" || imageName = "Two" || imageName = "Three")
@@ -1345,13 +1352,19 @@ FindImageAndClick(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT",
             adbClick_wbb(139, 386)
             Sleep, 1000
         }
-        Path = %imagePath%App.png
-        pNeedle := GetNeedle(Path)
-        ; ImageSearch within the region
-        vRet := Gdip_ImageSearch_wbb(pBitmap, pNeedle, vPosXY, 225, 300, 242, 314, searchVariation)
-        if (vRet = 1) {
-            restartGameInstance("Stuck at " . imageName . "...")
+
+        loadingPeriod := 30000 ; When we are loading an account, don't check for this for 30 seconds
+        if (!accountLoadingTime || (A_TickCount - accountLoadingTime) > loadingPeriod)
+        {    
+            Path = %imagePath%App.png
+            pNeedle := GetNeedle(Path)
+            ; ImageSearch within the region
+            vRet := Gdip_ImageSearch_wbb(pBitmap, pNeedle, vPosXY, 225, 300, 242, 314, searchVariation)
+            if (vRet = 1) {
+                restartGameInstance("Stuck at " . imageName . "...")
+            }
         }
+
         if(imageName = "Social" || imageName = "Country" || imageName = "Account2" || imageName = "Account") { ;only look for deleted account on start up.
             Path = %imagePath%NoSave.png ; look for No Save Data error message > if loaded account > delete xml > reload
             pNeedle := GetNeedle(Path)
@@ -2272,6 +2285,8 @@ GodPackFound(validity) {
 
 
 loadAccount() {
+
+    global accountLoadingTime := A_TickCount  ; During the load operation, don't check for App.png
 
     beginnerMissionsDone := 0
     soloBattleMissionDone := 0
