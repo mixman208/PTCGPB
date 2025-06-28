@@ -2055,6 +2055,10 @@ FoundStars(star) {
         }
     }
 
+    if (FileExist(usernameScreenshotFile)) {
+        FileDelete, %usernameScreenshotFile%
+    }
+
     CreateStatusMessage(star . " found!",,,, false)
 
     statusMessage := star . " found"
@@ -2268,7 +2272,6 @@ GodPackFound(validity) {
     if (FileExist(usernameScreenshotFile)) {
         FileDelete, %usernameScreenshotFile%
     }
-
 
     CreateStatusMessage(Interjection . (invalid ? " " . invalid : "") . " God Pack found!",,,, false)
     logMessage := Interjection . "\n" . username . " (" . friendCode . ")\n[" . starCount . "/5][" . packsInPool . "P][" . openPack . "] " . invalid . " God Pack found in instance: " . scriptName . "\nFile name: " . accountFile . "\nBacking up to the Accounts\\GodPacks folder and continuing..."
