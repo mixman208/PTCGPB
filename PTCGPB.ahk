@@ -84,7 +84,7 @@ OnError("ErrorHandler")
 
 githubUser := "mixman208"
    ,repoName := "PTCGPB"
-   ,localVersion := "v6.4.20"
+   ,localVersion := "v6.4.21"
    ,scriptFolder := A_ScriptDir
    ,zipPath := A_Temp . "\update.zip"
    ,extractPath := A_Temp . "\update"
@@ -2339,7 +2339,7 @@ CreateDefaultSettingsFile() {
       iniContent .= "maxWaitHours=24`n"
       iniContent .= "menuExpanded=True`n"
       
-      FileAppend, %iniContent%, Settings.ini
+      FileAppend, %iniContent%, Settings.ini, UTF-16
       return true
    }
    return false
@@ -2518,7 +2518,7 @@ SaveAllSettings() {
    ;iniContent .= "useBackgroundImage=" useBackgroundImage "`n"
    iniFull := iniContent . iniContent_Second . iniContent_third
    FileDelete, Settings.ini
-   FileAppend, %iniFull%, Settings.ini
+   FileAppend, %iniFull%, Settings.ini, UTF-16
    
    if (debugMode) {
       FileAppend, % A_Now . " - Settings saved. DeleteMethod: " . deleteMethod . "`n", %A_ScriptDir%\debug_settings.log

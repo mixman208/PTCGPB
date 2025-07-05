@@ -909,7 +909,7 @@ PageBtnShift(Language) {
         ys_Background := 0
         ys_Theme := 0
         ys_Reload := 0
-    } else if (defaultBotLanguage := 4) {
+    } else if (defaultBotLanguage = 4) {
         xs_TitleSet := 0
         xs_Reroll := -15
         xs_System := -15
