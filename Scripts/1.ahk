@@ -882,12 +882,15 @@ TradeTutorial() {
         Loop{
             adbClick_wbb(167, 437)
             Delay(1)
-            if(FindOrLoseImage(15, 455, 40, 475, ,"Add2", 0))          
+            if(FindOrLoseImage(15, 455, 40, 475, ,"Add2", 0))
                 break
+            if(FindOrLoseImage(226, 100, 270, 135, ,"Add", 0))
+                break
+            adbClick_wbb(38, 460)
+            Delay(1)
         }
-        Delay(2)
+
         FindImageAndClick(226, 100, 270, 135, , "Add", 38, 460, 500,,2)
-        Delay(2)
     }
     Delay(1)
 }
@@ -1334,8 +1337,6 @@ FindImageAndClick(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT",
             }
             if (ElapsedTime >= FSTime || safeTime >= FSTime) {
                 CreateStatusMessage("Instance " . scriptName . " has been stuck for 90s. Killing it...")
-					if (injectMethod)
-						RemoveFriends()
                 restartGameInstance("Stuck at " . imageName . "...") ; change to reset the instance and delete data then reload script
                 StartSkipTime := A_TickCount
                 failSafe := A_TickCount
