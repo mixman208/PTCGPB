@@ -1124,7 +1124,6 @@ FindOrLoseImage(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT", E
         CreateStatusMessage("Finding " . imageName . "...")
     }
 
-
     pBitmap := from_window(WinExist(winTitle))
     Path = %imagePath%%imageName%.png
     pNeedle := GetNeedle(Path)
@@ -1165,10 +1164,16 @@ FindOrLoseImage(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT", E
     } else if(!confirmed && vRet = GDEL && GDEL = 0) {
         confirmed := true
     }
-
-    loadingPeriod := 30000 ; When we are loading an account, don't check for this for 30 seconds
-    if (!accountLoadingTime || (A_TickCount - accountLoadingTime) > loadingPeriod)
-    {    
+    Path = %imagePath%Error.png ; Search for communication error
+    pNeedle := GetNeedle(Path)
+    ; ImageSearch within the region
+    vRet := Gdip_ImageSearch_wbb(pBitmap, pNeedle, vPosXY, 120, 187, 155, 210, searchVariation)
+    if (vRet = 1) {
+        CreateStatusMessage("Error message in " . scriptName . ". Clicking retry...",,,, false)
+        adbClick_wbb(139, 386)
+        Sleep, 1000
+    }
+    
         Path = %imagePath%App.png
         pNeedle := GetNeedle(Path)
         ; ImageSearch within the region
@@ -1176,12 +1181,11 @@ FindOrLoseImage(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT", E
         if (vRet = 1) {
             restartGameInstance("Stuck at " . imageName . "...")
         }
-    }
-
 
     if(imageName = "Social" || imageName = "Add" || imageName = "Add2") {
         TradeTutorial()
     }
+
     if(imageName = "Social" || imageName = "Country" || imageName = "Account2" || imageName = "Account" || imageName = "Points") { ;only look for deleted account on start up.
         Path = %imagePath%NoSave.png ; look for No Save Data error message > if loaded account > delete xml > reload
         pNeedle := GetNeedle(Path)
@@ -1218,7 +1222,7 @@ FindOrLoseImage(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT", E
     return confirmed
 }
 FindImageAndClick(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT", clickx := 0, clicky := 0, sleepTime := "", skip := false, safeTime := 0) {
-    global winTitle, failSafe, confirmed, slowMotion, accountLoadingTime
+    global winTitle, failSafe, confirmed, slowMotion
 
     if(slowMotion) {
         if(imageName = "Platin" || imageName = "One" || imageName = "Two" || imageName = "Three")
@@ -1348,8 +1352,6 @@ FindImageAndClick(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT",
             if (ElapsedTime >= FSTime || safeTime >= FSTime) {
                 CreateStatusMessage("Instance " . scriptName . " has been stuck for 90s. Killing it...")
                 restartGameInstance("Stuck at " . imageName . "...") ; change to reset the instance and delete data then reload script
-                StartSkipTime := A_TickCount
-                failSafe := A_TickCount
             }
         }
         Path = %imagePath%Error.png ; Search for communication error
@@ -1363,10 +1365,6 @@ FindImageAndClick(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT",
             adbClick_wbb(139, 386)
             Sleep, 1000
         }
-
-        loadingPeriod := 30000 ; When we are loading an account, don't check for this for 30 seconds
-        if (!accountLoadingTime || (A_TickCount - accountLoadingTime) > loadingPeriod)
-        {    
             Path = %imagePath%App.png
             pNeedle := GetNeedle(Path)
             ; ImageSearch within the region
@@ -1374,8 +1372,7 @@ FindImageAndClick(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT",
             if (vRet = 1) {
                 restartGameInstance("Stuck at " . imageName . "...")
             }
-        }
-
+            
         if(imageName = "Social" || imageName = "Country" || imageName = "Account2" || imageName = "Account") { ;only look for deleted account on start up.
             Path = %imagePath%NoSave.png ; look for No Save Data error message > if loaded account > delete xml > reload
             pNeedle := GetNeedle(Path)
@@ -2078,7 +2075,6 @@ FoundStars(star) {
     if (friendCode)
         statusMessage .= " (" . friendCode . ")"
 
-
     logMessage := statusMessage . " in instance: " . scriptName . " (" . packsInPool . " packs, " . openPack . ")\nFile name: " . accountFile . "\nBacking up to the Accounts\\SpecificCards folder and continuing..."
     LogToDiscord(logMessage, screenShot, true, (sendAccountXml ? accountFullPath : ""), fcScreenshot)
     LogToFile(StrReplace(logMessage, "\n", " "), "GPlog.txt")
@@ -2297,10 +2293,7 @@ GodPackFound(validity) {
     }
 }
 
-
 loadAccount() {
-
-    global accountLoadingTime := A_TickCount  ; During the load operation, don't check for App.png
 
     beginnerMissionsDone := 0
     soloBattleMissionDone := 0
@@ -3867,15 +3860,19 @@ SelectPack(HG := false) {
                 break
 			} else if(FindOrLoseImage(92, 299, 115, 317, , "notenoughitems", 0)) {
 				cantOpenMorePacks := 1
-			}
+			} else if(FindOrLoseImage(191, 393, 211, 411, , "Shop", 0, failSafeTime)){
+            SelectPack("HGPack")
+            }
+
 			if(cantOpenMorePacks)
 				return
             Delay(1)
             adbClick_wbb(200, 451) ;for hourglass???
             failSafeTime := (A_TickCount - failSafe) // 1000
             CreateStatusMessage("Waiting for Skip2`n(" . failSafeTime . "/45 seconds)")
-        }
+    }
 }
+
 PackOpening() {
     failSafe := A_TickCount
     failSafeTime := 0
@@ -4029,7 +4026,7 @@ HourglassOpening(HG := false, NEIRestart := true) {
 		if(cantOpenMorePacks)
 			return
 
-        if(FindOrLoseImage(100, 240, 185, 275, , "Error", 0, failSafeTime)){
+        if(FindOrLoseImage(191, 393, 211, 411, , "Shop", 0, failSafeTime)){
             SelectPack("HGPack")
         }
 		
