@@ -39,9 +39,6 @@ avgtotalSeconds := 0
 
 global accountOpenPacks, accountFileName, accountFileNameOrig, accountFileNameTmp, accountHasPackInfo, ocrSuccess, packsInPool, packsThisRun, aminutes, aseconds, rerolls, rerollStartTime, maxAccountPackNum, cantOpenMorePacks, rerolls_local, rerollStartTime_local
 
-rerolls_local := 0
-rerollStartTime_local := A_TickCount
-
 cantOpenMorePacks := 0
 maxAccountPackNum := 40
 aminutes := 0
@@ -211,7 +208,7 @@ Loop {
         if (scaleParam = 287)
             buttonWidth := buttonWidth + 5
 
-        Gui, New, +Owner%OwnerWND% -AlwaysOnTop +ToolWindow -Caption +LastFound -DPIScale 
+        Gui, New, +Owner%OwnerWND% -AlwaysOnTop +ToolWindow -Caption +LastFound -DPIScale
         Gui, Default
         Gui, Margin, 4, 4  ; Set margin for the GUI
         Gui, Font, s5 cGray Norm Bold, Segoe UI  ; Normal font for input labels
@@ -219,10 +216,10 @@ Loop {
         Gui, Add, Button, % "x" . (buttonWidth * 1) . " y0 w" . buttonWidth . " h25 gPauseScript", Pause (Shift+F6)
         Gui, Add, Button, % "x" . (buttonWidth * 2) . " y0 w" . buttonWidth . " h25 gResumeScript", Resume (Shift+F6)
         Gui, Add, Button, % "x" . (buttonWidth * 3) . " y0 w" . buttonWidth . " h25 gStopScript", Stop (Shift+F7)
-		;if(winTitle=1)
+        ;if(winTitle=1)
         Gui, Add, Button, % "x" . (buttonWidth * 4) . " y0 w" . buttonWidth . " h25 gDevMode", Dev Mode (Shift+F8)
         DllCall("SetWindowPos", "Ptr", WinExist(), "Ptr", 1  ; HWND_BOTTOM
-                , "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)  ; SWP_NOSIZE, SWP_NOMOVE, SWP_NOACTIVATE
+            , "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)  ; SWP_NOSIZE, SWP_NOMOVE, SWP_NOACTIVATE
         Gui, Show, NoActivate x%x4% y%y4%  w275 h30
         break
     }
@@ -264,6 +261,9 @@ if(InStr(deleteMethod, "Inject"))
 initializeAdbShell()
 
 createAccountList(scriptName)
+
+rerolls_local := 0
+rerollStartTime_local := A_TickCount
 
 if(injectMethod && DeadCheck != 1) {
     loadedAccount := loadAccount()
@@ -320,7 +320,7 @@ if(DeadCheck = 1 && deleteMethod != "13 Pack") {
 
         if (avgtotalSeconds > 0 ) {
             StartTime := changeDate
-            StartTime += -(0.7*avgtotalSeconds), Seconds
+            StartTime += -(1.0*avgtotalSeconds), Seconds
             EndTime := changeDate
             EndTime += (0.3*avgtotalSeconds), Seconds
         } else {
