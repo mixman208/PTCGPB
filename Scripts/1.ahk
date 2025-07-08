@@ -825,34 +825,42 @@ RemoveFriends() {
     
     FindImageAndClick(226, 100, 270, 135, , "Add", 38, 460)
     FindImageAndClick(97, 452, 104, 476, 10, "requests", 174, 467)
+    failSafe := A_TickCount
+    failSafeTime := 0
     Loop{
-        if (FindOrLoseImage(191, 498, 207, 514, , "clearAll", 0))
+        if (FindOrLoseImage(191, 498, 207, 514, , "clearAll", 0, failSafeTime))
             break
         adbClick(205, 510)
         Delay(1)
-        if (FindOrLoseImage(135, 355, 160, 385, , "Remove", 0))
+        if (FindOrLoseImage(135, 355, 160, 385, , "Remove", 0, failSafeTime))
             adbClick(210, 372)
+        failSafeTime := (A_TickCount - failSafe) // 1000
+        CreateStatusMessage("Waiting for clearaAll`n(" . failSafeTime . "/45 seconds)")
     }
     FindImageAndClick(84, 463, 100, 475, 10, "Friends", 22, 464)
     friendsProcessed := 0
     finished := false
     accepted := false
     Loop {
+        failSafe := A_TickCount
+        failSafeTime := 0
         Loop {
             adbClick(58, 190)
             Delay(1)
-            if(FindOrLoseImage(87, 401, 99, 412, , "Accepted2", 0)){
+            if(FindOrLoseImage(87, 401, 99, 412, , "Accepted2", 0, failSafeTime)){
                 accepted := true
                 break
             }
-            else if(FindOrLoseImage(84, 463, 100, 475, 10, "Friends", 0)) {
-                if(FindOrLoseImage(42, 163, 66, 185, 10, "empty", 0)) {
+            else if(FindOrLoseImage(84, 463, 100, 475, 10, "Friends", 0, failSafeTime)) {
+                if(FindOrLoseImage(42, 163, 66, 185, 10, "empty", 0, failSafeTime)) {
                     finished := true
                     break
                 }
             }
-            else if(FindOrLoseImage(70, 395, 100, 420, , "Send2", 0)) 
+            else if(FindOrLoseImage(70, 395, 100, 420, , "Send2", 0, failSafeTime))
                 break
+            failSafeTime := (A_TickCount - failSafe) // 1000
+            CreateStatusMessage("Waiting for Accepted2`n(" . failSafeTime . "/45 seconds)")
         }
         if(finished)
             break
@@ -997,7 +1005,8 @@ AddFriends(renew := false, getFC := false) {
             adbClick_wbb(232, 453)
             if(FindOrLoseImage(165, 250, 190, 275, , "Send", 0, failSafeTime)) {
                 adbClick_wbb(243, 258)
-                Delay(2)
+                adbClick_wbb(243, 258)
+                adbClick_wbb(243, 258)
                 break
             }
             else if(FindOrLoseImage(165, 240, 255, 270, , "Withdraw", 0, failSafeTime)) {
@@ -1008,7 +1017,8 @@ AddFriends(renew := false, getFC := false) {
                     FindImageAndClick(135, 355, 160, 385, , "Remove", 193, 258)
                     FindImageAndClick(165, 250, 190, 275, , "Send", 200, 372)
                     adbClick_wbb(243, 258)
-                    Delay(2)
+                    adbClick_wbb(243, 258)
+                    adbClick_wbb(243, 258)
                 }
                 break
             }
