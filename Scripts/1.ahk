@@ -1550,14 +1550,12 @@ restartGameInstance(reason, RL := true) {
             adbShell.StdIn.WriteLine("rm /data/data/jp.pokemon.pokemontcgp/shared_prefs/deviceAccount:.xml") ; delete account data
             ;MsgBox, 3
             ;TODO improve friend list cluter with deadcheck/stuck at, for injection. need to check also loadAccount at the beggining
-        }
-        waitadb()
-        Sleep, 500
-        adbShell.StdIn.WriteLine("am start -n jp.pokemon.pokemontcgp/com.unity3d.player.UnityPlayerActivity")
-        
-        waitadb()
-        Sleep, 5000
-        ;MsgBox, 4
+            }
+            waitadb()
+            Sleep, 500
+            adbShell.StdIn.WriteLine("am start -W -n jp.pokemon.pokemontcgp/com.unity3d.player.UnityPlayerActivity -f 0x10018000")
+            waitadb()
+            Sleep, 5000
         if (RL) {
             
             AppendToJsonFile(packsThisRun)
@@ -1731,7 +1729,6 @@ CheckPack() {
 	accountOpenPacks += 1
 	if (injectMethod && loadedAccount)
 		UpdateAccount()
-		
 	
     packsInPool += 1
     packsThisRun += 1
@@ -1953,7 +1950,6 @@ FoundTradeable(found3Dmnd := 0, found4Dmnd := 0, found1Star := 0, foundGimmighou
         statusMessage .= " by " . username
     if (friendCode)
         statusMessage .= " (" . friendCode . ")"
-
 
     if (!s4tWP || (s4tWP && foundTradeable < s4tWPMinCards)) {
         CreateStatusMessage("Tradeable cards found! Continuing...",,,, false)
@@ -2385,25 +2381,18 @@ loadAccount() {
         return false
     }
 
-    ; OPTIMIZED ADB OPERATIONS - Reduced delays
-    waitadb()
     adbShell.StdIn.WriteLine("am force-stop jp.pokemon.pokemontcgp")
     waitadb()
-
-    Sleep, 1500  ; Reduced from 3000
     RunWait, % adbPath . " -s 127.0.0.1:" . adbPort . " push " . loadFile . " /sdcard/deviceAccount.xml",, Hide
-
-    Sleep, 1500  ; Reduced from 3000
     waitadb()
     adbShell.StdIn.WriteLine("cp /sdcard/deviceAccount.xml /data/data/jp.pokemon.pokemontcgp/shared_prefs/deviceAccount:.xml")
     waitadb()
     adbShell.StdIn.WriteLine("rm /sdcard/deviceAccount.xml")
     waitadb()
-    Sleep, 1000  ; Reduced from 3000
-    adbShell.StdIn.WriteLine("am start -n jp.pokemon.pokemontcgp/com.unity3d.player.UnityPlayerActivity")
+    ; Reliably restart the app: Wait for launch, and start in a clean, new task without animation.
+    adbShell.StdIn.WriteLine("am start -W -n jp.pokemon.pokemontcgp/com.unity3d.player.UnityPlayerActivity -f 0x10018000")
     waitadb()
     Sleep, 500   ; Reduced from 1000
-
     ; Parse account filename for pack info (unchanged)
     if (InStr(accountFileName, "P")) {
         accountFileNameParts := StrSplit(accountFileName, "P")
@@ -2696,7 +2685,6 @@ ReadFile(filename, numbers := false) {
     return values.MaxIndex() ? values : false
 }
 
-
 Screenshot_dev(fileType := "Dev",subDir := "") {
 	global adbShell, scriptName, ocrLanguage, loadDir
 
@@ -2761,7 +2749,6 @@ Screenshot_dev(fileType := "Dev",subDir := "") {
 		MouseGetPos , X3, Y3, OutputVarWin, OutputVarControl
 		KeyWait, LButton, U
 		Y3 -= 31
-		
 		
 		MsgBox, 	
 		(LTrim
@@ -3043,7 +3030,6 @@ bboxDraw(X1, Y1, X2, Y2, color) {
 
 }
 
-
 bboxDraw2(X1, Y1, X2, Y2, color) {
 	WinGetPos, xwin, ywin, Width, Height, %winTitle%
     BoxWidth := 10
@@ -3157,7 +3143,6 @@ bboxAndPause_immage(X1, Y1, X2, Y2, pNeedleObj, vret := False, doPause := False)
     }
     Gui, BoundingBox%winTitle%:Destroy
 }
-
 
 Gdip_ImageSearch_wbb(pBitmapHaystack,pNeedle,ByRef OutputList=""
 ,OuterX1=0,OuterY1=0,OuterX2=0,OuterY2=0,Variation=0,Trans=""
@@ -3373,9 +3358,7 @@ DoTutorial() {
         adbClick_wbb(41, 296)
     }
     FindImageAndClick(190, 241, 225, 270, , "Name", 189, 438) ;wait for name input screen
-
-    /*
-    ; Picks Erika at creation - disabled
+    /* ; Picks Erika at creation - disabled
     Delay(1)
     if(FindOrLoseImage(147, 160, 157, 169, , "Erika", 1)) {
         adbClick_wbb(143, 207)
@@ -3683,8 +3666,6 @@ SelectPack(HG := false) {
 	} else {
 		packInTopRowsOfSelectExpansion := 0
 	}
-	
-	
 
 	if(HG = "First" && injectMethod && loadedAccount ){
 		; when First and injection, if there are free packs, we don't land/start in home screen, 
@@ -3811,11 +3792,9 @@ SelectPack(HG := false) {
         FindImageAndClick(233, 400, 264, 428, , "Points", packx, packy)
     }
 	
-	
 	if(HG = "First" && injectMethod && loadedAccount && !accountHasPackInfo) {
 		FindPackStats()
 	}
-	
 	
     if(HG = "Tutorial") {
         FindImageAndClick(236, 198, 266, 226, , "Hourglass2", 180, 436, 500) ;stop at hourglasses tutorial 2 180 to 203?
