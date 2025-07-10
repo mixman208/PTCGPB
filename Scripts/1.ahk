@@ -3835,7 +3835,7 @@ SelectPack(HG := false) {
         failSafe := A_TickCount
         failSafeTime := 0
         Loop {
-            if(FindImageAndClick(233, 486, 272, 519, , "Skip2", 172, 430, , 2)) { ;click on open button until skip button appears
+            if(FindImageAndClick(233, 486, 272, 519, , "Skip2", 143, 417, 2)) { ;click on open button until skip button appears
                 break
 			} else if(FindOrLoseImage(92, 299, 115, 317, , "notenoughitems", 0)) {
 				cantOpenMorePacks := 1
