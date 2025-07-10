@@ -2939,10 +2939,10 @@ spendHourGlassSettings:
    spendHourGlass := !spendHourGlass
    if (spendHourGlass) {
       GuiControl,, spendHourGlass, %checkedPath%
-   } else {
-      GuiControl,, spendHourGlass, %uncheckedPath%
       openExtraPack := 0
       GuiControl,, openExtraPack, %uncheckedPath%
+   } else {
+      GuiControl,, spendHourGlass, %uncheckedPath%
    }
 return
 
@@ -2950,10 +2950,10 @@ openExtraPackSettings:
    openExtraPack := !openExtraPack
    if (openExtraPack) {
       GuiControl,, openExtraPack, %checkedPath%
-   } else {
-      GuiControl,, openExtraPack, %uncheckedPath%
       spendHourGlass := 0
       GuiControl,, spendHourGlass, %uncheckedPath%
+   } else {
+      GuiControl,, openExtraPack, %uncheckedPath%
    }
 return
 
